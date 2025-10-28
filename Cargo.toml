@@ -1,0 +1,42 @@
+[package]
+name = "worship-screens"
+version = "1.1.1"
+authors = ["Sergio Ribera <contact@sergioribera.rs>"]
+license = "MIT OR Apache-2.0"
+edition = "2024"
+
+[workspace]
+members = ["crates/ui"]
+
+[profile.dev]
+opt-level = 1
+incremental = true
+
+[profile.release]
+strip = true
+lto = "thin"
+panic = 'abort'
+opt-level = 3
+codegen-units = 1
+
+[workspace.dependencies]
+slint = { version = "1.13.1", default-features = false, features = [
+    "compat-1-2",
+    "backend-winit",
+    "renderer-winit-skia",
+    "unstable-winit-030",
+] }
+
+[dependencies]
+ashpd = { version = "0.12", default-features = false, features = [
+    "pipewire",
+    "tokio",
+] }
+pipewire = "0.8.0"
+# grafton-ndi = "0.8.1"
+slint.workspace = true
+tokio = { version = "1.48", default-features = false, features = [
+    "macros",
+    "rt-multi-thread",
+] }
+ui = { path = "./crates/ui" }

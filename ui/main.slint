@@ -1,0 +1,42 @@
+import { ListView, Button } from "std-widgets.slint";
+
+export component MainWindow inherits Window {
+    title: "Monitor NDI";
+    width: 600px;
+    height: 400px;
+
+    in property <[image]> sources;
+
+    callback select-sources();
+
+    VerticalLayout {
+        alignment: center;
+
+        Button {
+            text: "Share Screen";
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+
+            clicked => {
+                root.select-sources();
+            }
+        }
+    }
+
+    ListView {
+        padding: 16px;
+
+        for source in sources: HorizontalLayout {
+            spacing: 10px;
+
+            Image {
+                width: 100px;
+                height: 100px;
+                source: source;
+                image-fit: cover;
+            }
+        }
+    }
+}
