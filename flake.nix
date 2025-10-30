@@ -12,7 +12,6 @@
     flake-utils.lib.eachDefaultSystem (baseSystem:
       let
         cargoManifest = builtins.fromTOML (builtins.readFile ./Cargo.toml);
-        # architectures = import ./architectures.nix;
 
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs {
@@ -108,12 +107,13 @@
       {
         apps.default = {
             type = "app";
-            program = "${appPkg}/bin/slint_ndi";
+            program = "${appPkg}/bin/${cargoManifest.package.name}";
         };
         packages.default = appPkg;
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             slint-lsp
+            slint-viewer
 
             openssl.dev
             pkg-config

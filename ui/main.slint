@@ -1,39 +1,381 @@
-import { ListView, Button } from "std-widgets.slint";
+import { ListView, Button, TabWidget, ComboBox, TextEdit } from "std-widgets.slint";
 
 export component MainWindow inherits Window {
-    title: "Monitor NDI";
+    title: "Worship Screens";
     width: 600px;
     height: 400px;
 
-    in property <[image]> sources;
+    in property <image> source;
 
-    callback select-sources();
+    callback set-image();
 
-    VerticalLayout {
-        alignment: center;
+    HorizontalLayout {
+        VerticalLayout {
+            width: 70%;
 
-        Button {
-            text: "Share Screen";
-            padding-left: 10px;
-            padding-right: 10px;
-            padding-top: 5px;
-            padding-bottom: 5px;
+            HorizontalLayout {
+                spacing: 5px;
+                padding-left: 10px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                padding-right: 5px;
 
-            clicked => {
-                root.select-sources();
+                settings-btn := Button {
+                    text: "Settings";
+                }
+
+                screen-selector := ComboBox {
+                    model: ["eDP-1", "eDP-2", "eDP-3", "HDMI-3"];
+                    current-index: 1;
+                }
+
+                clean-btn := Button {
+                    text: "Clear";
+                }
+            }
+
+            Rectangle {
+                width: 100%;
+                height: 1px;
+                background: #ccc;
+            }
+
+            TabWidget {
+                current-index: 3;
+
+                Tab {
+                    title: "Verses";
+
+                    VerticalLayout {
+                        padding: 10px;
+                        spacing: 10px;
+
+                        HorizontalLayout {
+
+                            bible-selector := ComboBox {
+                                model: ["Reina Valera 1960", "Nueva Traduccion Viviente"];
+                                current-index: 0;
+                            }
+
+                            TextEdit {
+                                placeholder-text: "Busca: Juan 3:16, Romanos 14:10-14";
+                            }
+                        }
+
+                        ListView {
+                            for e in [
+                                "Porque de tal manera amó Dios al mundo...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                            ]: VerticalLayout {
+                                padding-left: 5px;
+                                padding-right: 5px;
+                                padding-bottom: 10px;
+
+                                Rectangle {
+                                    background: #fff;
+                                    border-radius: 8px;
+
+                                    VerticalLayout {
+                                        padding: 10px;
+
+                                        Text {
+                                            text: e;
+                                            color: #000;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Tab {
+                    title: "Songs";
+                    HorizontalLayout {
+                        VerticalLayout {
+                            padding: 10px;
+                            spacing: 10px;
+
+                            HorizontalLayout {
+                                spacing: 10px;
+                                alignment: center;
+
+                                Text {
+                                    text: "Biblioteca de Canciones";
+                                    vertical-alignment: center;
+                                }
+
+                                Button {
+                                    text: "+";
+                                }
+                            }
+
+                            TextEdit {
+                                placeholder-text: "Buscar canciones";
+                                read-only: false;
+                            }
+
+                            ListView {
+                                for e in [
+                                    "Porque de tal manera amó Dios al mundo...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                ]: VerticalLayout {
+                                    padding-left: 5px;
+                                    padding-right: 5px;
+                                    padding-bottom: 10px;
+
+                                    Rectangle {
+                                        background: #fff;
+                                        border-radius: 8px;
+
+                                        VerticalLayout {
+                                            padding: 10px;
+
+                                            Text {
+                                                text: e;
+                                                color: #000;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        VerticalLayout {
+                            alignment: start;
+                            height: 100px;
+
+                            VerticalLayout {
+                                spacing: 5px;
+
+                                Text {
+                                    text: "Sublime Gracia";
+                                    font-size: 24px;
+                                }
+
+                                Text {
+                                    text: "Tradicional";
+                                }
+                            }
+
+                            ListView {
+                                for e in [
+                                    "Porque de tal manera amó Dios al mundo...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                ]: VerticalLayout {
+                                    padding-left: 5px;
+                                    padding-right: 5px;
+                                    padding-bottom: 10px;
+
+                                    Rectangle {
+                                        background: #fff;
+                                        border-radius: 8px;
+
+                                        VerticalLayout {
+                                            padding: 10px;
+
+                                            Text {
+                                                text: e;
+                                                color: #000;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Tab {
+                    title: "Media";
+                    VerticalLayout {
+                        padding: 10px;
+                        spacing: 10px;
+
+                        HorizontalLayout {
+                            spacing: 10px;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                Text {
+                                    text: "Gestor de Medios";
+                                    font-size: 24px;
+                                }
+
+                                Text {
+                                    text: "Imagenes/Videos/Efectos";
+                                }
+                            }
+
+                            Button {
+                                text: "+";
+                            }
+                        }
+
+                        ListView {
+                            for row in [
+                                ["Porque..", "Jehová", "Jehová", "Jehová", "Jehová"],
+                                ["Jehová", "Jehová", "Jehová", "Jehová", "Jehová"],
+                                ["Jehová", "Jehová", "Jehová", "Jehová"],
+                            ]: HorizontalLayout {
+                                alignment: start;
+
+                                for e in row: VerticalLayout {
+                                    padding-left: 5px;
+                                    padding-right: 5px;
+                                    padding-bottom: 10px;
+
+                                    Rectangle {
+                                        background: #fff;
+                                        border-radius: 8px;
+
+                                        VerticalLayout {
+                                            padding: 10px;
+
+                                            Text {
+                                                text: e;
+                                                color: #000;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Tab {
+                    title: "Text";
+
+                    VerticalLayout {
+                        padding: 10px;
+                        spacing: 10px;
+
+                        HorizontalLayout {
+                            spacing: 10px;
+                            alignment: space-between;
+
+                            Text {
+                                text: "Contenido del Texto";
+                                vertical-alignment: center;
+                            }
+
+                            Button {
+                                text: "Send";
+                            }
+                        }
+
+                        TextEdit {
+                            placeholder-text: "Escribe tu mensaje aquí";
+                            read-only: false;
+                        }
+
+                        Text {
+                            text: "Recientes";
+                        }
+
+                        ListView {
+                            for e in [
+                                "Porque de tal manera amó Dios al mundo...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                                "Jehová es mi pastor; nada me faltará...",
+                            ]: VerticalLayout {
+                                padding-left: 5px;
+                                padding-right: 5px;
+                                padding-bottom: 10px;
+
+                                Rectangle {
+                                    background: #fff;
+                                    border-radius: 8px;
+
+                                    VerticalLayout {
+                                        padding: 10px;
+
+                                        Text {
+                                            text: e;
+                                            color: #000;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
-    }
 
-    ListView {
-        padding: 16px;
+        Rectangle {
+            width: 1px;
+            height: 100%;
+            background: #ccc;
+        }
 
-        for source in sources: HorizontalLayout {
-            spacing: 10px;
+        VerticalLayout {
+            padding: 10px;
+            width: 150px;
+
+            HorizontalLayout {
+                spacing: 5px;
+
+                Button {
+                    text: "Preview";
+                }
+
+                Button {
+                    text: "Send";
+                }
+            }
 
             Image {
-                width: 100px;
-                height: 100px;
+                width: 400px;
+                height: 200px;
                 source: source;
                 image-fit: cover;
             }
