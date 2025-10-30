@@ -2,12 +2,19 @@ import { ListView, Button, TabWidget, ComboBox, TextEdit } from "std-widgets.sli
 
 export component MainWindow inherits Window {
     title: "Worship Screens";
-    width: 600px;
-    height: 400px;
 
     in property <image> source;
 
     callback set-image();
+    callback start-window();
+
+    starter-timer := Timer {
+        interval: 1s;
+        triggered => {
+            start-window();
+            starter-timer.stop();
+        }
+    }
 
     HorizontalLayout {
         VerticalLayout {
