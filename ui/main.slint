@@ -1,4 +1,8 @@
 import { ListView, Button, TabWidget, ComboBox, TextEdit } from "std-widgets.slint";
+import { Settings } from "api/global.slint";
+import { ViewWindow } from "view.slint";
+
+export { Settings, ViewWindow }
 
 export component MainWindow inherits Window {
     title: "Worship Screens";
@@ -7,6 +11,8 @@ export component MainWindow inherits Window {
 
     callback set-image();
     callback start-window();
+
+    callback change-monitor(string);
 
     starter-timer := Timer {
         interval: 1s;
@@ -31,9 +37,13 @@ export component MainWindow inherits Window {
                     text: "Settings";
                 }
 
-                screen-selector := ComboBox {
-                    model: ["eDP-1", "eDP-2", "eDP-3", "HDMI-3"];
-                    current-index: 1;
+                ComboBox {
+                    model: Settings.monitors;
+                    current-index: Settings.selected-monitor;
+
+                    selected(current-value) => {
+                        change-monitor(current-value);
+                    }
                 }
 
                 clean-btn := Button {
@@ -48,58 +58,61 @@ export component MainWindow inherits Window {
             }
 
             TabWidget {
-                current-index: 3;
+                current-index: 1;
 
                 Tab {
                     title: "Verses";
 
-                    VerticalLayout {
-                        padding: 10px;
+                    GridLayout {
                         spacing: 10px;
-
-                        HorizontalLayout {
-
-                            bible-selector := ComboBox {
+                        padding: 10px;
+                        Row {
+                            ComboBox {
+                                colspan: 1;
                                 model: ["Reina Valera 1960", "Nueva Traduccion Viviente"];
                                 current-index: 0;
                             }
 
                             TextEdit {
+                                colspan: 2;
                                 placeholder-text: "Busca: Juan 3:16, Romanos 14:10-14";
                             }
                         }
 
-                        ListView {
-                            for e in [
-                                "Porque de tal manera amó Dios al mundo...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                            ]: VerticalLayout {
-                                padding-left: 5px;
-                                padding-right: 5px;
-                                padding-bottom: 10px;
+                        Row {
+                            ListView {
+                                colspan: 3;
+                                for e in [
+                                    "Porque de tal manera amó Dios al mundo...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                    "Jehová es mi pastor; nada me faltará...",
+                                ]: VerticalLayout {
+                                    padding-left: 5px;
+                                    padding-right: 5px;
+                                    padding-bottom: 10px;
 
-                                Rectangle {
-                                    background: #fff;
-                                    border-radius: 8px;
+                                    Rectangle {
+                                        background: #fff;
+                                        border-radius: 8px;
 
-                                    VerticalLayout {
-                                        padding: 10px;
+                                        VerticalLayout {
+                                            padding: 10px;
 
-                                        Text {
-                                            text: e;
-                                            color: #000;
+                                            Text {
+                                                text: e;
+                                                color: #000;
+                                            }
                                         }
                                     }
                                 }
@@ -117,7 +130,7 @@ export component MainWindow inherits Window {
 
                             HorizontalLayout {
                                 spacing: 10px;
-                                alignment: center;
+                                alignment: space-between;
 
                                 Text {
                                     text: "Biblioteca de Canciones";
@@ -131,7 +144,6 @@ export component MainWindow inherits Window {
 
                             TextEdit {
                                 placeholder-text: "Buscar canciones";
-                                read-only: false;
                             }
 
                             ListView {
@@ -367,6 +379,7 @@ export component MainWindow inherits Window {
         VerticalLayout {
             padding: 10px;
             width: 150px;
+            alignment: start;
 
             HorizontalLayout {
                 spacing: 5px;

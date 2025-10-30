@@ -1,0 +1,9 @@
+import { Settings } from "api/global.slint";
+
+export component ViewWindow inherits Window {
+    title: "Worship Screens - View";
+
+    Text {
+        text: "Hello from View: " + Settings.monitors[Settings.selected-monitor];
+    }
+}
