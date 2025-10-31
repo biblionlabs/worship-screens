@@ -28,12 +28,8 @@ slint = { version = "1.13.1", default-features = false, features = [
 ] }
 
 [dependencies]
-ashpd = { version = "0.12", default-features = false, features = [
-    "pipewire",
-    "tokio",
-] }
-pipewire = "0.8.0"
-# grafton-ndi = "0.8.1"
+image = { version = "0.25.8", features = ["nasm"] }
+rfd = { version = "0.15.4" }
 slint.workspace = true
 tokio = { version = "1.48", default-features = false, features = [
     "macros",

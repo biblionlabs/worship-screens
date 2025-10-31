@@ -21,8 +21,8 @@
         };
 
         libraries = with pkgs; [
-          # ndi
-          pipewire
+          nasm
+
           libGL
           fontconfig
           pkgs.stdenv.cc.cc.lib
