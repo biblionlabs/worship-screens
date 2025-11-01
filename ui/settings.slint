@@ -1,0 +1,123 @@
+import { Button, ListView, ProgressIndicator, Palette } from "std-widgets.slint";
+
+export struct Bible {
+    name: string,
+    installed: bool,
+    installing: bool,
+    progress: float,
+    english-name: string,
+}
+
+export component SettingsWindow inherits Dialog {
+    title: "Worship Screens - Settings";
+    // close-policy: close-on-click-outside;
+
+    in property <image> source;
+    in property <[Bible]> bibles: [
+        { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: true },
+        { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.2, installing: true, installed: false },
+        { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
+        { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
+    ];
+
+    VerticalLayout {
+        spacing: 10px;
+        padding: 10px;
+        alignment: stretch;
+
+        HorizontalLayout {
+            alignment: space-between;
+
+            Text {
+                vertical-alignment: center;
+                text: "Manage your installed bibles:";
+            }
+
+            Button {
+                text: "+";
+            }
+        }
+
+        ListView {
+            for b in bibles: VerticalLayout {
+                padding-left: 5px;
+                padding-right: 5px;
+                padding-bottom: 10px;
+
+                Rectangle {
+                    background: #fff;
+                    border-radius: 8px;
+                    clip: true;
+
+                    VerticalLayout {
+
+                        HorizontalLayout {
+                            padding: 10px;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                spacing: 5px;
+
+                                Text {
+                                    font-size: 18px;
+                                    vertical-alignment: center;
+                                    text: b.english-name;
+                                    color: #000;
+                                }
+
+                                if !b.name.is-empty: Text {
+                                    font-size: 14px;
+                                    vertical-alignment: center;
+                                    text: b.name;
+                                    color: #000;
+                                }
+                            }
+
+                            if !b.installed: Button {
+                                enabled: !b.installing;
+                                icon: @image-url("../assets/download.svg");
+                            }
+                        }
+
+                        ProgressIndicator {
+                            progress: b.progress;
+                        }
+                    }
+                }
+            }
+        }
+
+        Text {
+            text: "Default Screen:";
+            vertical-alignment: center;
+        }
+
+        // Image {
+        //     source <=> source;
+        //
+        //     width: 340px;
+        //     height: 200px;
+        // }
+
+        Rectangle {
+            width: 340px;
+            height: 200px;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        HorizontalLayout {
+            alignment: end;
+            spacing: 10px;
+            padding-top: 10px;
+
+            Button {
+                text: "Cancel";
+            }
+
+            Button {
+                text: "Save";
+            }
+        }
+    }
+}

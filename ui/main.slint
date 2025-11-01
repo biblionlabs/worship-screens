@@ -1,18 +1,25 @@
 import { ListView, Button, TabWidget, ComboBox, TextEdit } from "std-widgets.slint";
 import { Settings } from "api/global.slint";
-import { ViewWindow } from "view.slint";
+import { ViewWindow, ViewState, ViewType, ViewBackgroundColor } from "view.slint";
+import { Bible, SettingsWindow } from "settings.slint";
 
-export { Settings, ViewWindow }
+export { Bible, Settings, ViewWindow, SettingsWindow, ViewState, ViewBackgroundColor, ViewType }
 
 export component MainWindow inherits Window {
     title: "Worship Screens";
+    preferred-width: 720px;
+    preferred-height: 423px;
 
     in property <image> source;
 
     callback set-image();
     callback start-window();
+    callback open-settings <=> settings-btn.clicked;
 
-    callback change-monitor(string);
+    callback shutdown-output <=> shutdown-btn.clicked;
+    callback clear-output <=> clear-btn.clicked;
+
+    callback change-monitor <=> select-monitors.selected;
 
     starter-timer := Timer {
         interval: 1s;
@@ -23,6 +30,8 @@ export component MainWindow inherits Window {
     }
 
     HorizontalLayout {
+        alignment: stretch;
+
         VerticalLayout {
             width: 70%;
 
@@ -37,16 +46,16 @@ export component MainWindow inherits Window {
                     text: "Settings";
                 }
 
-                ComboBox {
+                select-monitors := ComboBox {
                     model: Settings.monitors;
                     current-index: Settings.selected-monitor;
-
-                    selected(current-value) => {
-                        change-monitor(current-value);
-                    }
                 }
 
-                clean-btn := Button {
+                shutdown-btn := Button {
+                    text: "Off";
+                }
+
+                clear-btn := Button {
                     text: "Clear";
                 }
             }
@@ -54,7 +63,7 @@ export component MainWindow inherits Window {
             Rectangle {
                 width: 100%;
                 height: 1px;
-                background: #ccc;
+                background: Colors.dimgray.with-alpha(0.2);
             }
 
             TabWidget {
@@ -127,6 +136,7 @@ export component MainWindow inherits Window {
                         VerticalLayout {
                             padding: 10px;
                             spacing: 10px;
+                            alignment: stretch;
 
                             HorizontalLayout {
                                 spacing: 10px;
@@ -304,6 +314,7 @@ export component MainWindow inherits Window {
                     VerticalLayout {
                         padding: 10px;
                         spacing: 10px;
+                        alignment: stretch;
 
                         HorizontalLayout {
                             spacing: 10px;
@@ -372,28 +383,32 @@ export component MainWindow inherits Window {
         Rectangle {
             width: 1px;
             height: 100%;
-            background: #ccc;
+            background: Colors.dimgray.with-alpha(0.2);
         }
 
         VerticalLayout {
             padding: 10px;
             width: 150px;
             alignment: start;
+            spacing: 10px;
 
             HorizontalLayout {
                 spacing: 5px;
-
-                Button {
-                    text: "Preview";
-                }
+                alignment: end;
 
                 Button {
                     text: "Send";
                 }
             }
 
-            Image {
+            Rectangle {
+                background: #ccc;
                 width: 400px;
+                height: 200px;
+            }
+
+            Image {
+                width: 340px;
                 height: 200px;
                 source: source;
                 image-fit: cover;

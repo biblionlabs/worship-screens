@@ -10,6 +10,7 @@ fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
 
     let main_window = MainWindow::new().unwrap();
+    let settings_window = SettingsWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
 
     main_window.on_start_window({
@@ -107,6 +108,33 @@ fn main() {
             let img_frame = Image::from_rgba8(pixels);
 
             main_window.unwrap().set_source(img_frame);
+        }
+    });
+
+    main_window.on_open_settings({
+        let settings_window = settings_window.as_weak();
+        move || {
+            settings_window.unwrap().show().unwrap();
+        }
+    });
+
+    main_window.on_shutdown_output({
+        let view_window = view_window.as_weak();
+        move || {
+            let view_window = view_window.unwrap();
+            let state = view_window.global::<ViewState>();
+            // TODO: set default content
+            state.set_off(true);
+        }
+    });
+
+    main_window.on_clear_output({
+        let view_window = view_window.as_weak();
+        move || {
+            let view_window = view_window.unwrap();
+            let state = view_window.global::<ViewState>();
+            // TODO: set default content
+            state.set_off(false);
         }
     });
 

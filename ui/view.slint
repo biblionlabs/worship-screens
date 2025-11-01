@@ -1,9 +1,71 @@
-import { Settings } from "api/global.slint";
+export enum ViewType {
+    Media,
+    Color,
+    Linear,
+}
+
+export struct ViewBackgroundColor {
+    a: color,
+    b: color,
+}
+
+export global ViewState {
+    in property <bool> off: false;
+    in property <ViewType> view-type: ViewType.Color;
+    in property <ViewBackgroundColor> color: { a: Colors.black, b: #000 };
+    in property <string> content;
+    in property <length> font-size;
+    in property <image> img-bg;
+}
 
 export component ViewWindow inherits Window {
     title: "Worship Screens - View";
 
-    Text {
-        text: "Hello from View: " + Settings.monitors[Settings.selected-monitor];
+    preferred-width: 720px;
+    preferred-height: 423px;
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+
+        if ViewState.view-type == ViewType.Media: Image {
+            width: parent.width;
+            height: parent.height;
+            image-fit: cover;
+            source: ViewState.img-bg;
+        }
+
+        if ViewState.view-type == ViewType.Color: Rectangle {
+            width: parent.width;
+            height: parent.height;
+            background: ViewState.color.a;
+        }
+
+        if ViewState.view-type == ViewType.Linear: Rectangle {
+            width: parent.width;
+            height: parent.height;
+            background: @linear-gradient(animation-tick() / 50ms * 1deg, ViewState.color.a 0%, ViewState.color.b 100%);
+
+            animate background { duration: 500ms; }
+        }
+
+        Text {
+            width: parent.width;
+            height: parent.height;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            font-size: ViewState.font-size;
+            // font-size: (root.height - (ViewState.lines - (1 * 1.2)) * 1px) * ViewState.lines;
+            text: ViewState.content;
+        }
+    }
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: !ViewState.off ? Colors.transparent : Colors.black;
+
+        animate background { duration: 500ms; }
     }
 }
