@@ -52,6 +52,9 @@ fn main() {
                     };
 
                     let view_window = view_window.unwrap();
+                    let state = view_window.global::<ViewState>();
+                    state.set_window_width(second_screen.size().width as _);
+                    state.set_window_height(second_screen.size().height as _);
                     settings.set_selected_monitor(n as _);
 
                     slint::spawn_local({
@@ -83,7 +86,11 @@ fn main() {
                 let view_window = view_window.unwrap().as_weak();
                 let monitor = monitor.clone();
                 async move {
-                    let w = view_window.unwrap().window().winit_window().await.unwrap();
+                    let view_window = view_window.unwrap();
+                    let w = view_window.window().winit_window().await.unwrap();
+                    let state = view_window.global::<ViewState>();
+                    state.set_window_width(monitor.size().width as _);
+                    state.set_window_height(monitor.size().height as _);
                     w.set_fullscreen(Some(
                         slint::winit_030::winit::window::Fullscreen::Borderless(Some(monitor)),
                     ));
