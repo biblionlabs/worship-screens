@@ -1,0 +1,62 @@
+import { ViewState, ViewType } from "../api/view-state.slint";
+
+export component View inherits Rectangle {
+    if ViewState.view-type == ViewType.Media: Image {
+        width: parent.width;
+        height: parent.height;
+        image-fit: cover;
+        source: ViewState.img-bg;
+    }
+
+    if ViewState.view-type == ViewType.Color: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: ViewState.color.a;
+    }
+
+    if ViewState.view-type == ViewType.Linear: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: @linear-gradient(animation-tick() / 50ms * 1deg, ViewState.color.a 0%, ViewState.color.b 100%);
+
+        animate background { duration: 500ms; }
+    }
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 15px;
+
+        Text {
+            wrap: word-wrap;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            font-size: {
+                let text-length = ViewState.content.character-count;
+
+                let available-height = (ViewState.window-width - 30px) / 1px;
+                let available-width = (ViewState.window-height - 30px) / 1px;
+
+                    // Estimación de área necesaria por carácter (ajustable)
+                    // Un carácter ocupa aprox: ancho_fuente * alto_fuente
+                    // Para fuente proporcional: ancho ≈ 0.6 * altura
+
+                    // Calculamos cuántas líneas aproximadas tendremos
+                    // Caracteres por línea ≈ ancho_disponible / (font-size * 0.6)
+                    // Total líneas ≈ total_caracteres / caracteres_por_línea
+
+                    // Fórmula inversa: dado el espacio, encontrar font-size óptimo
+                    // Alto total necesario = num_lineas * font-size * 1.2 (line-height)
+                    // available-height = (text-length / (available-width / (font-size * 0.6))) * font-size * 1.2
+
+                    // Simplificando y resolviendo para font-size:
+                    let area-factor = sqrt(available-height * available-width / text-length);
+                let calculated = area-factor * 1.2; // Factor de ajuste (reducir para más margen)
+
+                    // Aplicar límites
+                    max(ViewState.min-font-size, min(ViewState.max-font-size, calculated * 1px))
+            };
+            text: ViewState.content;
+        }
+    }
+}

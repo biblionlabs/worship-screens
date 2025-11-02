@@ -1,7 +1,12 @@
 import { ListView, Button, TabWidget, ComboBox, TextEdit } from "std-widgets.slint";
-import { Settings } from "api/global.slint";
-import { ViewWindow, ViewState, ViewType, ViewBackgroundColor } from "view.slint";
+
+import { ViewWindow } from "view.slint";
 import { Bible, SettingsWindow } from "settings.slint";
+
+import { Settings } from "api/global.slint";
+import { ViewState, ViewType, ViewBackgroundColor } from "api/view-state.slint";
+
+import { View } from "components/view.slint";
 
 export { Bible, Settings, ViewWindow, SettingsWindow, ViewState, ViewBackgroundColor, ViewType }
 
@@ -30,7 +35,9 @@ export component MainWindow inherits Window {
     }
 
     HorizontalLayout {
-        alignment: stretch;
+        width: parent.width;
+        height: parent.height;
+        alignment: space-between;
 
         VerticalLayout {
             width: 70%;
@@ -63,7 +70,7 @@ export component MainWindow inherits Window {
             Rectangle {
                 width: 100%;
                 height: 1px;
-                background: Colors.dimgray.with-alpha(0.2);
+                background: Colors.dimgray.with-alpha(20%);
             }
 
             TabWidget {
@@ -383,12 +390,12 @@ export component MainWindow inherits Window {
         Rectangle {
             width: 1px;
             height: 100%;
-            background: Colors.dimgray.with-alpha(0.2);
+            background: Colors.dimgray.with-alpha(20%);
         }
 
         VerticalLayout {
+            width: 30%;
             padding: 10px;
-            width: 150px;
             alignment: start;
             spacing: 10px;
 
@@ -401,17 +408,9 @@ export component MainWindow inherits Window {
                 }
             }
 
-            Rectangle {
-                background: #ccc;
-                width: 400px;
-                height: 200px;
-            }
-
-            Image {
-                width: 340px;
-                height: 200px;
-                source: source;
-                image-fit: cover;
+            View {
+                width: 100%;
+                height: self.width / 1.7;
             }
         }
     }

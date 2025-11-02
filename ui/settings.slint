@@ -1,4 +1,5 @@
 import { Button, ListView, ProgressIndicator, Palette } from "std-widgets.slint";
+import { View } from "components/view.slint";
 
 export struct Bible {
     name: string,
@@ -92,18 +93,9 @@ export component SettingsWindow inherits Dialog {
             vertical-alignment: center;
         }
 
-        // Image {
-        //     source <=> source;
-        //
-        //     width: 340px;
-        //     height: 200px;
-        // }
-
-        Rectangle {
-            width: 340px;
-            height: 200px;
-            background: #fff;
-            border-radius: 8px;
+        View {
+            width: 100%;
+            height: self.width / 1.7;
         }
 
         HorizontalLayout {

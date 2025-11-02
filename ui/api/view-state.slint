@@ -1,0 +1,23 @@
+export enum ViewType {
+    Media,
+    Color,
+    Linear,
+}
+
+export struct ViewBackgroundColor {
+    a: color,
+    b: color,
+}
+
+export global ViewState {
+    in property <bool> off: false;
+    in property <ViewType> view-type: ViewType.Color;
+    in property <ViewBackgroundColor> color: { a: Colors.black, b: #000 };
+    in property <string> content;
+    in property <image> img-bg;
+
+    in property <length> window-width: 720px - 30px;
+    in property <length> window-height: 423px - 30px;
+    in property <length> min-font-size: 14px;
+    in property <length> max-font-size: 120px;
+}
