@@ -147,8 +147,10 @@ fn main() {
 
     main_window.window().on_close_requested({
         let view_window = view_window.as_weak();
+        let settings_window = settings_window.as_weak();
         move || {
             view_window.unwrap().hide().unwrap();
+            settings_window.unwrap().hide().unwrap();
             slint::CloseRequestResponse::HideWindow
         }
     });
