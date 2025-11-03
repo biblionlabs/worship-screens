@@ -116,6 +116,8 @@
             slint-viewer
 
             cargo-dist
+            cargo-release
+            git-cliff
 
             openssl.dev
             pkg-config

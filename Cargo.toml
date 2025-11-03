@@ -1,9 +1,17 @@
 [package]
 name = "worship-screens"
 version = "1.1.1"
+description = "Present image/video/animations with text/verse on external monitor"
 authors = ["Sergio Ribera <contact@sergioribera.rs>"]
 license = "MIT OR Apache-2.0"
 edition = "2024"
+repository = "https://github.com/biblionlabs/worship-screens"
+
+[package.metadata.wix]
+upgrade-guid = "F44F98E1-EE6A-4911-BDCB-0657C16E521C"
+path-guid = "B52C0688-96BA-4A81-AE74-49EA37366963"
+license = false
+eula = false
 
 [workspace]
 members = ["crates/ui"]
@@ -18,6 +26,11 @@ lto = "thin"
 panic = 'abort'
 opt-level = 3
 codegen-units = 1
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
 
 [workspace.dependencies]
 slint = { version = "1.13.1", default-features = false, features = [
