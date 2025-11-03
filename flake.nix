@@ -115,6 +115,8 @@
             slint-lsp
             slint-viewer
 
+            cargo-dist
+
             openssl.dev
             pkg-config
             wayland
