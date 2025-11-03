@@ -1,5 +1,6 @@
 import { Button, ListView, ProgressIndicator, Palette } from "std-widgets.slint";
 import { View } from "components/view.slint";
+import { ViewState } from "api/view-state.slint";
 
 export struct Bible {
     name: string,
@@ -9,7 +10,7 @@ export struct Bible {
     english-name: string,
 }
 
-export component SettingsWindow inherits Dialog {
+export component SettingsWindow inherits Window {
     title: "Worship Screens - Settings";
     // close-policy: close-on-click-outside;
 
@@ -20,6 +21,11 @@ export component SettingsWindow inherits Dialog {
         { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
         { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
     ];
+
+    init => {
+        ViewState.window-width = preview.width;
+        ViewState.window-height = preview.height;
+    }
 
     VerticalLayout {
         spacing: 10px;
@@ -93,7 +99,7 @@ export component SettingsWindow inherits Dialog {
             vertical-alignment: center;
         }
 
-        View {
+        preview := View {
             width: 100%;
             height: self.width / 1.7;
         }

@@ -76,6 +76,22 @@ fn main() {
         }
     });
 
+    main_window.on_send_to_view({
+        let view_window = view_window.as_weak();
+        let main_window = main_window.as_weak();
+        move || {
+            let view_window = view_window.unwrap();
+            let main_window = main_window.unwrap();
+            let main_state = main_window.global::<ViewState>();
+            let view_state = view_window.global::<ViewState>();
+
+            view_state.set_content(main_state.get_content());
+            view_state.set_color(main_state.get_color());
+            view_state.set_img_bg(main_state.get_img_bg());
+            view_state.set_view_type(main_state.get_view_type());
+        }
+    });
+
     main_window.on_change_monitor({
         let view_window = view_window.as_weak();
         let monitors = monitors.clone();
