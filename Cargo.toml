@@ -41,8 +41,8 @@ slint = { version = "1.13.1", default-features = false, features = [
 ] }
 
 [dependencies]
-image = { version = "0.25.8", features = ["nasm"] }
-rfd = { version = "0.15.4" }
+image = "0.25"
+rfd = "0.15"
 slint.workspace = true
 tokio = { version = "1.48", default-features = false, features = [
     "macros",

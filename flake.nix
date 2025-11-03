@@ -21,8 +21,6 @@
         };
 
         libraries = with pkgs; [
-          nasm
-
           libGL
           fontconfig
           pkgs.stdenv.cc.cc.lib
