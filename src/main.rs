@@ -13,6 +13,19 @@ fn main() {
     let settings_window = SettingsWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
 
+    settings_window.on_close({
+        let settings_window = settings_window.as_weak();
+        move || {
+            settings_window.unwrap().hide().unwrap();
+    }});
+
+    settings_window.on_close({
+        let settings_window = settings_window.as_weak();
+        move || {
+            // TODO: save and sync settings before close
+            settings_window.unwrap().hide().unwrap();
+    }});
+
     main_window.on_start_window({
         let main_window = main_window.as_weak();
         let monitors = monitors.clone();

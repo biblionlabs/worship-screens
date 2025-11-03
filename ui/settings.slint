@@ -12,7 +12,9 @@ export struct Bible {
 
 export component SettingsWindow inherits Window {
     title: "Worship Screens - Settings";
-    // close-policy: close-on-click-outside;
+    width: 640px;
+    height: 376px;
+    padding: 0px;
 
     in property <image> source;
     in property <[Bible]> bibles: [
@@ -21,6 +23,9 @@ export component SettingsWindow inherits Window {
         { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
         { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
     ];
+
+    callback close();
+    callback save();
 
     init => {
         ViewState.window-width = preview.width;
@@ -111,10 +116,12 @@ export component SettingsWindow inherits Window {
 
             Button {
                 text: "Cancel";
+                clicked => root.close();
             }
 
             Button {
                 text: "Save";
+                clicked => root.save();
             }
         }
     }
