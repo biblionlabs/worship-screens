@@ -1,4 +1,4 @@
-## [0.1.0] - 2025-11-03
+## [0.1.1-alpha.1] - 2025-11-04
 
 ### 🚀 Features
 
@@ -20,6 +20,7 @@
 ### 💼 Other
 
 - Add image procesing and system open file
+- Remove nasm feature and update versions
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -28,3 +29,4 @@
 - Close settings when principal window is closed too
 - Setup release workflow
 - Update version
+- Start changelog
