@@ -421,6 +421,7 @@ export component MainWindow inherits Window {
             }
 
             ColorPicker {
+                show-preview: false;
                 selected-color <=> ViewState.color;
 
                 changed gradient-mode => {

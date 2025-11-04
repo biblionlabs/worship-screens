@@ -2,8 +2,40 @@ import { VerticalBox, HorizontalBox, GridBox, ScrollView } from "std-widgets.sli
 
 import { ViewBackgroundColor } from "../api/view-state.slint";
 
+component ColorSlider inherits Rectangle {
+    height: 20px;
+    border-radius: 10px;
+    clip: true;
+
+    in-out property <length> knob-position;
+    in-out property <float> position;
+
+    @children
+
+    Rectangle {
+        x: knob-position;
+        width: 20px;
+        height: parent.height;
+        border-radius: 10px;
+        border-width: 5px;
+        border-color: white;
+    }
+
+    TouchArea {
+        moved => {
+            position = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+        }
+        clicked => {
+            position = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+        }
+    }
+}
+
 export component ColorPicker inherits Rectangle {
     height: 350px;
+
+    in property <bool> allow-gradient: true;
+    in property <bool> show-preview: true;
 
     in-out property <ViewBackgroundColor> selected-color: {
         a: #3498db,
@@ -75,10 +107,9 @@ export component ColorPicker inherits Rectangle {
     }
 
     VerticalBox {
-        padding: 16px;
         spacing: 1px;
         alignment: stretch;
-        preview := Rectangle {
+        if show-preview: Rectangle {
             height: 60px;
             border-radius: 8px;
             border-width: 2px;
@@ -86,7 +117,7 @@ export component ColorPicker inherits Rectangle {
             background: gradient-mode ? @linear-gradient(90deg, selected-color.a, selected-color.b) : selected-color.a;
         }
 
-        HorizontalBox {
+        if allow-gradient: HorizontalBox {
             alignment: space-between;
 
             VerticalLayout {
@@ -220,39 +251,16 @@ export component ColorPicker inherits Rectangle {
                         color: #7f8c8d;
                     }
 
-                    hue-slider := Rectangle {
-                        height: 30px;
-                        border-radius: 4px;
+                    ColorSlider {
                         background: @linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-                        Rectangle {
-                            x: (editing-color-a ? hue-a : hue-b) * (parent.width - 20px);
-                            width: 20px;
-                            height: parent.height;
-                            border-radius: 10px;
-                            background: white;
-                            border-width: 3px;
-                            border-color: #2c3e50;
-                        }
-
-                        TouchArea {
-                            moved => {
-                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
-                                if (editing-color-a) {
-                                    hue-a = val;
-                                } else {
-                                    hue-b = val;
-                                }
-                                update-colors();
+                        knob-position: (editing-color-a ? hue-a : hue-b) * (parent.width - 36px);
+                        changed position => {
+                            if (editing-color-a) {
+                                hue-a = self.position;
+                            } else {
+                                hue-b = self.position;
                             }
-                            clicked => {
-                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
-                                if (editing-color-a) {
-                                    hue-a = val;
-                                } else {
-                                    hue-b = val;
-                                }
-                                update-colors();
-                            }
+                            update-colors();
                         }
                     }
                 }
@@ -266,42 +274,16 @@ export component ColorPicker inherits Rectangle {
                         color: #7f8c8d;
                     }
 
-                    sat-slider := Rectangle {
-                        height: 30px;
-                        border-radius: 4px;
+                    ColorSlider {
                         background: @linear-gradient(90deg, #808080, hsl-to-color(editing-color-a ? hue-a : hue-b, 1, 0.5, 1));
-                        Rectangle {
-                            x: (editing-color-a ? saturation-a : saturation-b) * (parent.width - 20px);
-                            width: 20px;
-                            height: parent.height;
-                            border-radius: 10px;
-                            background: white;
-                            border-width: 3px;
-                            border-color: #2c3e50;
-                        }
-
-                        TouchArea {
-                            moved => {
-                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
-                                if (editing-color-a) {
-                                    saturation-a = val;
-                                } else {
-                                    saturation-b = val;
-                                }
-
-                                update-colors();
+                        knob-position: (editing-color-a ? saturation-a : saturation-b) * (parent.width - 36px);
+                        changed position => {
+                            if (editing-color-a) {
+                                saturation-a = self.position;
+                            } else {
+                                saturation-b = self.position;
                             }
-
-                            clicked => {
-                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
-                                if (editing-color-a) {
-                                    saturation-a = val;
-                                } else {
-                                    saturation-b = val;
-                                }
-
-                                update-colors();
-                            }
+                            update-colors();
                         }
                     }
                 }
@@ -315,42 +297,16 @@ export component ColorPicker inherits Rectangle {
                         color: #7f8c8d;
                     }
 
-                    light-slider := Rectangle {
-                        height: 30px;
-                        border-radius: 4px;
+                    ColorSlider {
                         background: @linear-gradient(90deg, #000000, hsl-to-color(editing-color-a ? hue-a : hue-b, editing-color-a ? saturation-a : saturation-b, 0.5, 1), #ffffff);
-                        Rectangle {
-                            x: (editing-color-a ? lightness-a : lightness-b) * (parent.width - 20px);
-                            width: 20px;
-                            height: parent.height;
-                            border-radius: 10px;
-                            background: white;
-                            border-width: 3px;
-                            border-color: #2c3e50;
-                        }
-
-                        TouchArea {
-                            moved => {
-                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
-                                if (editing-color-a) {
-                                    lightness-a = val;
-                                } else {
-                                    lightness-b = val;
-                                }
-
-                                update-colors();
+                        knob-position: (editing-color-a ? lightness-a : lightness-b) * (parent.width - 36px);
+                        changed position => {
+                            if (editing-color-a) {
+                                lightness-a = self.position;
+                            } else {
+                                lightness-b = self.position;
                             }
-
-                            clicked => {
-                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
-                                if (editing-color-a) {
-                                    lightness-a = val;
-                                } else {
-                                    lightness-b = val;
-                                }
-
-                                update-colors();
-                            }
+                            update-colors();
                         }
                     }
                 }
@@ -364,10 +320,19 @@ export component ColorPicker inherits Rectangle {
                         color: #7f8c8d;
                     }
 
-                    alpha-slider := Rectangle {
-                        height: 30px;
-                        border-radius: 4px;
+                    ColorSlider {
                         background: @linear-gradient(90deg, transparent, hsl-to-color(editing-color-a ? hue-a : hue-b, editing-color-a ? saturation-a : saturation-b, editing-color-a ? lightness-a : lightness-b, 1));
+                        knob-position: (editing-color-a ? alpha-a : alpha-b) * (parent.width - 36px);
+
+                        changed position => {
+                            if (editing-color-a) {
+                                alpha-a = self.position;
+                            } else {
+                                alpha-b = self.position;
+                            }
+                            update-colors();
+                        }
+
                         Rectangle {
                             width: 100%;
                             height: 100%;
@@ -385,40 +350,6 @@ export component ColorPicker inherits Rectangle {
                             width: 100%;
                             height: 100%;
                             background: @linear-gradient(90deg, transparent, hsl-to-color(editing-color-a ? hue-a : hue-b, editing-color-a ? saturation-a : saturation-b, editing-color-a ? lightness-a : lightness-b, 1));
-                        }
-
-                        Rectangle {
-                            x: (editing-color-a ? alpha-a : alpha-b) * (parent.width - 20px);
-                            width: 20px;
-                            height: parent.height;
-                            border-radius: 10px;
-                            background: white;
-                            border-width: 3px;
-                            border-color: #2c3e50;
-                        }
-
-                        TouchArea {
-                            moved => {
-                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
-                                if (editing-color-a) {
-                                    alpha-a = val;
-                                } else {
-                                    alpha-b = val;
-                                }
-
-                                update-colors();
-                            }
-
-                            clicked => {
-                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
-                                if (editing-color-a) {
-                                    alpha-a = val;
-                                } else {
-                                    alpha-b = val;
-                                }
-
-                                update-colors();
-                            }
                         }
                     }
                 }
