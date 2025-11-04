@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use slint::winit_030::WinitWindowAccessor;
 use slint::winit_030::winit::monitor::MonitorHandle;
-use slint::{ComponentHandle, Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, ToSharedString};
+use slint::{ComponentHandle, Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, ToSharedString};
 use ui::*;
 
 fn main() {
@@ -165,11 +165,15 @@ fn main() {
     });
 
     main_window.on_clear_output({
+        let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
         move || {
             let view_window = view_window.unwrap();
+            let main_window = main_window.unwrap();
             let state = view_window.global::<ViewState>();
             // TODO: set default content
+            state.set_content(SharedString::default());
+            main_window.global::<ViewState>().set_content(SharedString::default());
             state.set_off(false);
         }
     });

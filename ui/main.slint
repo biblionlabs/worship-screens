@@ -336,21 +336,29 @@ export component MainWindow inherits Window {
                                 vertical-alignment: center;
                             }
 
-                            Button {
-                                text: "Send";
-                                clicked => send-to-view();
+                            HorizontalLayout {
+                                spacing: 10px;
+                                alignment: stretch;
+
+                                Button {
+                                    text: "Guardar";
+                                    clicked => send-to-view();
+                                }
+
+                                Button {
+                                    text: "Send";
+                                    clicked => send-to-view();
+                                }
                             }
                         }
 
                         TextEdit {
+                            text <=> ViewState.content;
                             placeholder-text: "Escribe tu mensaje aquí";
-                            edited(text) => {
-                                ViewState.content = text;
-                            }
                         }
 
                         Text {
-                            text: "Recientes";
+                            text: "Guardados";
                         }
 
                         ListView {
