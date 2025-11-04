@@ -17,7 +17,7 @@ export component View inherits Rectangle {
     if ViewState.view-type == ViewType.Linear: Rectangle {
         width: parent.width;
         height: parent.height;
-        background: @linear-gradient(animation-tick() / 50ms * 1deg, ViewState.color.a 0%, ViewState.color.b 100%);
+        background: @linear-gradient(animation-tick() / 50ms * 1deg, ViewState.color.a, ViewState.color.b);
 
         animate background { duration: 500ms; }
     }

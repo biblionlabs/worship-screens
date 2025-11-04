@@ -1,0 +1,428 @@
+import { VerticalBox, HorizontalBox, GridBox, ScrollView } from "std-widgets.slint";
+
+import { ViewBackgroundColor } from "../api/view-state.slint";
+
+export component ColorPicker inherits Rectangle {
+    height: 350px;
+
+    in-out property <ViewBackgroundColor> selected-color: {
+        a: #3498db,
+        b: #3498db,
+    };
+    in-out property <bool> gradient-mode: false;
+
+    callback color-changed(ViewBackgroundColor);
+
+    property <bool> editing-color-a: true;
+    property <float> hue-a: 0.58;
+    property <float> saturation-a: 0.7;
+    property <float> lightness-a: 0.55;
+    property <float> alpha-a: 1.0;
+    property <float> hue-b: 0.58;
+    property <float> saturation-b: 0.7;
+    property <float> lightness-b: 0.55;
+    property <float> alpha-b: 1.0;
+
+    property <[[color]]> preset-colors: [
+        [
+            #e74c3c,
+            #e67e22,
+            #f39c12,
+            #f1c40f,
+            #2ecc71,
+            #1abc9c,
+            #16a085,
+            #27ae60,
+            #f39c12
+        ],
+        [
+            #3498db,
+            #9b59b6,
+            #34495e,
+            #95a5a6,
+            #ecf0f1,
+            #000000,
+            #2980b9,
+            #8e44ad,
+            #c0392b
+        ]
+    ];
+
+    function hsl-to-color(h: float, s: float, l: float, a: float) -> color {
+        return Colors.rgb(
+            self.hsl-channel(h, s, l, 0),
+            self.hsl-channel(h, s, l, 8),
+            self.hsl-channel(h, s, l, 4)).with-alpha(a);
+    }
+    function hsl-channel(h: float, s: float, l: float, n: float) -> int {
+        let k = mod((n + h * 12), 12);
+        let a = s * min(l, 1 - l);
+        let val = l - a * max(-1, min(k - 3, min(9 - k, 1)));
+        return Math.round(val * 255);
+    }
+
+    function update-colors() {
+        if (gradient-mode) {
+            selected-color = {
+                a: hsl-to-color(hue-a, saturation-a, lightness-a, alpha-a),
+                b: hsl-to-color(hue-b, saturation-b, lightness-b, alpha-b),
+            };
+        } else {
+            let col = hsl-to-color(hue-a, saturation-a, lightness-a, alpha-a);
+            selected-color = { a: col, b: col };
+        }
+        color-changed(selected-color);
+    }
+
+    VerticalBox {
+        padding: 16px;
+        spacing: 1px;
+        alignment: stretch;
+        preview := Rectangle {
+            height: 60px;
+            border-radius: 8px;
+            border-width: 2px;
+            border-color: #ccc;
+            background: gradient-mode ? @linear-gradient(90deg, selected-color.a, selected-color.b) : selected-color.a;
+        }
+
+        HorizontalBox {
+            alignment: space-between;
+
+            VerticalLayout {
+                height: 52px;
+                alignment: center;
+                HorizontalBox {
+                    spacing: 8px;
+                    Rectangle {
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 4px;
+                        border-width: 2px;
+                        border-color: gradient-mode ? #3498db : #ccc;
+                        background: gradient-mode ? #3498db : white;
+                        TouchArea {
+                            clicked => {
+                                gradient-mode = !gradient-mode;
+                                update-colors();
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "Modo Gradiente";
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            if gradient-mode: HorizontalBox {
+                spacing: 8px;
+                alignment: stretch;
+
+                Rectangle {
+                    height: 35px;
+                    border-radius: 6px;
+                    background: editing-color-a ? #3498db : #ecf0f1;
+                    VerticalLayout {
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        alignment: center;
+                        Text {
+                            text: "Color A";
+                            color: editing-color-a ? white : #2c3e50;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        TouchArea {
+                            clicked => {
+                                editing-color-a = true;
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 35px;
+                    border-radius: 6px;
+                    background: !editing-color-a ? #3498db : #ecf0f1;
+                    VerticalLayout {
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        alignment: center;
+                        Text {
+                            text: "Color B";
+                            color: !editing-color-a ? white : #2c3e50;
+                            horizontal-alignment: center;
+                        }
+
+                        TouchArea {
+                            clicked => {
+                                editing-color-a = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ScrollView {
+            horizontal-scrollbar-policy: always-off;
+            vertical-stretch: 1;
+
+            VerticalBox {
+                spacing: 1px;
+                padding-top: 0px;
+
+                VerticalBox {
+                    spacing: 8px;
+                    Text {
+                        text: "Colores Predefinidos";
+                        font-size: 12px;
+                        color: #7f8c8d;
+                    }
+
+                    VerticalLayout {
+                        spacing: 6px;
+                        for row in preset-colors: HorizontalLayout {
+                            spacing: 6px;
+                            for preset-color[index] in row: Rectangle {
+                                width: 30px;
+                                height: 30px;
+                                border-radius: 8px;
+                                background: preset-color;
+                                border-width: 2px;
+                                border-color: #bdc3c7;
+                                TouchArea {
+                                    clicked => {
+                                        if (editing-color-a) {
+                                            selected-color.a = preset-color;
+                                        } else {
+                                            selected-color.b = preset-color;
+                                        }
+                                        if (!gradient-mode) {
+                                            selected-color.b = preset-color;
+                                        }
+                                        color-changed(selected-color);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                VerticalBox {
+                    spacing: 4px;
+                    Text {
+                        text: "Matiz (Hue)";
+                        font-size: 12px;
+                        color: #7f8c8d;
+                    }
+
+                    hue-slider := Rectangle {
+                        height: 30px;
+                        border-radius: 4px;
+                        background: @linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+                        Rectangle {
+                            x: (editing-color-a ? hue-a : hue-b) * (parent.width - 20px);
+                            width: 20px;
+                            height: parent.height;
+                            border-radius: 10px;
+                            background: white;
+                            border-width: 3px;
+                            border-color: #2c3e50;
+                        }
+
+                        TouchArea {
+                            moved => {
+                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+                                if (editing-color-a) {
+                                    hue-a = val;
+                                } else {
+                                    hue-b = val;
+                                }
+                                update-colors();
+                            }
+                            clicked => {
+                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+                                if (editing-color-a) {
+                                    hue-a = val;
+                                } else {
+                                    hue-b = val;
+                                }
+                                update-colors();
+                            }
+                        }
+                    }
+                }
+                
+                // Saturation
+                VerticalBox {
+                    spacing: 4px;
+                    Text {
+                        text: "Saturación";
+                        font-size: 12px;
+                        color: #7f8c8d;
+                    }
+
+                    sat-slider := Rectangle {
+                        height: 30px;
+                        border-radius: 4px;
+                        background: @linear-gradient(90deg, #808080, hsl-to-color(editing-color-a ? hue-a : hue-b, 1, 0.5, 1));
+                        Rectangle {
+                            x: (editing-color-a ? saturation-a : saturation-b) * (parent.width - 20px);
+                            width: 20px;
+                            height: parent.height;
+                            border-radius: 10px;
+                            background: white;
+                            border-width: 3px;
+                            border-color: #2c3e50;
+                        }
+
+                        TouchArea {
+                            moved => {
+                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+                                if (editing-color-a) {
+                                    saturation-a = val;
+                                } else {
+                                    saturation-b = val;
+                                }
+
+                                update-colors();
+                            }
+
+                            clicked => {
+                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+                                if (editing-color-a) {
+                                    saturation-a = val;
+                                } else {
+                                    saturation-b = val;
+                                }
+
+                                update-colors();
+                            }
+                        }
+                    }
+                }
+                
+                // Lightness
+                VerticalBox {
+                    spacing: 4px;
+                    Text {
+                        text: "Luminosidad";
+                        font-size: 12px;
+                        color: #7f8c8d;
+                    }
+
+                    light-slider := Rectangle {
+                        height: 30px;
+                        border-radius: 4px;
+                        background: @linear-gradient(90deg, #000000, hsl-to-color(editing-color-a ? hue-a : hue-b, editing-color-a ? saturation-a : saturation-b, 0.5, 1), #ffffff);
+                        Rectangle {
+                            x: (editing-color-a ? lightness-a : lightness-b) * (parent.width - 20px);
+                            width: 20px;
+                            height: parent.height;
+                            border-radius: 10px;
+                            background: white;
+                            border-width: 3px;
+                            border-color: #2c3e50;
+                        }
+
+                        TouchArea {
+                            moved => {
+                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+                                if (editing-color-a) {
+                                    lightness-a = val;
+                                } else {
+                                    lightness-b = val;
+                                }
+
+                                update-colors();
+                            }
+
+                            clicked => {
+                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+                                if (editing-color-a) {
+                                    lightness-a = val;
+                                } else {
+                                    lightness-b = val;
+                                }
+
+                                update-colors();
+                            }
+                        }
+                    }
+                }
+                
+                // Alpha
+                VerticalBox {
+                    spacing: 4px;
+                    Text {
+                        text: "Transparencia";
+                        font-size: 12px;
+                        color: #7f8c8d;
+                    }
+
+                    alpha-slider := Rectangle {
+                        height: 30px;
+                        border-radius: 4px;
+                        background: @linear-gradient(90deg, transparent, hsl-to-color(editing-color-a ? hue-a : hue-b, editing-color-a ? saturation-a : saturation-b, editing-color-a ? lightness-a : lightness-b, 1));
+                        Rectangle {
+                            width: 100%;
+                            height: 100%;
+                            background: #ffffff;
+                            for tile[i] in 20: Rectangle {
+                                x: mod(i, 10) * (parent.width / 10);
+                                y: floor(i / 10) * (parent.height / 2);
+                                width: parent.width / 10;
+                                height: parent.height / 2;
+                                background: mod(i, 2) == mod(floor(i / 10), 2) ? #cccccc : #ffffff;
+                            }
+                        }
+
+                        Rectangle {
+                            width: 100%;
+                            height: 100%;
+                            background: @linear-gradient(90deg, transparent, hsl-to-color(editing-color-a ? hue-a : hue-b, editing-color-a ? saturation-a : saturation-b, editing-color-a ? lightness-a : lightness-b, 1));
+                        }
+
+                        Rectangle {
+                            x: (editing-color-a ? alpha-a : alpha-b) * (parent.width - 20px);
+                            width: 20px;
+                            height: parent.height;
+                            border-radius: 10px;
+                            background: white;
+                            border-width: 3px;
+                            border-color: #2c3e50;
+                        }
+
+                        TouchArea {
+                            moved => {
+                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+                                if (editing-color-a) {
+                                    alpha-a = val;
+                                } else {
+                                    alpha-b = val;
+                                }
+
+                                update-colors();
+                            }
+
+                            clicked => {
+                                let val = Math.max(0, Math.min(1, self.mouse-x / parent.width));
+                                if (editing-color-a) {
+                                    alpha-a = val;
+                                } else {
+                                    alpha-b = val;
+                                }
+
+                                update-colors();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -7,6 +7,7 @@ import { Settings } from "api/global.slint";
 import { ViewState, ViewType, ViewBackgroundColor } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
+import { ColorPicker } from "components/color-picker.slint";
 
 export { Bible, Settings, ViewWindow, SettingsWindow, ViewState, ViewBackgroundColor, ViewType }
 
@@ -417,6 +418,18 @@ export component MainWindow inherits Window {
             preview := View {
                 width: 100%;
                 height: self.width / 1.7;
+            }
+
+            ColorPicker {
+                selected-color <=> ViewState.color;
+
+                changed gradient-mode => {
+                    if self.gradient-mode {
+                        ViewState.view-type = ViewType.Linear;
+                    } else {
+                        ViewState.view-type = ViewType.Color;
+                    }
+                }
             }
         }
     }
