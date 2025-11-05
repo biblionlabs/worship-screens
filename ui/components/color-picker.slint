@@ -165,11 +165,11 @@ export component ColorPicker inherits Rectangle {
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
+                    }
 
-                        TouchArea {
-                            clicked => {
-                                editing-color-a = true;
-                            }
+                    TouchArea {
+                        clicked => {
+                            editing-color-a = true;
                         }
                     }
                 }
@@ -187,11 +187,11 @@ export component ColorPicker inherits Rectangle {
                             color: !editing-color-a ? white : #2c3e50;
                             horizontal-alignment: center;
                         }
+                    }
 
-                        TouchArea {
-                            clicked => {
-                                editing-color-a = false;
-                            }
+                    TouchArea {
+                        clicked => {
+                            editing-color-a = false;
                         }
                     }
                 }
