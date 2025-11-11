@@ -1,11 +1,16 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use bitstream_converter::Mp4BitstreamConverter;
 use slint::winit_030::WinitWindowAccessor;
 use slint::winit_030::winit::monitor::MonitorHandle;
-use slint::{ComponentHandle, Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, ToSharedString};
+use slint::{
+    ComponentHandle, Image, ModelRc, Rgb8Pixel, Rgba8Pixel, SharedPixelBuffer, SharedString,
+    ToSharedString,
+};
 use ui::*;
 
+mod bitstream_converter;
 fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
 
@@ -17,14 +22,16 @@ fn main() {
         let settings_window = settings_window.as_weak();
         move || {
             settings_window.unwrap().hide().unwrap();
-    }});
+        }
+    });
 
     settings_window.on_close({
         let settings_window = settings_window.as_weak();
         move || {
             // TODO: save and sync settings before close
             settings_window.unwrap().hide().unwrap();
-    }});
+        }
+    });
 
     main_window.on_start_window({
         let main_window = main_window.as_weak();
@@ -131,19 +138,92 @@ fn main() {
 
     main_window.on_set_image({
         let main_window = main_window.as_weak();
+        let view_window = view_window.as_weak();
         move || {
-            let file = rfd::FileDialog::new()
-                .set_title("Select Image")
-                .pick_file()
-                .unwrap();
-            let file = image::open(file).unwrap();
-            let file = file.to_rgba8();
+            let main_window = main_window.clone();
+            let view_window = view_window.clone();
+            // main_window
+            //     .unwrap()
+            //     .global::<ViewState>()
+            //     .set_view_type(ViewType::Media);
+            // view_window
+            //     .unwrap()
+            //     .global::<ViewState>()
+            //     .set_view_type(ViewType::Media);
+            let cb = move |pixels: SharedPixelBuffer<Rgb8Pixel>| {
+                let main_window = main_window.clone();
+                let view_window = view_window.clone();
+                slint::invoke_from_event_loop(move || {
+                    let main_window = main_window.unwrap();
+                    let view_window = view_window.unwrap();
+                    let state = main_window.global::<ViewState>();
+                    state.set_img_bg(Image::from_rgb8(pixels.clone()));
+                    // if PLAYING.fetch() {
+                        let view_state = view_window.global::<ViewState>();
+                        view_state.set_img_bg(Image::from_rgb8(pixels));
+                    // }
+                })
+                .unwrap()
+            };
 
-            let mut pixels = SharedPixelBuffer::<Rgba8Pixel>::new(file.width(), file.height());
-            pixels.make_mut_bytes().copy_from_slice(&file.into_raw());
-            let img_frame = Image::from_rgba8(pixels);
+            std::thread::spawn(move || {
+                use std::fs::File;
+                use std::io::BufReader;
 
-            main_window.unwrap().set_source(img_frame);
+                use mp4::*;
+                use openh264::decoder::{Decoder, DecoderConfig, Flush};
+
+                let src_file = File::open("/home/s4rch/Videos/2025-06-14 17-30-19.mp4").unwrap();
+                let size = src_file.metadata().unwrap().len();
+                let reader = BufReader::new(src_file);
+                let mut mp4_reader = mp4::Mp4Reader::read_header(reader, size).unwrap();
+                let track = mp4_reader
+                    .tracks()
+                    .iter()
+                    .find(|(_, t)| t.media_type().unwrap() == mp4::MediaType::H264)
+                    .unwrap()
+                    .1;
+
+                let decoder_options = DecoderConfig::new().flush_after_decode(Flush::NoFlush);
+                let mut decoder =
+                    Decoder::with_api_config(openh264::OpenH264API::from_source(), decoder_options)
+                        .unwrap();
+
+                let track_id = track.track_id();
+                let width = track.width() as usize;
+                let height = track.height() as usize;
+                let wait_time = std::time::Duration::from_secs_f64(1.0 / track.frame_rate());
+                let mut bitstream_converter = Mp4BitstreamConverter::for_mp4_track(&track).unwrap();
+                let mut buffer = Vec::new();
+                for i in 1..=track.sample_count() {
+                    let Some(sample) = mp4_reader.read_sample(track_id, i).unwrap() else {
+                        println!("Cannot read sample");
+                        return;
+                    };
+
+                    // convert the packet from mp4 representation to one that openh264 can decode
+                    bitstream_converter.convert_packet(&sample.bytes, &mut buffer);
+                    match decoder.decode(&buffer) {
+                        Ok(Some(image)) => {
+                            let mut pixels =
+                                SharedPixelBuffer::<Rgb8Pixel>::new(width as _, height as _);
+                            image.write_rgb8(pixels.make_mut_bytes());
+                            cb(pixels);
+                        }
+                        Ok(None) => {} // decoder is not ready to provide an image
+                        Err(err) => {
+                            println!("error frame {i}: {err}");
+                        }
+                    }
+                    std::thread::sleep(wait_time);
+                }
+
+                for image in decoder.flush_remaining().unwrap() {
+                    let mut pixels = SharedPixelBuffer::<Rgb8Pixel>::new(width as _, height as _);
+                    image.write_rgb8(pixels.make_mut_bytes());
+                    cb(pixels);
+                }
+            });
         }
     });
 
