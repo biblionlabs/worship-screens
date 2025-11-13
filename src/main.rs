@@ -11,6 +11,7 @@ use slint::{
 use ui::*;
 
 mod bitstream_converter;
+mod user_data;
 fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
 
