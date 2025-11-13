@@ -1,17 +1,17 @@
 import { ViewState, ViewType } from "../api/view-state.slint";
 
 export component View inherits Rectangle {
-    if ViewState.view-type == ViewType.Media: Image {
-        width: parent.width;
-        height: parent.height;
-        image-fit: cover;
-        source: ViewState.img-bg;
-    }
-
-    if ViewState.view-type == ViewType.Color: Rectangle {
+    if ViewState.view-type == ViewType.Color || ViewState.view-type == ViewType.Image: Rectangle {
         width: parent.width;
         height: parent.height;
         background: ViewState.color.a;
+    }
+
+    if ViewState.view-type == ViewType.Media || ViewState.view-type == ViewType.Image: Image {
+        width: parent.width;
+        height: parent.height;
+        image-fit: ViewState.view-type == ViewType.Image ? contain : cover;
+        source: ViewState.img-bg;
     }
 
     if ViewState.view-type == ViewType.Linear: Rectangle {
