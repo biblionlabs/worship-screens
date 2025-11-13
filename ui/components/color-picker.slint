@@ -1,12 +1,19 @@
-import { VerticalBox, HorizontalBox, GridBox, ScrollView } from "std-widgets.slint";
+import {
+    VerticalBox,
+    HorizontalBox,
+    GridBox,
+    ScrollView,
+} from "std-widgets.slint";
 
 import { ViewBackgroundColor } from "../api/view-state.slint";
+import { InputCheck } from "input/check.slint";
 
 component ColorSlider inherits Rectangle {
     height: 20px;
     border-radius: 10px;
     clip: true;
 
+    in property <color> knob-color;
     in-out property <length> knob-position;
     in-out property <float> position;
 
@@ -16,6 +23,7 @@ component ColorSlider inherits Rectangle {
         x: knob-position;
         width: 20px;
         height: parent.height;
+        background: knob-color;
         border-radius: 10px;
         border-width: 5px;
         border-color: white;
@@ -36,12 +44,14 @@ export component ColorPicker inherits Rectangle {
 
     in property <bool> allow-gradient: true;
     in property <bool> show-preview: true;
+    property <bool> show-advanced: false;
 
     in-out property <ViewBackgroundColor> selected-color: {
         a: #3498db,
         b: #3498db,
     };
-    in-out property <bool> gradient-mode: false;
+
+    out property <bool> gradient-mode: false;
 
     callback color-changed(ViewBackgroundColor);
 
@@ -55,28 +65,30 @@ export component ColorPicker inherits Rectangle {
     property <float> lightness-b: 0.55;
     property <float> alpha-b: 1.0;
 
-    property <[[color]]> preset-colors: [
+    property <[[[float]]]> preset-hsls: [
         [
-            #e74c3c,
-            #e67e22,
-            #f39c12,
-            #f1c40f,
-            #2ecc71,
-            #1abc9c,
-            #16a085,
-            #27ae60,
-            #f39c12
+            // fila 0
+            [0.0156, 0.781, 0.570, 1.0], // #e74c3c
+            [0.0771, 0.797, 0.517, 1.0], // #e67e22
+            [0.102, 0.903, 0.512, 1.0], // #f39c12
+            [0.132, 0.889, 0.501, 1.0], // #f1c40f
+            [0.404, 0.633, 0.490, 1.0], // #2ecc71
+            [0.466, 0.757, 0.419, 1.0], // #1abc9c
+            [0.469, 0.756, 0.356, 1.0], // #16a085
+            [0.405, 0.632, 0.417, 1.0], // #27ae60
+            [0.311, 0.815, 0.468, 1.0]  // #f39c12 (repetido)
         ],
         [
-            #3498db,
-            #9b59b6,
-            #34495e,
-            #95a5a6,
-            #ecf0f1,
-            #000000,
-            #2980b9,
-            #8e44ad,
-            #c0392b
+            // fila 1
+            [0.567, 0.695, 0.531, 1.0], // #3498db
+            [0.784, 0.389, 0.532, 1.0], // #9b59b6
+            [0.584, 0.287, 0.286, 1.0], // #34495e
+            [0.510, 0.088, 0.617, 1.0], // #95a5a6
+            [0.000, 0.08, 0.935, 1.0], // #ecf0f1 (aprox)
+            [0.000, 0.0, 0.0, 1.0], // #000000
+            [0.566, 0.636, 0.443, 1.0], // #2980b9
+            [0.784, 0.439, 0.467, 1.0], // #8e44ad
+            [0.027, 0.632, 0.461, 1.0]  // #c0392b
         ]
     ];
 
@@ -91,6 +103,27 @@ export component ColorPicker inherits Rectangle {
         let a = s * min(l, 1 - l);
         let val = l - a * max(-1, min(k - 3, min(9 - k, 1)));
         return Math.round(val * 255);
+    }
+
+    function apply-hsla(hsla: [float]) {
+        if (editing-color-a) {
+            hue-a = hsla[0];
+            saturation-a = hsla[1];
+            lightness-a = hsla[2];
+            alpha-a = hsla[3];
+            if (!gradient-mode) {
+                hue-b = hue-a;
+                saturation-b = saturation-a;
+                lightness-b = lightness-a;
+                alpha-b = alpha-a;
+            }
+        } else {
+            hue-b = hsla[0];
+            saturation-b = hsla[1];
+            lightness-b = hsla[2];
+            alpha-b = hsla[3];
+        }
+        update-colors();
     }
 
     function update-colors() {
@@ -115,6 +148,13 @@ export component ColorPicker inherits Rectangle {
             border-width: 2px;
             border-color: #ccc;
             background: gradient-mode ? @linear-gradient(90deg, selected-color.a, selected-color.b) : selected-color.a;
+
+            Text {
+                font-size: 18px;
+                text: "#323232 ~ #000000";
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
         }
 
         if allow-gradient: HorizontalBox {
@@ -123,26 +163,14 @@ export component ColorPicker inherits Rectangle {
             VerticalLayout {
                 height: 52px;
                 alignment: center;
-                HorizontalBox {
-                    spacing: 8px;
-                    Rectangle {
-                        width: 20px;
-                        height: 20px;
-                        border-radius: 4px;
-                        border-width: 2px;
-                        border-color: gradient-mode ? #3498db : #ccc;
-                        background: gradient-mode ? #3498db : white;
-                        TouchArea {
-                            clicked => {
-                                gradient-mode = !gradient-mode;
-                                update-colors();
-                            }
-                        }
-                    }
 
-                    Text {
-                        text: "Modo Gradiente";
-                        vertical-alignment: center;
+                InputCheck {
+                    label: "Modo Gradiente";
+                    checked <=> gradient-mode;
+
+                    changed checked => {
+                        editing-color-a = true;
+                        update-colors();
                     }
                 }
             }
@@ -204,6 +232,7 @@ export component ColorPicker inherits Rectangle {
 
             VerticalBox {
                 spacing: 1px;
+                alignment: start;
                 padding-top: 0px;
 
                 VerticalBox {
@@ -216,26 +245,24 @@ export component ColorPicker inherits Rectangle {
 
                     VerticalLayout {
                         spacing: 6px;
-                        for row in preset-colors: HorizontalLayout {
+                        for row in preset-hsls: HorizontalLayout {
                             spacing: 6px;
-                            for preset-color[index] in row: Rectangle {
+                            for p in row: Rectangle {
                                 width: 30px;
                                 height: 30px;
                                 border-radius: 8px;
-                                background: preset-color;
+                                background: hsl-to-color(p[0], p[1], p[2], p[3]);
                                 border-width: 2px;
                                 border-color: #bdc3c7;
                                 TouchArea {
                                     clicked => {
                                         if (editing-color-a) {
-                                            selected-color.a = preset-color;
+                                            selected-color.a = hsl-to-color(p[0], p[1], p[2], p[3]);
                                         } else {
-                                            selected-color.b = preset-color;
+                                            selected-color.b = hsl-to-color(p[0], p[1], p[2], p[3]);
                                         }
-                                        if (!gradient-mode) {
-                                            selected-color.b = preset-color;
-                                        }
-                                        color-changed(selected-color);
+
+                                        apply-hsla(p);
                                     }
                                 }
                             }
@@ -254,6 +281,8 @@ export component ColorPicker inherits Rectangle {
                     ColorSlider {
                         background: @linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
                         knob-position: (editing-color-a ? hue-a : hue-b) * (parent.width - 36px);
+                        knob-color: gradient-mode ? (editing-color-a ? selected-color.a : selected-color.b) : selected-color.a;
+
                         changed position => {
                             if (editing-color-a) {
                                 hue-a = self.position;
@@ -264,9 +293,24 @@ export component ColorPicker inherits Rectangle {
                         }
                     }
                 }
+
+                HorizontalBox {
+                    Rectangle {
+                        Text {
+                            color: #7f8c8d;
+                            text: show-advanced ? "Hide Advanced Options" : "Show Advanced Options";
+                        }
+
+                        TouchArea {
+                            clicked => {
+                                show-advanced = !show-advanced;
+                            }
+                        }
+                    }
+                }
                 
                 // Saturation
-                VerticalBox {
+                if show-advanced: VerticalBox {
                     spacing: 4px;
                     Text {
                         text: "Saturación";
@@ -277,6 +321,8 @@ export component ColorPicker inherits Rectangle {
                     ColorSlider {
                         background: @linear-gradient(90deg, #808080, hsl-to-color(editing-color-a ? hue-a : hue-b, 1, 0.5, 1));
                         knob-position: (editing-color-a ? saturation-a : saturation-b) * (parent.width - 36px);
+                        knob-color: gradient-mode ? (editing-color-a ? selected-color.a : selected-color.b) : selected-color.a;
+
                         changed position => {
                             if (editing-color-a) {
                                 saturation-a = self.position;
@@ -289,7 +335,7 @@ export component ColorPicker inherits Rectangle {
                 }
                 
                 // Lightness
-                VerticalBox {
+                if show-advanced: VerticalBox {
                     spacing: 4px;
                     Text {
                         text: "Luminosidad";
@@ -300,6 +346,8 @@ export component ColorPicker inherits Rectangle {
                     ColorSlider {
                         background: @linear-gradient(90deg, #000000, hsl-to-color(editing-color-a ? hue-a : hue-b, editing-color-a ? saturation-a : saturation-b, 0.5, 1), #ffffff);
                         knob-position: (editing-color-a ? lightness-a : lightness-b) * (parent.width - 36px);
+                        knob-color: gradient-mode ? (editing-color-a ? selected-color.a : selected-color.b) : selected-color.a;
+
                         changed position => {
                             if (editing-color-a) {
                                 lightness-a = self.position;
@@ -312,7 +360,7 @@ export component ColorPicker inherits Rectangle {
                 }
                 
                 // Alpha
-                VerticalBox {
+                if show-advanced: VerticalBox {
                     spacing: 4px;
                     Text {
                         text: "Transparencia";
@@ -323,6 +371,7 @@ export component ColorPicker inherits Rectangle {
                     ColorSlider {
                         background: @linear-gradient(90deg, transparent, hsl-to-color(editing-color-a ? hue-a : hue-b, editing-color-a ? saturation-a : saturation-b, editing-color-a ? lightness-a : lightness-b, 1));
                         knob-position: (editing-color-a ? alpha-a : alpha-b) * (parent.width - 36px);
+                        knob-color: gradient-mode ? (editing-color-a ? selected-color.a : selected-color.b) : selected-color.a;
 
                         changed position => {
                             if (editing-color-a) {
