@@ -1,0 +1,31 @@
+import { HorizontalBox } from "std-widgets.slint";
+
+export component InputCheck inherits Rectangle {
+
+    in property <string> label;
+    in-out property <bool> checked: false;
+
+    TouchArea {
+        clicked => {
+            checked = !checked;
+        }
+    }
+
+    HorizontalBox {
+        spacing: 8px;
+
+        Rectangle {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border-width: 2px;
+            border-color: checked ? #3498db : #ccc;
+            background: checked ? #3498db : white;
+        }
+
+        Text {
+            text <=> label;
+            vertical-alignment: center;
+        }
+    }
+}
