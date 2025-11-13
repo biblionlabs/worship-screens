@@ -1,0 +1,48 @@
+import { Palette } from "std-widgets.slint";
+
+export component Renderable inherits VerticalLayout {
+    padding-left: 5px;
+    padding-right: 5px;
+
+    in property <duration> hover-wait: 200ms;
+
+    in-out property <bool> hover: false;
+
+    callback preview();
+    callback hover-preview();
+    callback send-to-view();
+
+    hover-timer := Timer {
+        interval: hover-wait;
+
+        triggered => {
+            hover-preview();
+            self.stop();
+        }
+    }
+
+    Rectangle {
+        background: Palette.alternate-foreground;
+        border-radius: 8px;
+
+        TouchArea {
+            clicked => preview();
+            double-clicked => send-to-view();
+
+            changed has-hover => {
+                hover = self.has-hover;
+                if self.has-hover {
+                    hover-timer.start();
+                } else {
+                    hover-timer.stop();
+                }
+            }
+        }
+
+        VerticalLayout {
+            padding: 10px;
+
+            @children
+        }
+    }
+}
