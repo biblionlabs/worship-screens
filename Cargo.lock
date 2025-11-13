@@ -5441,6 +5441,8 @@ dependencies = [
  "mp4",
  "openh264",
  "rfd",
+ "serde",
+ "serde_json",
  "slint",
  "tokio",
  "ui",
