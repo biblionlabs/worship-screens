@@ -5,8 +5,9 @@ export component Renderable inherits VerticalLayout {
     padding-right: 5px;
 
     in property <duration> hover-wait: 200ms;
+    in property <bool> selected;
 
-    in-out property <bool> hover: false;
+    out property <bool> hover: false;
 
     callback preview();
     callback hover-preview();
@@ -22,7 +23,7 @@ export component Renderable inherits VerticalLayout {
     }
 
     Rectangle {
-        background: Palette.alternate-foreground;
+        background: Palette.alternate-background.brighter((hover || selected) ? 0.2 : 0.0);
         border-radius: 8px;
 
         TouchArea {
@@ -37,12 +38,12 @@ export component Renderable inherits VerticalLayout {
                     hover-timer.stop();
                 }
             }
-        }
 
-        VerticalLayout {
-            padding: 10px;
+            VerticalLayout {
+                padding: 10px;
 
-            @children
+                @children
+            }
         }
     }
 }

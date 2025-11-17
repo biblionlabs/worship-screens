@@ -1,4 +1,11 @@
-import { ListView, Button, TabWidget, ComboBox, TextEdit } from "std-widgets.slint";
+import {
+    ListView,
+    Button,
+    TabWidget,
+    ComboBox,
+    TextEdit,
+    Palette,
+} from "std-widgets.slint";
 
 import { ViewWindow } from "view.slint";
 import { Bible, SettingsWindow } from "settings.slint";
@@ -8,6 +15,7 @@ import { ViewState, ViewType, ViewBackgroundColor } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
 import { ColorPicker } from "components/color-picker.slint";
+import { Renderable } from "components/base/renderable.slint";
 
 export { Bible, Settings, ViewWindow, SettingsWindow, ViewState, ViewBackgroundColor, ViewType }
 
@@ -118,23 +126,21 @@ export component MainWindow inherits Window {
                                     "Jehová es mi pastor; nada me faltará...",
                                     "Jehová es mi pastor; nada me faltará...",
                                     "Jehová es mi pastor; nada me faltará...",
-                                ]: VerticalLayout {
-                                    padding-left: 5px;
-                                    padding-right: 5px;
+                                ]: vese-interactable := Renderable {
                                     padding-bottom: 10px;
 
-                                    Rectangle {
-                                        background: #fff;
-                                        border-radius: 8px;
+                                    preview => {
+                                        ViewState.content = e;
+                                    }
+                                    send-to-view => {
+                                        ViewState.content = e;
+                                        root.send-to-view();
+                                    }
 
-                                        VerticalLayout {
-                                            padding: 10px;
-
-                                            Text {
-                                                text: e;
-                                                color: #000;
-                                            }
-                                        }
+                                    Text {
+                                        text: e;
+                                        vertical-alignment: center;
+                                        color: Palette.foreground;
                                     }
                                 }
                             }
@@ -184,23 +190,21 @@ export component MainWindow inherits Window {
                                     "Jehová es mi pastor; nada me faltará...",
                                     "Jehová es mi pastor; nada me faltará...",
                                     "Jehová es mi pastor; nada me faltará...",
-                                ]: VerticalLayout {
-                                    padding-left: 5px;
-                                    padding-right: 5px;
+                                ]: song-interactable := Renderable {
                                     padding-bottom: 10px;
 
-                                    Rectangle {
-                                        background: #fff;
-                                        border-radius: 8px;
+                                    preview => {
+                                        ViewState.content = e;
+                                    }
+                                    send-to-view => {
+                                        ViewState.content = e;
+                                        root.send-to-view();
+                                    }
 
-                                        VerticalLayout {
-                                            padding: 10px;
-
-                                            Text {
-                                                text: e;
-                                                color: #000;
-                                            }
-                                        }
+                                    Text {
+                                        text: e;
+                                        vertical-alignment: center;
+                                        color: Palette.foreground;
                                     }
                                 }
                             }
@@ -238,23 +242,21 @@ export component MainWindow inherits Window {
                                     "Jehová es mi pastor; nada me faltará...",
                                     "Jehová es mi pastor; nada me faltará...",
                                     "Jehová es mi pastor; nada me faltará...",
-                                ]: VerticalLayout {
-                                    padding-left: 5px;
-                                    padding-right: 5px;
+                                ]: paragraph-interactable := Renderable {
                                     padding-bottom: 10px;
 
-                                    Rectangle {
-                                        background: #fff;
-                                        border-radius: 8px;
+                                    preview => {
+                                        ViewState.content = e;
+                                    }
+                                    send-to-view => {
+                                        ViewState.content = e;
+                                        root.send-to-view();
+                                    }
 
-                                        VerticalLayout {
-                                            padding: 10px;
-
-                                            Text {
-                                                text: e;
-                                                color: #000;
-                                            }
-                                        }
+                                    Text {
+                                        text: e;
+                                        vertical-alignment: center;
+                                        color: Palette.foreground;
                                     }
                                 }
                             }
@@ -378,22 +380,32 @@ export component MainWindow inherits Window {
                                 "Jehová es mi pastor; nada me faltará...",
                                 "Jehová es mi pastor; nada me faltará...",
                                 "Jehová es mi pastor; nada me faltará...",
-                            ]: VerticalLayout {
-                                padding-left: 5px;
-                                padding-right: 5px;
+                            ]: r := Renderable {
                                 padding-bottom: 10px;
 
-                                Rectangle {
-                                    background: #fff;
-                                    border-radius: 8px;
+                                preview => {
+                                    ViewState.content = e;
+                                }
+                                send-to-view => {
+                                    ViewState.content = e;
+                                    root.send-to-view();
+                                }
 
-                                    VerticalLayout {
-                                        padding: 10px;
+                                HorizontalLayout {
+                                    alignment: space-between;
 
-                                        Text {
-                                            text: e;
-                                            color: #000;
-                                        }
+                                    Text {
+                                        text: e;
+                                        vertical-alignment: center;
+                                        color: Palette.foreground;
+                                    }
+
+                                    Button {
+                                        enabled: r.hover;
+                                        text: "Eliminar";
+                                        clicked => {
+                                            // TODO: Remove saved text
+                                        };
                                     }
                                 }
                             }
