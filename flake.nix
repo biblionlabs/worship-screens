@@ -31,6 +31,7 @@
           libxkbcommon
 
           wayland
+          sqlite
 
           libjpeg
           vulkan-loader
@@ -110,6 +111,8 @@
         packages.default = appPkg;
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
+            cargo
+            rustc
             slint-lsp
             slint-viewer
 
