@@ -42,9 +42,10 @@ impl From<u8> for NalType {
     /// Reads NAL from header byte.
     fn from(value: u8) -> Self {
         use NalType::{
-            Aud, AuxiliarySlice, DepthExtenSlice, Dpa, Dpb, Dpc, Dps, EndSequence, EndStream, ExtenSlice, FillerData, IdrSlice,
-            Pps, Prefix, Reserved17, Reserved18, Reserved22, Reserved23, Sei, Slice, Sps, SpsExt, SubSps, Unspecified,
-            Unspecified24, Unspecified25, Unspecified26, Unspecified27, Unspecified28, Unspecified29, Unspecified30,
+            Aud, AuxiliarySlice, DepthExtenSlice, Dpa, Dpb, Dpc, Dps, EndSequence, EndStream,
+            ExtenSlice, FillerData, IdrSlice, Pps, Prefix, Reserved17, Reserved18, Reserved22,
+            Reserved23, Sei, Slice, Sps, SpsExt, SubSps, Unspecified, Unspecified24, Unspecified25,
+            Unspecified26, Unspecified27, Unspecified28, Unspecified29, Unspecified30,
             Unspecified31,
         };
 
@@ -109,7 +110,10 @@ impl<'a> NalUnit<'a> {
 
         let packet = &stream[..nal_size as usize];
         let nal_type = NalType::from(packet[0] & 0x1F);
-        let unit = NalUnit { nal_type, bytes: packet };
+        let unit = NalUnit {
+            nal_type,
+            bytes: packet,
+        };
 
         stream = &stream[nal_size as usize..];
 
@@ -160,8 +164,18 @@ impl Mp4BitstreamConverter {
 
         Ok(Self {
             length_size: avcc_config.length_size_minus_one + 1,
-            sps: avcc_config.sequence_parameter_sets.iter().cloned().map(|v| v.bytes).collect(),
-            pps: avcc_config.picture_parameter_sets.iter().cloned().map(|v| v.bytes).collect(),
+            sps: avcc_config
+                .sequence_parameter_sets
+                .iter()
+                .cloned()
+                .map(|v| v.bytes)
+                .collect(),
+            pps: avcc_config
+                .picture_parameter_sets
+                .iter()
+                .cloned()
+                .map(|v| v.bytes)
+                .collect(),
             new_idr: true,
             sps_seen: false,
             pps_seen: false,
@@ -176,7 +190,8 @@ impl Mp4BitstreamConverter {
         out.clear();
 
         while !stream.is_empty() {
-            let Some((unit, remaining_stream)) = NalUnit::from_stream(stream, self.length_size) else {
+            let Some((unit, remaining_stream)) = NalUnit::from_stream(stream, self.length_size)
+            else {
                 continue;
             };
 

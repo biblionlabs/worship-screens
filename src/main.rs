@@ -1,23 +1,118 @@
 use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use bitstream_converter::Mp4BitstreamConverter;
+use setup_core::{Selection, SqliteDbSink, event};
 use slint::winit_030::WinitWindowAccessor;
 use slint::winit_030::winit::monitor::MonitorHandle;
 use slint::{
-    ComponentHandle, Image, ModelRc, Rgb8Pixel, Rgba8Pixel, SharedPixelBuffer, SharedString,
+    ComponentHandle, Image, Model, ModelRc, Rgb8Pixel, Rgba8Pixel, SharedPixelBuffer, SharedString,
     ToSharedString,
 };
 use ui::*;
 
+use self::settings::FavoriteTexts;
+use self::user_data::UserData;
+
 mod bitstream_converter;
+mod settings;
 mod user_data;
+
+const PLAYING: AtomicBool = AtomicBool::new(false);
+
 fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
+    let data_manager: Arc<UserData> = Default::default();
+    let fav_texts: Arc<Mutex<FavoriteTexts>> = Default::default();
+    let selection: Arc<Mutex<Selection>> = Default::default();
 
     let main_window = MainWindow::new().unwrap();
     let settings_window = SettingsWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
+
+    let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
+    let source_variants = setup_core::SetupBuilder::new().cache_path(data_manager.data_dir(&["cache"]))
+        // Add Reina Valera 1960 Bible
+        .add_bible_from_url("spa_rv1960", "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/manifest.json", "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/desc.json", Some("https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/{bible_id}/books/{book}.json"))
+        .on::<event::Completed>({
+            let main_window = main_window.as_weak();
+            let settings_window = settings_window.as_weak();
+            move |_msg| {
+                let main_window = main_window.unwrap();
+                let state = main_window.global::<MainState>();
+
+            settings_window.unwrap().set_can_download(true);
+            }})
+        .on::<event::Error>({
+            let main_window = main_window.as_weak();
+            move |_e| {
+                let main_window = main_window.unwrap();
+                let state = main_window.global::<MainState>();
+            }})
+        .on::<event::Progress>({
+            let main_window = main_window.as_weak();
+            let settings_window = settings_window.as_weak();
+            move |(step_id, current, total)| {
+                if step_id != "crossrefs" {
+                    return;
+                }
+                let main_window = main_window.unwrap();
+                let state = main_window.global::<MainState>();
+
+                let settings_window = settings_window.unwrap();
+                let bibles = settings_window.get_bibles();
+                let Some(idx) = bibles.iter().position(|b| b.id == step_id) else {
+                    return;
+                };
+                let mut bible = bibles.row_data(idx).unwrap();
+                bible.installing = current != total;
+                bible.installed = current == total;
+                bible.progress = current as f32 / total as f32;
+                bibles.set_row_data(idx, bible);
+
+                // TODO: send notification about state
+            }})
+        .build().1;
+
+    let source_variants: Arc<Mutex<setup_core::Setup>> = Arc::new(Mutex::new(source_variants));
+    slint::invoke_from_event_loop({
+        let source_variants = source_variants.clone();
+        let settings_window = settings_window.as_weak();
+        move || {
+            let source_variants = source_variants.clone();
+            let settings_window = settings_window.clone();
+            slint::spawn_local({
+                let source_variants = source_variants.clone();
+                let settings_window = settings_window.clone();
+                async move {
+                    let source_variants = source_variants.lock().unwrap();
+                    let bibles = source_variants
+                        .list_bibles()
+                        .await
+                        .map(|bibles| {
+                            bibles
+                                .iter()
+                                .map(|(id, name, english, _lang)| Bible {
+                                    id: id.into(),
+                                    english_name: english.into(),
+                                    installed: source_variants.is_bible_installed(id),
+                                    installing: false,
+                                    name: name.into(),
+                                    progress: 0.0,
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap();
+                    settings_window
+                        .unwrap()
+                        .set_bibles(ModelRc::from(bibles.as_slice()));
+                }
+            })
+            .unwrap();
+        }
+    })
+    .unwrap();
 
     settings_window.on_close({
         let settings_window = settings_window.as_weak();
@@ -26,11 +121,46 @@ fn main() {
         }
     });
 
-    settings_window.on_close({
+    settings_window.on_save({
         let settings_window = settings_window.as_weak();
+        let setup = source_variants.clone();
+        let selection = selection.clone();
+        let database = database.clone();
         move || {
-            // TODO: save and sync settings before close
-            settings_window.unwrap().hide().unwrap();
+            settings_window.unwrap().set_can_download(false);
+            slint::spawn_local({
+                let setup = setup.clone();
+                let selection = selection.clone();
+                let db = database.clone();
+                async move {
+                    setup
+                        .lock()
+                        .unwrap()
+                        .run_with_sink(selection.lock().unwrap().clone(), db)
+                        .await
+                        .unwrap();
+                }
+            })
+            .unwrap();
+        }
+    });
+
+    settings_window.on_select_bible({
+        let settings_window = settings_window.as_weak();
+        let source_variants = source_variants.clone();
+        let selection = selection.clone();
+        move |bible_id| {
+            let bible_id = bible_id.as_str().to_string();
+            let mut selection = selection.lock().unwrap();
+            if selection.bibles.contains(&bible_id) {
+                return;
+            }
+            selection.bibles.push(bible_id);
+            source_variants
+                .lock()
+                .unwrap()
+                .save_selection(&selection)
+                .unwrap();
         }
     });
 
@@ -160,8 +290,8 @@ fn main() {
                     let state = main_window.global::<ViewState>();
                     state.set_img_bg(Image::from_rgb8(pixels.clone()));
                     // if PLAYING.fetch() {
-                        let view_state = view_window.global::<ViewState>();
-                        view_state.set_img_bg(Image::from_rgb8(pixels));
+                    let view_state = view_window.global::<ViewState>();
+                    view_state.set_img_bg(Image::from_rgb8(pixels));
                     // }
                 })
                 .unwrap()
@@ -254,8 +384,22 @@ fn main() {
             let state = view_window.global::<ViewState>();
             // TODO: set default content
             state.set_content(SharedString::default());
-            main_window.global::<ViewState>().set_content(SharedString::default());
+            main_window
+                .global::<ViewState>()
+                .set_content(SharedString::default());
             state.set_off(false);
+        }
+    });
+
+    main_window.on_save_text({
+        let main_window = main_window.as_weak();
+        let fav_texts = fav_texts.clone();
+        move || {
+            let main_window = main_window.unwrap();
+            // let saved_texts = main_window
+            //     .global::<MainState>()
+            //     .get_saved_texts();
+            // *fav_texts.lock().unwrap() = saved_texts;
         }
     });
 
