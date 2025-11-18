@@ -19,6 +19,10 @@ import { Renderable } from "components/base/renderable.slint";
 
 export { Bible, Settings, ViewWindow, SettingsWindow, ViewState, ViewBackgroundColor, ViewType }
 
+export global MainState {
+    in-out property <[string]> saved-texts;
+}
+
 export component MainWindow inherits Window {
     title: "Worship Screens";
     preferred-width: 720px;
@@ -36,6 +40,7 @@ export component MainWindow inherits Window {
     callback change-monitor <=> select-monitors.selected;
 
     callback send-to-view <=> send-btn.clicked;
+    callback save-text();
 
     starter-timer := Timer {
         interval: 1s;
@@ -71,6 +76,11 @@ export component MainWindow inherits Window {
                     current-index: Settings.selected-monitor;
                 }
 
+                logo-btn := Button {
+                    text: "Logo";
+                    clicked => set-image();
+                }
+
                 shutdown-btn := Button {
                     text: "Off";
                 }
@@ -87,7 +97,7 @@ export component MainWindow inherits Window {
             }
 
             TabWidget {
-                current-index: 1;
+                current-index: 3;
 
                 Tab {
                     title: "Verses";
@@ -345,7 +355,9 @@ export component MainWindow inherits Window {
 
                                 Button {
                                     text: "Guardar";
-                                    clicked => send-to-view();
+                                    clicked => {
+                                        save-text();
+                                    };
                                 }
 
                                 Button {
@@ -354,7 +366,6 @@ export component MainWindow inherits Window {
                                 }
                             }
                         }
-
                         TextEdit {
                             text <=> ViewState.content;
                             placeholder-text: "Escribe tu mensaje aquí";

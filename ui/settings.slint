@@ -1,8 +1,10 @@
 import { Button, ListView, ProgressIndicator, Palette } from "std-widgets.slint";
 import { View } from "components/view.slint";
 import { ViewState } from "api/view-state.slint";
+import { Renderable } from "components/base/renderable.slint";
 
 export struct Bible {
+    id: string,
     name: string,
     installed: bool,
     installing: bool,
@@ -13,8 +15,9 @@ export struct Bible {
 export component SettingsWindow inherits Window {
     title: "Worship Screens - Settings";
     width: 640px;
-    height: 376px;
+    min-height: 376px;
 
+    in property <bool> can-download: true;
     in property <image> source;
     in property <[Bible]> bibles: [
         { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: true },
@@ -23,6 +26,7 @@ export component SettingsWindow inherits Window {
         { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
     ];
 
+    callback select-bible(string);
     callback close();
     callback save();
 
@@ -32,67 +36,61 @@ export component SettingsWindow inherits Window {
     }
 
     VerticalLayout {
+        width: parent.width;
         spacing: 10px;
         padding: 10px;
         alignment: stretch;
 
-        HorizontalLayout {
-            alignment: space-between;
-
-            Text {
-                vertical-alignment: center;
-                text: "Manage your installed bibles:";
-            }
-
-            Button {
-                text: "+";
-            }
+        Text {
+            vertical-alignment: center;
+            text: "Manage your installed bibles:";
         }
 
         ListView {
-            for b in bibles: VerticalLayout {
-                padding-left: 5px;
-                padding-right: 5px;
+            width: parent.width - (parent.padding * 2);
+            min-height: 300px;
+
+            for b in bibles: Renderable {
                 padding-bottom: 10px;
 
-                Rectangle {
-                    background: #fff;
-                    border-radius: 8px;
-                    clip: true;
+                preview => {
+                }
+                send-to-view => {
+                }
 
-                    VerticalLayout {
+                VerticalLayout {
 
-                        HorizontalLayout {
-                            padding: 10px;
-                            alignment: space-between;
+                    HorizontalLayout {
+                        padding: 10px;
+                        alignment: space-between;
 
-                            VerticalLayout {
-                                spacing: 5px;
+                        VerticalLayout {
+                            spacing: 5px;
 
-                                Text {
-                                    font-size: 18px;
-                                    vertical-alignment: center;
-                                    text: b.english-name;
-                                    color: #000;
-                                }
-
-                                if !b.name.is-empty: Text {
-                                    font-size: 14px;
-                                    vertical-alignment: center;
-                                    text: b.name;
-                                    color: #000;
-                                }
+                            Text {
+                                font-size: 18px;
+                                vertical-alignment: center;
+                                text: !b.english-name.is-empty ? b.english-name : b.name;
+                                color: Palette.foreground;
                             }
 
-                            if !b.installed: Button {
-                                enabled: !b.installing;
-                                icon: @image-url("../assets/download.svg");
+                            if !b.name.is-empty: Text {
+                                font-size: 14px;
+                                vertical-alignment: center;
+                                text: b.name;
+                                color: Palette.foreground.darker(70%);
                             }
                         }
 
-                        ProgressIndicator {
-                            progress: b.progress;
+                        if !b.installed || !can-download: Button {
+                            enabled: !b.installing;
+                            icon: @image-url("../assets/download.svg");
+                            clicked => select-bible(b.id);
                         }
+                    }
+
+                    ProgressIndicator {
+                        progress: b.progress;
                     }
                 }
             }
