@@ -1,5 +1,5 @@
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde::Serialize;
@@ -32,6 +32,16 @@ impl UserData {
         let mut file = self.data_path.join(T::NAME);
         file.set_extension(".json");
         file
+    }
+
+    pub fn data_dir(&self, sub_dir: &[impl AsRef<Path>]) -> PathBuf {
+        if sub_dir.is_empty() {
+            return self.data_path.clone();
+        }
+
+        sub_dir
+            .iter()
+            .fold(self.data_path.clone(), |path, b| path.join(b))
     }
 
     pub fn load<T: Save>(&self) -> T {
