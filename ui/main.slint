@@ -5,6 +5,7 @@ import {
     ComboBox,
     TextEdit,
     Palette,
+    LineEdit,
 } from "std-widgets.slint";
 
 import { ViewWindow } from "view.slint";
@@ -180,7 +181,7 @@ export component MainWindow inherits Window {
                                 }
                             }
 
-                            TextEdit {
+                            LineEdit {
                                 placeholder-text: "Buscar canciones";
                             }
 
@@ -366,6 +367,7 @@ export component MainWindow inherits Window {
                                 }
                             }
                         }
+
                         TextEdit {
                             text <=> ViewState.content;
                             placeholder-text: "Escribe tu mensaje aquí";
