@@ -1,16 +1,15 @@
-import { Button, ListView, ProgressIndicator, Palette } from "std-widgets.slint";
+import {
+    Button,
+    ListView,
+    ProgressIndicator,
+    Palette,
+    TextEdit,
+    LineEdit,
+} from "std-widgets.slint";
 import { View } from "components/view.slint";
 import { ViewState } from "api/view-state.slint";
+import { Bible } from "api/global.slint";
 import { Renderable } from "components/base/renderable.slint";
-
-export struct Bible {
-    id: string,
-    name: string,
-    installed: bool,
-    installing: bool,
-    progress: float,
-    english-name: string,
-}
 
 export component SettingsWindow inherits Window {
     title: "Worship Screens - Settings";
@@ -18,14 +17,10 @@ export component SettingsWindow inherits Window {
     min-height: 376px;
 
     in property <image> source;
-    in property <[Bible]> bibles: [
-        { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: true },
-        { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.2, installing: true, installed: false },
-        { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
-        { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: false },
-    ];
+    in property <[Bible]> bibles;
 
-    callback select-bible(string);
+    callback select-bible <=> search-input.edited;
+    callback search(string);
     callback close();
     callback save();
 
@@ -45,17 +40,24 @@ export component SettingsWindow inherits Window {
             text: "Manage your installed bibles:";
         }
 
-        ListView {
+        search-input := LineEdit {
+            placeholder-text: "Busca: Reina Valera 1960";
+        }
+
+        if bibles.length == 0: Text {
+            text: search-input.text.is-empty ? "There are no Bibles in Database." : "There are no related Bibles.";
+            min-height: 300px;
+            vertical-alignment: center;
+            horizontal-alignment: center;
+        }
+
+        if bibles.length > 0: ListView {
             width: parent.width - (parent.padding * 2);
             min-height: 300px;
+            max-height: 500px;
 
             for b in bibles: Renderable {
                 padding-bottom: 10px;
-
-                preview => {
-                }
-                send-to-view => {
-                }
 
                 VerticalLayout {
 

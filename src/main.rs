@@ -133,6 +133,36 @@ fn main() {
         }
     });
 
+    settings_window.on_search({
+        let source_variants = source_variants.clone();
+        let settings_window = settings_window.as_weak();
+        move |s| {
+            let s = s.as_str().to_lowercase();
+            let settings_window = settings_window.unwrap();
+            let bibles = source_variants
+                .list_bibles()
+                .map(|bibles| {
+                    bibles
+                        .iter()
+                        .filter_map(|(id, name, english, _lang)| {
+                            (english.to_lowercase().contains(&s)
+                                || name.to_lowercase().contains(&s))
+                            .then_some(Bible {
+                                id: id.into(),
+                                english_name: english.into(),
+                                installed: source_variants.is_bible_installed(id),
+                                installing: false,
+                                name: name.into(),
+                                progress: 0.0,
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap();
+            settings_window.set_bibles(ModelRc::from(bibles.as_slice()));
+        }
+    });
+
     settings_window.on_save({
         let settings_window = settings_window.as_weak();
         move || {
