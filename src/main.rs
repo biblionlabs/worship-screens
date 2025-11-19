@@ -35,30 +35,39 @@ fn main() {
     let source_variants = setup_core::SetupBuilder::new().cache_path(data_manager.data_dir(&["cache"]))
         // Add Reina Valera 1960 Bible
         .add_bible_from_url("spa_rv1960", "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/manifest.json", "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/desc.json", Some("https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/{bible_id}/books/{book}.json"))
+        .on::<event::Message>({
+            let main_window = main_window.as_weak();
+            let settings_window = settings_window.as_weak();
+            move |msg| {
+            //     let main_window = main_window.unwrap();
+            //     let state = main_window.global::<MainState>();
+            }})
         .on::<event::Completed>({
             let main_window = main_window.as_weak();
             let settings_window = settings_window.as_weak();
             move |_msg| {
-                let main_window = main_window.unwrap();
-                let state = main_window.global::<MainState>();
+                // let main_window = main_window.unwrap();
+                // let state = main_window.global::<MainState>();
 
-            settings_window.unwrap().set_can_download(true);
             }})
         .on::<event::Error>({
             let main_window = main_window.as_weak();
-            move |_e| {
-                let main_window = main_window.unwrap();
-                let state = main_window.global::<MainState>();
+            move |e| {
+                // let main_window = main_window.unwrap();
+                // let state = main_window.global::<MainState>();
+                eprintln!("Error: {e}");
             }})
         .on::<event::Progress>({
             let main_window = main_window.as_weak();
             let settings_window = settings_window.as_weak();
             move |(step_id, current, total)| {
-                if step_id != "crossrefs" {
+                if step_id == "crossrefs" {
                     return;
                 }
-                let main_window = main_window.unwrap();
-                let state = main_window.global::<MainState>();
+            let settings_window = settings_window.clone();
+                slint::invoke_from_event_loop(move || {
+                // let main_window = main_window.unwrap();
+                // let state = main_window.global::<MainState>();
 
                 let settings_window = settings_window.unwrap();
                 let bibles = settings_window.get_bibles();
@@ -72,47 +81,50 @@ fn main() {
                 bibles.set_row_data(idx, bible);
 
                 // TODO: send notification about state
+                }).unwrap();
             }})
         .build().1;
 
-    let source_variants: Arc<Mutex<setup_core::Setup>> = Arc::new(Mutex::new(source_variants));
-    slint::invoke_from_event_loop({
+    let source_variants: Arc<setup_core::Setup> = Arc::new(source_variants);
+    std::thread::spawn({
+        let source_variants = source_variants.clone();
+        let database = database.clone();
+        move || {
+            source_variants.install_cross(database.as_ref()).unwrap();
+            source_variants
+                .install_langs(database.as_ref(), &[])
+                .unwrap();
+        }
+    });
+    std::thread::spawn({
         let source_variants = source_variants.clone();
         let settings_window = settings_window.as_weak();
         move || {
-            let source_variants = source_variants.clone();
             let settings_window = settings_window.clone();
-            slint::spawn_local({
-                let source_variants = source_variants.clone();
-                let settings_window = settings_window.clone();
-                async move {
-                    let source_variants = source_variants.lock().unwrap();
-                    let bibles = source_variants
-                        .list_bibles()
-                        .await
-                        .map(|bibles| {
-                            bibles
-                                .iter()
-                                .map(|(id, name, english, _lang)| Bible {
-                                    id: id.into(),
-                                    english_name: english.into(),
-                                    installed: source_variants.is_bible_installed(id),
-                                    installing: false,
-                                    name: name.into(),
-                                    progress: 0.0,
-                                })
-                                .collect::<Vec<_>>()
+            let bibles = source_variants
+                .list_bibles()
+                .map(|bibles| {
+                    bibles
+                        .iter()
+                        .map(|(id, name, english, _lang)| Bible {
+                            id: id.into(),
+                            english_name: english.into(),
+                            installed: source_variants.is_bible_installed(id),
+                            installing: false,
+                            name: name.into(),
+                            progress: 0.0,
                         })
-                        .unwrap();
-                    settings_window
-                        .unwrap()
-                        .set_bibles(ModelRc::from(bibles.as_slice()));
-                }
+                        .collect::<Vec<_>>()
+                })
+                .unwrap();
+            slint::invoke_from_event_loop(move || {
+                settings_window
+                    .unwrap()
+                    .set_bibles(ModelRc::from(bibles.as_slice()));
             })
             .unwrap();
         }
-    })
-    .unwrap();
+    });
 
     settings_window.on_close({
         let settings_window = settings_window.as_weak();
@@ -123,30 +135,13 @@ fn main() {
 
     settings_window.on_save({
         let settings_window = settings_window.as_weak();
-        let setup = source_variants.clone();
-        let selection = selection.clone();
-        let database = database.clone();
         move || {
-            settings_window.unwrap().set_can_download(false);
-            slint::spawn_local({
-                let setup = setup.clone();
-                let selection = selection.clone();
-                let db = database.clone();
-                async move {
-                    setup
-                        .lock()
-                        .unwrap()
-                        .run_with_sink(selection.lock().unwrap().clone(), db)
-                        .await
-                        .unwrap();
-                }
-            })
-            .unwrap();
+            // TODO: sync and save settings
         }
     });
 
     settings_window.on_select_bible({
-        let settings_window = settings_window.as_weak();
+        let setup = source_variants.clone();
         let source_variants = source_variants.clone();
         let selection = selection.clone();
         move |bible_id| {
@@ -155,12 +150,17 @@ fn main() {
             if selection.bibles.contains(&bible_id) {
                 return;
             }
-            selection.bibles.push(bible_id);
-            source_variants
-                .lock()
-                .unwrap()
-                .save_selection(&selection)
-                .unwrap();
+            selection.bibles.push(bible_id.clone());
+            source_variants.save_selection(&selection).unwrap();
+            std::thread::spawn({
+                let setup = setup.clone();
+                let database = database.clone();
+                move || {
+                    setup
+                        .install_bibles(database.as_ref(), &[bible_id])
+                        .unwrap();
+                }
+            });
         }
     });
 

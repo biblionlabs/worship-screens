@@ -17,7 +17,6 @@ export component SettingsWindow inherits Window {
     width: 640px;
     min-height: 376px;
 
-    in property <bool> can-download: true;
     in property <image> source;
     in property <[Bible]> bibles: [
         { name:"Reina Valera 1960", english-name:"Reina Valera 1960", progress: 0.0, installed: true },
@@ -82,7 +81,7 @@ export component SettingsWindow inherits Window {
                             }
                         }
 
-                        if !b.installed || !can-download: Button {
+                        if !b.installed: Button {
                             enabled: !b.installing;
                             icon: @image-url("../assets/download.svg");
                             clicked => select-bible(b.id);
