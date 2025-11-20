@@ -13,10 +13,12 @@ use slint::{
 use ui::*;
 
 use self::settings::FavoriteTexts;
+use self::song_manager::SongsManager;
 use self::user_data::UserData;
 
 mod bitstream_converter;
 mod settings;
+mod song_manager;
 mod user_data;
 
 const PLAYING: AtomicBool = AtomicBool::new(false);
@@ -30,6 +32,10 @@ fn main() {
     let main_window = MainWindow::new().unwrap();
     let settings_window = SettingsWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
+
+    let mut song_manager = SongsManager::new(main_window.as_weak(), data_manager.clone());
+    song_manager.initialize();
+    song_manager.connect_callbacks();
 
     let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
     let source_variants = setup_core::SetupBuilder::new().cache_path(data_manager.data_dir(&["cache"]))
@@ -298,7 +304,7 @@ fn main() {
                             let words: Vec<&str> = text.split_whitespace().collect();
                             let total_words = words.len();
                             let mut part = 1;
-                            let mut i= 0;
+                            let mut i = 0;
 
                             while i < total_words {
                                 let end = (i + MAX_CHARS).min(total_words);

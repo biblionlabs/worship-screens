@@ -1,0 +1,159 @@
+import { FileItem, SongsState } from "../api/songs.slint";
+import { VerticalBox, Button, ScrollView, Palette } from "std-widgets.slint";
+
+export component FileItemRow inherits Rectangle {
+    in property <FileItem> item;
+
+    callback remove-clicked();
+
+    height: 40px;
+    background: Palette.alternate-background.brighter(touch.has-hover ? 0.2 : 0.0);
+    border-radius: 4px;
+    touch := TouchArea {
+        HorizontalLayout {
+            padding: 8px;
+            spacing: 12px;
+
+            // Icono
+            Text {
+                text: item.is-folder ? "📁" : "📄";
+                font-size: 18px;
+                vertical-alignment: center;
+            }
+            
+            // Path
+            Text {
+                text: item.path;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+                overflow: elide;
+            }
+
+            // Botón eliminar
+            Rectangle {
+                width: 30px;
+                height: 30px;
+                border-radius: 15px;
+                background: remove-touch.has-hover ? #e74c3c : #ecf0f1;
+                Text {
+                    text: "✕";
+                    color: remove-touch.has-hover ? white : #7f8c8d;
+                    font-size: 16px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                remove-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.remove-clicked();
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component FileManagerDialog inherits PopupWindow {
+    in-out property <[FileItem]> items: SongsState.songs-origin;
+
+    close_policy: no_auto_close;
+    forward_focus: focus_scope;
+
+    focus_scope := FocusScope {
+        x: 0;
+        width: 0;
+
+        key_pressed(event) => {
+            if event.text == Key.Escape {
+                root.close();
+                return accept;
+            }
+
+            reject
+        }
+    }
+
+    // BG
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+
+        background: Palette.background.darker(50%).with-alpha(70%);
+    }
+
+    Rectangle {
+        width: 600px;
+        height: 500px;
+        x: (root.width / 2) - (self.width / 2);
+        y: (root.height / 2) - (self.height / 2);
+        background: Palette.background;
+        border-width: 2px;
+        border-radius: 8px;
+        border-color: Palette.alternate-background.brighter(30%);
+
+        VerticalBox {
+            padding: 20px;
+            spacing: 16px;
+
+            Text {
+                text: "Archivos y Carpetas Configurados";
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            HorizontalLayout {
+                spacing: 12px;
+                Button {
+                    text: "+ Agregar Archivo";
+                    primary: true;
+                    clicked => {
+                        SongsState.open-file-dialog(false);
+                    }
+                }
+
+                Button {
+                    text: "+ Agregar Carpeta";
+                    clicked => {
+                        SongsState.open-file-dialog(true);
+                    }
+                }
+            }
+
+            Rectangle {
+                border-radius: 8px;
+                background: Palette.alternate-background;
+                vertical-stretch: 1;
+                if items.length == 0: VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: "No hay archivos o carpetas configurados";
+                        color: #7f8c8d;
+                        font-size: 14px;
+                        horizontal-alignment: center;
+                    }
+                }
+                if items.length > 0: ScrollView {
+                    VerticalLayout {
+                        padding: 5px;
+                        spacing: 8px;
+                        for item[index] in items: FileItemRow {
+                            item: item;
+                            remove-clicked => {
+                                SongsState.remove-song-origin(index);
+                            }
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: "Total: " + items.length + " elemento" + (items.length == 1 ? "" : "s");
+                font-size: 12px;
+                color: #7f8c8d;
+            }
+        }
+    }
+}

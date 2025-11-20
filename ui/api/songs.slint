@@ -1,0 +1,28 @@
+@rust-attr(derive(serde::Serialize, serde::Deserialize))
+export struct FileItem {
+    path: string,
+    is-folder: bool,
+}
+
+export struct SongItem {
+    path: string,
+    content: [string],
+}
+
+export global SongsState {
+    in property <[FileItem]> songs-origin;
+    in-out property <int> selected-song: -1;
+    in-out property <int> selected-paragraph: -1;
+    in property <[SongItem]> songs;
+    in-out property <[string]> paragraphs;
+
+    callback open-file-dialog(bool);
+    callback remove-song-origin(int);
+    callback on-search(string);
+
+    public function select-song(id: int) {
+        selected-song = id;
+        selected-paragraph = -1;
+        paragraphs = songs[id].content;
+    }
+}

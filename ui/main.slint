@@ -12,13 +12,15 @@ import { ViewWindow } from "view.slint";
 import { SettingsWindow } from "settings.slint";
 
 import { Bible, Settings, Verse } from "api/global.slint";
+import { FileItem, SongsState } from "api/songs.slint";
 import { ViewState, ViewType, ViewBackgroundColor } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
 import { ColorPicker } from "components/color-picker.slint";
 import { Renderable } from "components/base/renderable.slint";
+import { FileManagerDialog } from "dialogs/songs.slint";
 
-export { Bible, Settings, ViewWindow, SettingsWindow, Verse, ViewState, ViewBackgroundColor, ViewType }
+export { Bible, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor, ViewType }
 
 export global MainState {
     in-out property <[string]> saved-texts;
@@ -101,7 +103,7 @@ export component MainWindow inherits Window {
             }
 
             TabWidget {
-                current-index: 0;
+                current-index: 1;
 
                 Tab {
                     title: "Verses";
@@ -125,10 +127,10 @@ export component MainWindow inherits Window {
                                         padding-bottom: 10px;
 
                                         preview => {
-                                            ViewState.content = e.text + "\n" + (e.part > 0 ? " " + e.part + ". " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                            ViewState.content = e.text + "\n\n" + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
                                         }
                                         send-to-view => {
-                                            ViewState.content = e.text + "\n" + (e.part > 0 ? " " + e.part + ". " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                            ViewState.content = e.text + "\n\n" + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
                                             root.send-to-view();
                                         }
 
@@ -170,6 +172,7 @@ export component MainWindow inherits Window {
                     title: "Songs";
                     HorizontalLayout {
                         VerticalLayout {
+                            width: 40%;
                             padding: 10px;
                             spacing: 10px;
                             alignment: stretch;
@@ -185,42 +188,31 @@ export component MainWindow inherits Window {
 
                                 Button {
                                     text: "+";
+                                    clicked => dialog-songs.show();
                                 }
                             }
 
                             LineEdit {
                                 placeholder-text: "Buscar canciones";
+                                edited(s) => SongsState.on-search(s);
                             }
 
                             ListView {
-                                for e in [
-                                    "Porque de tal manera amó Dios al mundo...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                ]: song-interactable := Renderable {
+                                for s[idx] in SongsState.songs: song-interactable := Renderable {
                                     padding-bottom: 10px;
+                                    selected: idx == SongsState.selected-song;
 
                                     preview => {
-                                        ViewState.content = e;
+                                        SongsState.select-song(idx);
                                     }
                                     send-to-view => {
-                                        ViewState.content = e;
-                                        root.send-to-view();
+                                        SongsState.select-song(idx);
+                                        SongsState.selected-paragraph = 0;
+                                        ViewState.content = SongsState.songs[idx].content[0];
                                     }
 
                                     Text {
-                                        text: e;
+                                        text: s.path;
                                         vertical-alignment: center;
                                         color: Palette.foreground;
                                     }
@@ -230,44 +222,29 @@ export component MainWindow inherits Window {
 
                         VerticalLayout {
                             alignment: stretch;
+                            padding: 10px;
 
-                            VerticalLayout {
+                            if SongsState.selected-song >= 0: VerticalLayout {
                                 spacing: 5px;
 
                                 Text {
-                                    text: "Sublime Gracia";
+                                    text: SongsState.songs[SongsState.selected-song].path;
                                     font-size: 24px;
-                                }
-
-                                Text {
-                                    text: "Tradicional";
                                 }
                             }
 
                             ListView {
-                                for e in [
-                                    "Porque de tal manera amó Dios al mundo...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                ]: paragraph-interactable := Renderable {
+                                for e[idx] in SongsState.songs[SongsState.selected-song].content: paragraph-interactable := Renderable {
                                     padding-bottom: 10px;
+                                    selected: idx == SongsState.selected-paragraph;
 
                                     preview => {
                                         ViewState.content = e;
+                                        SongsState.selected-paragraph = idx;
                                     }
                                     send-to-view => {
                                         ViewState.content = e;
+                                        SongsState.selected-paragraph = idx;
                                         root.send-to-view();
                                     }
 
@@ -473,6 +450,12 @@ export component MainWindow inherits Window {
                     }
                 }
             }
+        }
+
+        dialog-songs := FileManagerDialog {
+            width: root.width;
+            height: root.height;
+            items: SongsState.songs-origin;
         }
     }
 }
