@@ -267,7 +267,7 @@ fn main() {
             let main_window = main_window.unwrap();
             let main_state = main_window.global::<MainState>();
 
-            const MAX_CHARS: usize = 200;
+            const MAX_CHARS: usize = 20;
 
             let verses =
                 setup_core::service_db::SearchedVerse::from_search(database.conn.clone(), s)
@@ -287,7 +287,7 @@ fn main() {
                                     name: v.bible.name.to_shared_string(),
                                     progress: 0.0,
                                 },
-                                part: v.part,
+                                part: 0,
                                 book: v.book.to_shared_string(),
                                 chapter: v.chapter,
                                 text: text.to_shared_string(),
@@ -295,22 +295,14 @@ fn main() {
                             }]
                         } else {
                             let mut parts = Vec::new();
-                            let mut remaining = text.as_str();
-                            let mut part_index = 0;
+                            let words: Vec<&str> = text.split_whitespace().collect();
+                            let total_words = words.len();
+                            let mut part = 1;
+                            let mut i= 0;
 
-                            while !remaining.is_empty() {
-                                let chunk_end = if remaining.len() <= MAX_CHARS {
-                                    remaining.len()
-                                } else {
-                                    let slice = &remaining[..MAX_CHARS];
-                                    slice
-                                        .rfind(' ')
-                                        .map(|pos| pos + 1)
-                                        .unwrap_or(MAX_CHARS)
-                                };
-
-                                let part_text = remaining[..chunk_end].trim();
-
+                            while i < total_words {
+                                let end = (i + MAX_CHARS).min(total_words);
+                                let part_text = words[i..end].join(" ");
                                 parts.push(Verse {
                                     bible: Bible {
                                         english_name: v.bible.english_name.to_shared_string(),
@@ -320,15 +312,14 @@ fn main() {
                                         name: v.bible.name.to_shared_string(),
                                         progress: 0.0,
                                     },
-                                    part: v.part + part_index,
+                                    part,
                                     book: v.book.to_shared_string(),
                                     chapter: v.chapter,
                                     text: part_text.to_shared_string(),
                                     verse: v.verse,
                                 });
-
-                                remaining = &remaining[chunk_end..];
-                                part_index += 1;
+                                part += 1;
+                                i = end;
                             }
 
                             parts
