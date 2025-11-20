@@ -2,7 +2,7 @@ import {
     VerticalBox,
     HorizontalBox,
     GridBox,
-    ScrollView,
+    ScrollView, TextEdit, LineEdit,
 } from "std-widgets.slint";
 
 import { ViewBackgroundColor } from "../api/view-state.slint";
@@ -92,6 +92,34 @@ export component ColorPicker inherits Rectangle {
         ]
     ];
 
+    function color-to-hex(c: color) -> string {
+        return "#" + int-to-hex(c.red) + int-to-hex(c.green) + int-to-hex(c.blue) + int-to-hex(c.alpha);
+    }
+
+    function int-to-hex(n: int) -> string {
+        let hex-chars = [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F"
+        ];
+        let high = floor(n / 16);
+        let low = mod(n, 16);
+        return hex-chars[high] + hex-chars[low];
+    }
+
     function hsl-to-color(h: float, s: float, l: float, a: float) -> color {
         return Colors.rgb(
             self.hsl-channel(h, s, l, 0),
@@ -151,9 +179,9 @@ export component ColorPicker inherits Rectangle {
 
             Text {
                 font-size: 18px;
-                text: "#323232 ~ #000000";
-                horizontal-alignment: center;
-                vertical-alignment: center;
+                text: gradient-mode ? color-to-hex(selected-color.a) + " ~ " + color-to-hex(selected-color.b) : color-to-hex(selected-color.a);
+                horizontal-alignment: TextHorizontalAlignment.center;
+                color: lightness-a > 0.5 ? #000000 : #ffffff;
             }
         }
 
