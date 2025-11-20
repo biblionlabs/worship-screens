@@ -19,8 +19,8 @@ export component SettingsWindow inherits Window {
     in property <image> source;
     in property <[Bible]> bibles;
 
-    callback select-bible <=> search-input.edited;
-    callback search(string);
+    callback select-bible(string);
+    callback search <=> search-input.edited;
     callback close();
     callback save();
 

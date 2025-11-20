@@ -2,3 +2,21 @@ export global Settings {
     in property <[string]> monitors;
     in-out property <int> selected-monitor;
 }
+
+export struct Bible {
+    id: string,
+    name: string,
+    installed: bool,
+    installing: bool,
+    progress: float,
+    english-name: string,
+}
+
+export struct Verse {
+    bible: Bible,
+    book: string,
+    chapter: int,
+    verse: { a: int, b: int },
+    part: int,
+    text: string,
+}

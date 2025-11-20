@@ -9,19 +9,20 @@ import {
 } from "std-widgets.slint";
 
 import { ViewWindow } from "view.slint";
-import { Bible, SettingsWindow } from "settings.slint";
+import { SettingsWindow } from "settings.slint";
 
-import { Settings } from "api/global.slint";
+import { Bible, Settings, Verse } from "api/global.slint";
 import { ViewState, ViewType, ViewBackgroundColor } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
 import { ColorPicker } from "components/color-picker.slint";
 import { Renderable } from "components/base/renderable.slint";
 
-export { Bible, Settings, ViewWindow, SettingsWindow, ViewState, ViewBackgroundColor, ViewType }
+export { Bible, Settings, ViewWindow, SettingsWindow, Verse, ViewState, ViewBackgroundColor, ViewType }
 
 export global MainState {
     in-out property <[string]> saved-texts;
+    in property <[Verse]> verses;
 }
 
 export component MainWindow inherits Window {
@@ -33,6 +34,8 @@ export component MainWindow inherits Window {
     in property <image> source;
 
     callback set-image();
+    callback search-verse <=> search-verse-input.edited;
+
     callback start-window();
     callback open-settings <=> settings-btn.clicked;
 
@@ -98,7 +101,7 @@ export component MainWindow inherits Window {
             }
 
             TabWidget {
-                current-index: 3;
+                current-index: 0;
 
                 Tab {
                     title: "Verses";
@@ -107,51 +110,55 @@ export component MainWindow inherits Window {
                         spacing: 10px;
                         padding: 10px;
                         Row {
-                            ComboBox {
-                                colspan: 1;
-                                model: ["Reina Valera 1960", "Nueva Traduccion Viviente"];
-                                current-index: 0;
-                            }
-
-                            TextEdit {
-                                colspan: 2;
+                            search-verse-input := LineEdit {
+                                colspan: 3;
+                                input-type: InputType.text;
                                 placeholder-text: "Busca: Juan 3:16, Romanos 14:10-14";
                             }
                         }
 
                         Row {
-                            ListView {
+                            VerticalLayout {
                                 colspan: 3;
-                                for e in [
-                                    "Porque de tal manera amó Dios al mundo...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                    "Jehová es mi pastor; nada me faltará...",
-                                ]: vese-interactable := Renderable {
-                                    padding-bottom: 10px;
+                                ListView {
+                                    for e in MainState.verses: vese-interactable := Renderable {
+                                        padding-bottom: 10px;
 
-                                    preview => {
-                                        ViewState.content = e;
-                                    }
-                                    send-to-view => {
-                                        ViewState.content = e;
-                                        root.send-to-view();
-                                    }
+                                        preview => {
+                                            ViewState.content = e.text + "\n" + (e.part > 0 ? " " + e.part + ". " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                        }
+                                        send-to-view => {
+                                            ViewState.content = e.text + "\n" + (e.part > 0 ? " " + e.part + ". " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                            root.send-to-view();
+                                        }
 
-                                    Text {
-                                        text: e;
-                                        vertical-alignment: center;
-                                        color: Palette.foreground;
+                                        VerticalLayout {
+                                            spacing: 5px;
+
+                                            Text {
+                                                font-size: 12px;
+                                                overflow: elide;
+                                                vertical-alignment: center;
+                                                color: Palette.foreground;
+                                                text: (e.part > 0 ? " " + e.part + ". " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                            }
+
+                                            Text {
+                                                font-size: 12px;
+                                                font-weight: 600;
+                                                vertical-alignment: center;
+                                                color: Palette.foreground.darker(60%);
+                                                text: !e.bible.english-name.is-empty ? e.bible.english-name : e.bible.name;
+                                            }
+
+                                            Text {
+                                                text: e.text;
+                                                font-size: 16px;
+                                                font-weight: 600;
+                                                vertical-alignment: center;
+                                                color: Palette.foreground;
+                                            }
+                                        }
                                     }
                                 }
                             }

@@ -41,6 +41,7 @@ fn main() {
             move |msg| {
             //     let main_window = main_window.unwrap();
             //     let state = main_window.global::<MainState>();
+                println!("Msg: {msg}");
             }})
         .on::<event::Completed>({
             let main_window = main_window.as_weak();
@@ -174,6 +175,7 @@ fn main() {
         let setup = source_variants.clone();
         let source_variants = source_variants.clone();
         let selection = selection.clone();
+        let database = database.clone();
         move |bible_id| {
             let bible_id = bible_id.as_str().to_string();
             let mut selection = selection.lock().unwrap();
@@ -254,6 +256,87 @@ fn main() {
                     view_window.show().unwrap();
                 })
                 .unwrap();
+        }
+    });
+
+    main_window.on_search_verse({
+        let main_window = main_window.as_weak();
+        let database = database.clone();
+        move |s| {
+            let s = s.as_str();
+            let main_window = main_window.unwrap();
+            let main_state = main_window.global::<MainState>();
+
+            const MAX_CHARS: usize = 200;
+
+            let verses =
+                setup_core::service_db::SearchedVerse::from_search(database.conn.clone(), s)
+                    .unwrap()
+                    .iter()
+                    .flat_map(|v| {
+                        let text = &v.text;
+                        let text_len = text.len();
+
+                        if text_len <= MAX_CHARS {
+                            vec![Verse {
+                                bible: Bible {
+                                    english_name: v.bible.english_name.to_shared_string(),
+                                    id: v.bible.id.to_shared_string(),
+                                    installed: false,
+                                    installing: false,
+                                    name: v.bible.name.to_shared_string(),
+                                    progress: 0.0,
+                                },
+                                part: v.part,
+                                book: v.book.to_shared_string(),
+                                chapter: v.chapter,
+                                text: text.to_shared_string(),
+                                verse: v.verse,
+                            }]
+                        } else {
+                            let mut parts = Vec::new();
+                            let mut remaining = text.as_str();
+                            let mut part_index = 0;
+
+                            while !remaining.is_empty() {
+                                let chunk_end = if remaining.len() <= MAX_CHARS {
+                                    remaining.len()
+                                } else {
+                                    let slice = &remaining[..MAX_CHARS];
+                                    slice
+                                        .rfind(' ')
+                                        .map(|pos| pos + 1)
+                                        .unwrap_or(MAX_CHARS)
+                                };
+
+                                let part_text = remaining[..chunk_end].trim();
+
+                                parts.push(Verse {
+                                    bible: Bible {
+                                        english_name: v.bible.english_name.to_shared_string(),
+                                        id: v.bible.id.to_shared_string(),
+                                        installed: false,
+                                        installing: false,
+                                        name: v.bible.name.to_shared_string(),
+                                        progress: 0.0,
+                                    },
+                                    part: v.part + part_index,
+                                    book: v.book.to_shared_string(),
+                                    chapter: v.chapter,
+                                    text: part_text.to_shared_string(),
+                                    verse: v.verse,
+                                });
+
+                                remaining = &remaining[chunk_end..];
+                                part_index += 1;
+                            }
+
+                            parts
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+            main_state.set_verses(ModelRc::from(verses.as_slice()));
         }
     });
 
