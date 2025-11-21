@@ -7,16 +7,17 @@ use setup_core::{Selection, SqliteDbSink, event};
 use slint::winit_030::WinitWindowAccessor;
 use slint::winit_030::winit::monitor::MonitorHandle;
 use slint::{
-    ComponentHandle, Image, Model, ModelRc, Rgb8Pixel, Rgba8Pixel, SharedPixelBuffer, SharedString,
+    ComponentHandle, Image, Model, ModelRc, Rgb8Pixel, SharedPixelBuffer, SharedString,
     ToSharedString,
 };
 use ui::*;
 
-use self::settings::FavoriteTexts;
+use self::fav_text_manager::FavTextManager;
 use self::song_manager::SongsManager;
 use self::user_data::UserData;
 
 mod bitstream_converter;
+mod fav_text_manager;
 mod settings;
 mod song_manager;
 mod user_data;
@@ -26,7 +27,6 @@ const PLAYING: AtomicBool = AtomicBool::new(false);
 fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
     let data_manager: Arc<UserData> = Default::default();
-    let fav_texts: Arc<Mutex<FavoriteTexts>> = Default::default();
     let selection: Arc<Mutex<Selection>> = Default::default();
 
     let main_window = MainWindow::new().unwrap();
@@ -36,6 +36,10 @@ fn main() {
     let mut song_manager = SongsManager::new(main_window.as_weak(), data_manager.clone());
     song_manager.initialize();
     song_manager.connect_callbacks();
+
+    let fav_manager = FavTextManager::new(main_window.as_weak(), data_manager.clone());
+    fav_manager.initialize();
+    fav_manager.connect_callbacks();
 
     let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
     let source_variants = setup_core::SetupBuilder::new().cache_path(data_manager.data_dir(&["cache"]))
@@ -498,18 +502,6 @@ fn main() {
                 .global::<ViewState>()
                 .set_content(SharedString::default());
             state.set_off(false);
-        }
-    });
-
-    main_window.on_save_text({
-        let main_window = main_window.as_weak();
-        let fav_texts = fav_texts.clone();
-        move || {
-            let main_window = main_window.unwrap();
-            // let saved_texts = main_window
-            //     .global::<MainState>()
-            //     .get_saved_texts();
-            // *fav_texts.lock().unwrap() = saved_texts;
         }
     });
 

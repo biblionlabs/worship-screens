@@ -46,7 +46,9 @@ export component MainWindow inherits Window {
     callback change-monitor <=> select-monitors.selected;
 
     callback send-to-view <=> send-btn.clicked;
-    callback save-text();
+
+    callback save-text(string);
+    callback remove-saved-text(int);
 
     starter-timer := Timer {
         interval: 1s;
@@ -340,9 +342,7 @@ export component MainWindow inherits Window {
 
                                 Button {
                                     text: "Guardar";
-                                    clicked => {
-                                        save-text();
-                                    };
+                                    clicked => save-text(ViewState.content);
                                 }
 
                                 Button {
@@ -362,22 +362,7 @@ export component MainWindow inherits Window {
                         }
 
                         ListView {
-                            for e in [
-                                "Porque de tal manera amó Dios al mundo...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                                "Jehová es mi pastor; nada me faltará...",
-                            ]: r := Renderable {
+                            for e[idx] in MainState.saved-texts: r := Renderable {
                                 padding-bottom: 10px;
 
                                 preview => {
@@ -400,9 +385,7 @@ export component MainWindow inherits Window {
                                     Button {
                                         enabled: r.hover;
                                         text: "Eliminar";
-                                        clicked => {
-                                            // TODO: Remove saved text
-                                        };
+                                        clicked => remove-saved-text(idx);
                                     }
                                 }
                             }
