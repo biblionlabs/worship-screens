@@ -41,13 +41,22 @@ impl SongsManager {
             let songs_cache = songs_cache.clone();
             move |res: notify::Result<Event>| {
                 if let Ok(event) = res {
-                    if matches!(event.kind, EventKind::Create(_) | EventKind::Modify(_)) {
-                        if let Some(path) = event.paths.first() {
+                    if matches!(
+                        event.kind,
+                        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+                    ) {
+                        let window = window.unwrap();
+                        let state = window.global::<SongsState>();
+                        let mut songs_cache = songs_cache.lock().unwrap();
+
+                        for path in event.paths {
+                            if !path.exists() {
+                                remove_song_from_cache(&path, &state, &mut songs_cache);
+                                continue;
+                            }
+
                             if path.is_file() {
-                                let window = window.unwrap();
-                                let state = window.global::<SongsState>();
-                                let mut songs_cache = songs_cache.lock().unwrap();
-                                process_file_into_state(path, &state, &mut songs_cache);
+                                process_file_into_state(&path, &state, &mut songs_cache);
                             }
                         }
                     }
@@ -172,16 +181,47 @@ impl SongsManager {
             let data = self.data.clone();
             let window = self.window.clone();
             let songs_origin = self.songs_origin.clone();
-            move |index| {
-                let mut songs_origin = songs_origin.lock().unwrap();
-                if index >= 0 && (index as usize) < songs_origin.len() {
-                    songs_origin.remove(index as usize);
-                    data.save(&*songs_origin);
-                }
-                let window = window.unwrap();
-                let state = window.global::<SongsState>();
+            let songs_cache = self.songs_cache.clone();
 
-                state.set_songs_origin(ModelRc::from(songs_origin.as_slice()));
+            move |index| {
+                let mut origin = songs_origin.lock().unwrap();
+                if index >= 0 && (index as usize) < origin.len() {
+                    let removed = origin.remove(index as usize);
+                    data.save(&*origin);
+
+                    let mut cache = songs_cache.lock().unwrap();
+                    let p = Path::new(&removed.path);
+
+                    if removed.is_folder {
+                        cache.retain(|song| {
+                            let file = Path::new(song.path.as_str());
+                            !file.starts_with(p)
+                        });
+                    } else {
+                        let name = p
+                            .with_extension("")
+                            .file_name()
+                            .map(|f| f.to_string_lossy().into_owned())
+                            .unwrap_or_else(|| p.to_string_lossy().into_owned());
+
+                        cache.retain(|s| s.path.as_str() != name);
+                    }
+                }
+
+                if let Some(window) = window.upgrade() {
+                    let state = window.global::<SongsState>();
+                    state.set_songs_origin(ModelRc::from(origin.as_slice()));
+
+                    let ui_list: Vec<ui::SongItem> = songs_cache
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .cloned()
+                        .map(ui::SongItem::from)
+                        .collect();
+
+                    state.set_songs(ModelRc::from(ui_list.as_slice()));
+                }
             }
         });
     }
@@ -217,7 +257,7 @@ fn process_folder_recursive<'a>(
 }
 
 fn process_file_into_state<'a>(path: &Path, state: &SongsState<'a>, song_list: &mut Vec<SongItem>) {
-    if !path.is_file() {
+    if !path.exists() || !path.is_file() {
         return;
     }
 
@@ -250,4 +290,18 @@ fn process_file_into_state<'a>(path: &Path, state: &SongsState<'a>, song_list: &
             .collect::<Vec<_>>()
             .as_slice(),
     ));
+}
+
+fn remove_song_from_cache<'a>(path: &Path, state: &SongsState<'a>, song_list: &mut Vec<SongItem>) {
+    let name = path
+        .with_extension("")
+        .file_name()
+        .map(|f| f.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_string_lossy().into_owned());
+
+    song_list.retain(|s| s.path.as_str() != name);
+
+    let ui_list: Vec<ui::SongItem> = song_list.iter().cloned().map(ui::SongItem::from).collect();
+
+    state.set_songs(ModelRc::from(ui_list.as_slice()));
 }
