@@ -30,7 +30,7 @@ impl Default for UserData {
 impl UserData {
     fn file<T: Save>(&self) -> PathBuf {
         let mut file = self.data_path.join(T::NAME);
-        file.set_extension(".json");
+        file.set_extension("json");
         file
     }
 
