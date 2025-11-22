@@ -6,6 +6,7 @@ import {
     TextEdit,
     Palette,
     LineEdit,
+    ScrollView,
 } from "std-widgets.slint";
 
 import { ViewWindow } from "view.slint";
@@ -13,14 +14,15 @@ import { SettingsWindow } from "settings.slint";
 
 import { Bible, Settings, Verse } from "api/global.slint";
 import { FileItem, SongsState } from "api/songs.slint";
-import { ViewState, ViewType, ViewBackgroundColor } from "api/view-state.slint";
+import { ViewState, ViewBackgroundColor } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
 import { ColorPicker } from "components/color-picker.slint";
 import { Renderable } from "components/base/renderable.slint";
 import { FileManagerDialog } from "dialogs/songs.slint";
+import { MultimediaDialog } from "dialogs/media-selector.slint";
 
-export { Bible, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor, ViewType }
+export { Bible, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export global MainState {
     in-out property <[string]> saved-texts;
@@ -105,7 +107,7 @@ export component MainWindow inherits Window {
             }
 
             TabWidget {
-                current-index: 1;
+                current-index: 2;
 
                 Tab {
                     title: "Verses";
@@ -129,10 +131,10 @@ export component MainWindow inherits Window {
                                         padding-bottom: 10px;
 
                                         preview => {
-                                            ViewState.content = e.text + "\n\n" + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                            ViewState.shared-view.content = e.text + "\n\n" + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
                                         }
                                         send-to-view => {
-                                            ViewState.content = e.text + "\n\n" + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                            ViewState.shared-view.content = e.text + "\n\n" + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
                                             root.send-to-view();
                                         }
 
@@ -210,7 +212,7 @@ export component MainWindow inherits Window {
                                     send-to-view => {
                                         SongsState.select-song(idx);
                                         SongsState.selected-paragraph = 0;
-                                        ViewState.content = SongsState.songs[idx].content[0];
+                                        ViewState.shared-view.content = SongsState.songs[idx].content[0];
                                     }
 
                                     Text {
@@ -241,11 +243,11 @@ export component MainWindow inherits Window {
                                     selected: idx == SongsState.selected-paragraph;
 
                                     preview => {
-                                        ViewState.content = e;
+                                        ViewState.shared-view.content = e;
                                         SongsState.selected-paragraph = idx;
                                     }
                                     send-to-view => {
-                                        ViewState.content = e;
+                                        ViewState.shared-view.content = e;
                                         SongsState.selected-paragraph = idx;
                                         root.send-to-view();
                                     }
@@ -269,6 +271,7 @@ export component MainWindow inherits Window {
 
                         HorizontalLayout {
                             spacing: 10px;
+                            height: 50px;
                             alignment: space-between;
 
                             VerticalLayout {
@@ -284,34 +287,36 @@ export component MainWindow inherits Window {
 
                             Button {
                                 text: "+";
+                                clicked => dialog-media-selector.show();
                             }
                         }
 
                         ListView {
-                            for row in [
-                                ["Porque..", "Jehová", "Jehová", "Jehová", "Jehová"],
-                                ["Jehová", "Jehová", "Jehová", "Jehová", "Jehová"],
-                                ["Jehová", "Jehová", "Jehová", "Jehová"],
-                            ]: HorizontalLayout {
-                                alignment: start;
+                            for row[i] in ViewState.media-list: Rectangle {
+                                height: (240px / 1.7) + 10px;
 
-                                for e in row: VerticalLayout {
-                                    padding-left: 5px;
-                                    padding-right: 5px;
-                                    padding-bottom: 10px;
+                                for e[n] in row: Renderable {
+                                    x: n * self.width;
+                                    width: 240px;
+                                    height: self.width / 1.7;
+                                    removable: true;
 
-                                    Rectangle {
-                                        background: #fff;
-                                        border-radius: 8px;
+                                    preview => {
+                                        ViewState.shared-view = e;
+                                        ViewState.play-video(false);
+                                    }
+                                    send-to-view => {
+                                        ViewState.shared-view = e;
+                                        ViewState.play-video(true);
+                                    }
+                                    remove-click => {
+                                        ViewState.remove-media(i, n)
+                                    }
 
-                                        VerticalLayout {
-                                            padding: 10px;
-
-                                            Text {
-                                                text: e;
-                                                color: #000;
-                                            }
-                                        }
+                                    View {
+                                        width: 100%;
+                                        height: self.width / 1.7;
+                                        data: e;
                                     }
                                 }
                             }
@@ -342,7 +347,7 @@ export component MainWindow inherits Window {
 
                                 Button {
                                     text: "Guardar";
-                                    clicked => save-text(ViewState.content);
+                                    clicked => save-text(ViewState.shared-view.content);
                                 }
 
                                 Button {
@@ -353,8 +358,11 @@ export component MainWindow inherits Window {
                         }
 
                         TextEdit {
-                            text <=> ViewState.content;
+                            text: ViewState.shared-view.content;
                             placeholder-text: "Escribe tu mensaje aquí";
+                            edited(text) => {
+                                ViewState.shared-view.content = text;
+                            }
                         }
 
                         Text {
@@ -366,10 +374,10 @@ export component MainWindow inherits Window {
                                 padding-bottom: 10px;
 
                                 preview => {
-                                    ViewState.content = e;
+                                    ViewState.shared-view.content = e;
                                 }
                                 send-to-view => {
-                                    ViewState.content = e;
+                                    ViewState.shared-view.content = e;
                                     root.send-to-view();
                                 }
 
@@ -419,18 +427,14 @@ export component MainWindow inherits Window {
             preview := View {
                 width: 100%;
                 height: self.width / 1.7;
+                data <=> ViewState.shared-view;
             }
 
             ColorPicker {
-                show-preview: false;
-                selected-color <=> ViewState.color;
-
-                changed gradient-mode => {
-                    if self.gradient-mode {
-                        ViewState.view-type = ViewType.Linear;
-                    } else {
-                        ViewState.view-type = ViewType.Color;
-                    }
+                show-preview: true;
+                selected-color: ViewState.shared-view.color;
+                changed selected-color => {
+                    ViewState.shared-view.color = self.selected-color;
                 }
             }
         }
@@ -439,6 +443,11 @@ export component MainWindow inherits Window {
             width: root.width;
             height: root.height;
             items: SongsState.songs-origin;
+        }
+
+        dialog-media-selector := MultimediaDialog {
+            width: root.width;
+            height: root.height;
         }
     }
 }

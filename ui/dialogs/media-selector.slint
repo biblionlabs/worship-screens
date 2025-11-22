@@ -1,0 +1,160 @@
+import {
+    VerticalBox,
+    HorizontalBox,
+    Button,
+    ScrollView,
+    Palette,
+    ComboBox,
+    LineEdit,
+} from "std-widgets.slint";
+import { ViewState, ViewBackgroundColor } from "../api/view-state.slint";
+import { ColorPicker } from "../components/color-picker.slint";
+import { View } from "../components/view.slint";
+import { InputCheck } from "../components/input/check.slint";
+
+export component MultimediaDialog inherits PopupWindow {
+    close_policy: no_auto_close;
+    forward_focus: focus_scope;
+
+    property <bool> temp-media: false;
+    property <int> fit-index: 1;
+    property <[string]> fit-options: ["fill", "contain", "cover"];
+
+    focus_scope := FocusScope {
+        x: 0;
+        width: 0;
+
+        key_pressed(event) => {
+            if event.text == Key.Escape {
+                root.close();
+                return accept;
+            }
+            reject
+        }
+    }
+
+    // Background overlay
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+        background: Palette.background.darker(50%).with-alpha(70%);
+    }
+
+    // Diálogo principal
+    Rectangle {
+        width: 500px;
+        height: 600px;
+        x: (root.width / 2) - (self.width / 2);
+        y: (root.height / 2) - (self.height / 2);
+        background: Palette.background;
+        border-width: 2px;
+        border-radius: 8px;
+        border-color: Palette.alternate-background.brighter(30%);
+
+        VerticalBox {
+            padding: 20px;
+            spacing: 16px;
+
+            // Título
+            Text {
+                text: "Configurar Fondo Multimedia";
+                font-size: 20px;
+                font-weight: 700;
+            }
+
+            preview := View {
+                width: 80%;
+                height: self.width / 1.7;
+                data: ViewState.select-media-preview;
+            }
+
+            // Área de scroll para contenido
+            ScrollView {
+                vertical-stretch: 1;
+                horizontal-scrollbar-policy: always-off;
+
+                VerticalBox {
+                    alignment: start;
+
+                    // Selector de archivo
+                    HorizontalBox {
+                        spacing: 8px;
+                        padding-top: 0px;
+                        padding-bottom: 0px;
+                        alignment: space-between;
+
+                        Button {
+                            text: "Seleccionar...";
+                            clicked => {
+                                ViewState.select-file();
+                            }
+                        }
+
+                        // Ajuste de imagen
+                        HorizontalBox {
+                            spacing: 12px;
+                            Text {
+                                text: "Ajuste:";
+                                vertical-alignment: center;
+                                font-size: 13px;
+                            }
+
+                            ComboBox {
+                                max-width: 150px;
+                                current-index <=> fit-index;
+                                model: fit-options;
+                                changed current-index => {
+                                    if self.current-index == 0 {
+                                        ViewState.select-media-preview.img-fit = ImageFit.fill;
+                                    } else if self.current-index == 1 {
+                                        ViewState.select-media-preview.img-fit = ImageFit.contain;
+                                    } else if self.current-index == 2 {
+                                        ViewState.select-media-preview.img-fit = ImageFit.cover;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    InputCheck {
+                        label: "Temporal Media";
+                        checked <=> temp-media;
+                    }
+
+                    ColorPicker {
+                        selected-color: ViewState.select-media-preview.color;
+                        allow-gradient: true;
+                        show-preview: false;
+                        changed selected-color => {
+                            ViewState.select-media-preview.color = self.selected-color;
+                        }
+                    }
+                }
+            }
+
+            // Botones de acción
+            HorizontalBox {
+                spacing: 12px;
+                alignment: end;
+
+                Button {
+                    text: "Cancelar";
+                    clicked => {
+                        root.close();
+                    }
+                }
+
+                Button {
+                    text: "Aplicar";
+                    primary: true;
+                    clicked => {
+                        ViewState.apply-changes(temp-media);
+                        root.close();
+                    }
+                }
+            }
+        }
+    }
+}

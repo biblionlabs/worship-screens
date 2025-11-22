@@ -6,12 +6,14 @@ export component Renderable inherits VerticalLayout {
 
     in property <duration> hover-wait: 200ms;
     in property <bool> selected;
+    in property <bool> removable;
 
     out property <bool> hover: false;
 
     callback preview();
     callback hover-preview();
     callback send-to-view();
+    callback remove-click();
 
     hover-timer := Timer {
         interval: hover-wait;
@@ -43,6 +45,26 @@ export component Renderable inherits VerticalLayout {
                 padding: 10px;
 
                 @children
+            }
+
+            if removable && hover: Rectangle {
+                x: parent.width - self.width;
+                y: 0px;
+                width: i-rm-content.width + (5px * 2);
+                height: i-rm-content.height + (5px * 2);
+
+                border-radius: 8px;
+                background: Colors.indianred.brighter(i-rm-hover.has-hover ? 0.2 : 0.0);
+
+                i-rm-content := Image {
+                    width: 16px;
+                    height: 16px;
+                    source: @image-url("../../icons/remove.svg");
+                }
+
+                i-rm-hover := TouchArea {
+                    clicked => remove-click();
+                }
             }
         }
     }

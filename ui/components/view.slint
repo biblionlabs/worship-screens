@@ -1,25 +1,24 @@
-import { ViewState, ViewType } from "../api/view-state.slint";
+import { ViewData, ViewState } from "../api/view-state.slint";
 
 export component View inherits Rectangle {
-    if ViewState.view-type == ViewType.Color || ViewState.view-type == ViewType.Image: Rectangle {
-        width: parent.width;
-        height: parent.height;
-        background: ViewState.color.a;
-    }
+    in-out property <ViewData> data: {
+        show-img: false,
+        color: { a: Colors.black, b: Colors.black },
+    };
 
-    if ViewState.view-type == ViewType.Media || ViewState.view-type == ViewType.Image: Image {
+    Rectangle {
         width: parent.width;
         height: parent.height;
-        image-fit: ViewState.view-type == ViewType.Image ? contain : cover;
-        source: ViewState.img-bg;
-    }
-
-    if ViewState.view-type == ViewType.Linear: Rectangle {
-        width: parent.width;
-        height: parent.height;
-        background: @linear-gradient(animation-tick() / 50ms * 1deg, ViewState.color.a, ViewState.color.b);
+        background: @linear-gradient(animation-tick() / 50ms * 1deg, data.color.a, data.color.b);
 
         animate background { duration: 500ms; }
+    }
+
+    if data.show-img: Image {
+        width: parent.width;
+        height: parent.height;
+        image-fit: data.img-fit;
+        source: data.img-bg;
     }
 
     VerticalLayout {
@@ -32,13 +31,13 @@ export component View inherits Rectangle {
             width: 100%;
             height: 100%;
             wrap: word-wrap;
-            color: ViewState.font-color;
+            // color: ViewState.font-color;
             // stroke: ViewState.font-stroke;
             // stroke-width: ViewState.stroke-size;
             horizontal-alignment: center;
             vertical-alignment: center;
             font-size: {
-                let text-length = ViewState.content.character-count;
+                let text-length = data.content.character-count;
 
                 let available-height = (ViewState.window-width - 30px) / 1px;
                 let available-width = (ViewState.window-height - 30px) / 1px;
@@ -62,7 +61,7 @@ export component View inherits Rectangle {
                     // Aplicar límites
                     max(ViewState.min-font-size, min(ViewState.max-font-size, calculated * 1px))
             };
-            text: ViewState.content;
+            text: data.content;
         }
     }
 }

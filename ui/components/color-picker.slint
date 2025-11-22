@@ -40,10 +40,10 @@ component ColorSlider inherits Rectangle {
 }
 
 export component ColorPicker inherits Rectangle {
-    height: 350px;
+    height: show-preview ? 350px : 235px;
 
     in property <bool> allow-gradient: true;
-    in property <bool> show-preview: true;
+    in property <bool> show-preview: false;
     property <bool> show-advanced: false;
 
     in-out property <ViewBackgroundColor> selected-color: {
@@ -170,6 +170,9 @@ export component ColorPicker inherits Rectangle {
     VerticalBox {
         spacing: 1px;
         alignment: stretch;
+        padding-top: 0px;
+        padding-bottom: 0px;
+
         if show-preview: Rectangle {
             height: 60px;
             border-radius: 8px;
@@ -187,9 +190,10 @@ export component ColorPicker inherits Rectangle {
 
         if allow-gradient: HorizontalBox {
             alignment: space-between;
+            padding: 0px;
 
             VerticalLayout {
-                height: 52px;
+                // height: 52px;
                 alignment: center;
 
                 InputCheck {
@@ -208,15 +212,15 @@ export component ColorPicker inherits Rectangle {
                 alignment: stretch;
 
                 Rectangle {
-                    height: 35px;
+                    height: 20px;
                     border-radius: 6px;
                     background: editing-color-a ? #3498db : #ecf0f1;
                     VerticalLayout {
-                        padding-left: 8px;
-                        padding-right: 8px;
+                        padding-left: 5px;
+                        padding-right: 5px;
                         alignment: center;
                         Text {
-                            text: "Color A";
+                            text: "A";
                             color: editing-color-a ? white : #2c3e50;
                             horizontal-alignment: center;
                             vertical-alignment: center;
@@ -231,17 +235,18 @@ export component ColorPicker inherits Rectangle {
                 }
 
                 Rectangle {
-                    height: 35px;
+                    height: 20px;
                     border-radius: 6px;
                     background: !editing-color-a ? #3498db : #ecf0f1;
                     VerticalLayout {
-                        padding-left: 8px;
-                        padding-right: 8px;
+                        padding-left: 5px;
+                        padding-right: 5px;
                         alignment: center;
                         Text {
-                            text: "Color B";
+                            text: "B";
                             color: !editing-color-a ? white : #2c3e50;
                             horizontal-alignment: center;
+                            vertical-alignment: center;
                         }
                     }
 

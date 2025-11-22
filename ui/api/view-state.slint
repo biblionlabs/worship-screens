@@ -1,27 +1,42 @@
-export enum ViewType {
-    Image,
-    Media,
-    Color,
-    Linear,
-}
-
 export struct ViewBackgroundColor {
     a: color,
     b: color,
 }
 
+export struct ViewData {
+    path: string,
+    show-img: bool,
+    color: ViewBackgroundColor,
+    content: string,
+    img-bg: image,
+    img-fit: ImageFit,
+}
+
 export global ViewState {
     in property <bool> off: false;
-    in property <ViewType> view-type: ViewType.Color;
-    in property <ViewBackgroundColor> color: { a: Colors.black, b: Colors.black };
     in property <color> font-color: Colors.white;
     in property <color> font-stroke: Colors.white;
     in property <length> stroke-size: 0px;
-    in property <string> content;
-    in property <image> img-bg;
+
+    in property <ViewData> select-media-preview: {
+        show-img: false,
+        img-fit: ImageFit.contain,
+        color: { a: Colors.black, b: Colors.black },
+    };
+    in property <ViewData> shared-view: {
+        show-img: false,
+        img-fit: ImageFit.contain,
+        color: { a: Colors.black, b: Colors.black },
+    };
+    in property <[[ViewData]]> media-list;
 
     in property <length> window-width: 720px - 30px;
     in property <length> window-height: 423px - 30px;
     in property <length> min-font-size: 14px;
     in property <length> max-font-size: 120px;
+
+    callback apply-changes(bool);
+    callback select-file();
+    callback remove-media(int, int);
+    callback play-video(bool);
 }

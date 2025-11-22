@@ -13,16 +13,16 @@ use slint::{
 use ui::*;
 
 use self::fav_text_manager::FavTextManager;
+use self::media_manager::MediaManager;
 use self::song_manager::SongsManager;
 use self::user_data::UserData;
 
 mod bitstream_converter;
 mod fav_text_manager;
+mod media_manager;
 mod settings;
 mod song_manager;
 mod user_data;
-
-const PLAYING: AtomicBool = AtomicBool::new(false);
 
 fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
@@ -40,6 +40,12 @@ fn main() {
     let fav_manager = FavTextManager::new(main_window.as_weak(), data_manager.clone());
     fav_manager.initialize();
     fav_manager.connect_callbacks();
+
+    let media_manager = Arc::new(MediaManager::new(
+        main_window.as_weak(),
+        view_window.as_weak(),
+        data_manager.clone(),
+    ));
 
     let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
     let source_variants = setup_core::SetupBuilder::new().cache_path(data_manager.data_dir(&["cache"]))
@@ -97,16 +103,16 @@ fn main() {
         .build().1;
 
     let source_variants: Arc<setup_core::Setup> = Arc::new(source_variants);
-    std::thread::spawn({
-        let source_variants = source_variants.clone();
-        let database = database.clone();
-        move || {
-            source_variants.install_cross(database.as_ref()).unwrap();
-            source_variants
-                .install_langs(database.as_ref(), &[])
-                .unwrap();
-        }
-    });
+    // std::thread::spawn({
+    //     let source_variants = source_variants.clone();
+    //     let database = database.clone();
+    //     move || {
+    //         source_variants.install_cross(database.as_ref()).unwrap();
+    //         source_variants
+    //             .install_langs(database.as_ref(), &[])
+    //             .unwrap();
+    //     }
+    // });
     std::thread::spawn({
         let source_variants = source_variants.clone();
         let settings_window = settings_window.as_weak();
@@ -210,8 +216,11 @@ fn main() {
         let main_window = main_window.as_weak();
         let monitors = monitors.clone();
         let view_window = view_window.as_weak();
+        let media_manager = media_manager.clone();
         move || {
             let main_window = main_window.unwrap();
+            media_manager.initialize();
+            media_manager.clone().connect_callbacks();
             main_window
                 .window()
                 .with_winit_window(|window| {
@@ -344,16 +353,16 @@ fn main() {
     main_window.on_send_to_view({
         let view_window = view_window.as_weak();
         let main_window = main_window.as_weak();
+        let media_manager = media_manager.clone();
         move || {
             let view_window = view_window.unwrap();
             let main_window = main_window.unwrap();
             let main_state = main_window.global::<ViewState>();
             let view_state = view_window.global::<ViewState>();
 
-            view_state.set_content(main_state.get_content());
-            view_state.set_color(main_state.get_color());
-            view_state.set_img_bg(main_state.get_img_bg());
-            view_state.set_view_type(main_state.get_view_type());
+            let shared = main_state.get_shared_view();
+
+            view_state.set_shared_view(main_state.get_shared_view());
         }
     });
 
@@ -387,88 +396,6 @@ fn main() {
         move || {
             let main_window = main_window.clone();
             let view_window = view_window.clone();
-            // main_window
-            //     .unwrap()
-            //     .global::<ViewState>()
-            //     .set_view_type(ViewType::Media);
-            // view_window
-            //     .unwrap()
-            //     .global::<ViewState>()
-            //     .set_view_type(ViewType::Media);
-            let cb = move |pixels: SharedPixelBuffer<Rgb8Pixel>| {
-                let main_window = main_window.clone();
-                let view_window = view_window.clone();
-                slint::invoke_from_event_loop(move || {
-                    let main_window = main_window.unwrap();
-                    let view_window = view_window.unwrap();
-                    let state = main_window.global::<ViewState>();
-                    state.set_img_bg(Image::from_rgb8(pixels.clone()));
-                    // if PLAYING.fetch() {
-                    let view_state = view_window.global::<ViewState>();
-                    view_state.set_img_bg(Image::from_rgb8(pixels));
-                    // }
-                })
-                .unwrap()
-            };
-
-            std::thread::spawn(move || {
-                use std::fs::File;
-                use std::io::BufReader;
-
-                use mp4::*;
-                use openh264::decoder::{Decoder, DecoderConfig, Flush};
-
-                let src_file = File::open("/home/s4rch/Videos/2025-06-14 17-30-19.mp4").unwrap();
-                let size = src_file.metadata().unwrap().len();
-                let reader = BufReader::new(src_file);
-                let mut mp4_reader = mp4::Mp4Reader::read_header(reader, size).unwrap();
-                let track = mp4_reader
-                    .tracks()
-                    .iter()
-                    .find(|(_, t)| t.media_type().unwrap() == mp4::MediaType::H264)
-                    .unwrap()
-                    .1;
-
-                let decoder_options = DecoderConfig::new().flush_after_decode(Flush::NoFlush);
-                let mut decoder =
-                    Decoder::with_api_config(openh264::OpenH264API::from_source(), decoder_options)
-                        .unwrap();
-
-                let track_id = track.track_id();
-                let width = track.width() as usize;
-                let height = track.height() as usize;
-                let wait_time = std::time::Duration::from_secs_f64(1.0 / track.frame_rate());
-                let mut bitstream_converter = Mp4BitstreamConverter::for_mp4_track(&track).unwrap();
-                let mut buffer = Vec::new();
-                for i in 1..=track.sample_count() {
-                    let Some(sample) = mp4_reader.read_sample(track_id, i).unwrap() else {
-                        println!("Cannot read sample");
-                        return;
-                    };
-
-                    // convert the packet from mp4 representation to one that openh264 can decode
-                    bitstream_converter.convert_packet(&sample.bytes, &mut buffer);
-                    match decoder.decode(&buffer) {
-                        Ok(Some(image)) => {
-                            let mut pixels =
-                                SharedPixelBuffer::<Rgb8Pixel>::new(width as _, height as _);
-                            image.write_rgb8(pixels.make_mut_bytes());
-                            cb(pixels);
-                        }
-                        Ok(None) => {} // decoder is not ready to provide an image
-                        Err(err) => {
-                            println!("error frame {i}: {err}");
-                        }
-                    }
-                    std::thread::sleep(wait_time);
-                }
-
-                for image in decoder.flush_remaining().unwrap() {
-                    let mut pixels = SharedPixelBuffer::<Rgb8Pixel>::new(width as _, height as _);
-                    image.write_rgb8(pixels.make_mut_bytes());
-                    cb(pixels);
-                }
-            });
         }
     });
 
@@ -480,27 +407,42 @@ fn main() {
     });
 
     main_window.on_shutdown_output({
+        let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
+        let media_manager = media_manager.clone();
         move || {
+            let main_window = main_window.unwrap();
             let view_window = view_window.unwrap();
             let state = view_window.global::<ViewState>();
-            // TODO: set default content
+            let mut shared = state.get_shared_view();
+            shared.content = SharedString::default();
+            shared.show_img = false;
+
+            state.set_shared_view(shared.clone());
+            main_window.global::<ViewState>().set_shared_view(shared);
+
             state.set_off(true);
+            media_manager.stop_video();
         }
     });
 
     main_window.on_clear_output({
         let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
+        let media_manager = media_manager.clone();
         move || {
+            media_manager.stop_video();
             let view_window = view_window.unwrap();
             let main_window = main_window.unwrap();
             let state = view_window.global::<ViewState>();
-            // TODO: set default content
-            state.set_content(SharedString::default());
-            main_window
-                .global::<ViewState>()
-                .set_content(SharedString::default());
+
+            let mut shared = state.get_shared_view();
+            shared.content = SharedString::default();
+            shared.show_img = false;
+
+            state.set_shared_view(shared.clone());
+            main_window.global::<ViewState>().set_shared_view(shared);
+
             state.set_off(false);
         }
     });

@@ -34,6 +34,7 @@ lto = "thin"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
+i-slint-core = "1.13.1"
 slint = { version = "1.13.1", default-features = false, features = [
     "serde",
     "compat-1-2",
@@ -52,6 +53,7 @@ serde.workspace = true
 serde_json = "1"
 # setup_core = { git = "https://github.com/biblionlabs/biblion-service", version = "0.1.0" }
 setup_core = { path = "../service/crates/setup/", version = "0.1.0" }
+i-slint-core.workspace = true
 slint.workspace = true
 tokio = { version = "1.48", default-features = false, features = [
     "time",

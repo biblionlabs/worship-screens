@@ -4,11 +4,12 @@ use serde::{Deserialize, Serialize};
 use ui::FileItem;
 
 use crate::user_data::Save;
+use crate::media_manager::MediaItem;
 
 macro_rules! impl_deref {
     ($( $n:ident ( $t:ty ) : $f:literal ),*) => {
         $(
-        #[derive(Default, Deserialize, Serialize)]
+        #[derive(Clone, Default, Deserialize, Serialize)]
         pub struct $n($t);
 
         impl Deref for $n {
@@ -34,5 +35,6 @@ macro_rules! impl_deref {
 
 impl_deref! {
     FavoriteTexts(Vec<String>): "fav_texts",
-    SourceSongs(Vec<FileItem>): "source_songs"
+    SourceSongs(Vec<FileItem>): "source_songs",
+    SourceMedia(Vec<MediaItem>): "source_media"
 }
