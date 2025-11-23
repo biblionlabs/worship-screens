@@ -1,15 +1,10 @@
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
-use bitstream_converter::Mp4BitstreamConverter;
 use setup_core::{Selection, SqliteDbSink, event};
 use slint::winit_030::WinitWindowAccessor;
 use slint::winit_030::winit::monitor::MonitorHandle;
-use slint::{
-    ComponentHandle, Image, Model, ModelRc, Rgb8Pixel, SharedPixelBuffer, SharedString,
-    ToSharedString,
-};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, ToSharedString};
 use ui::*;
 
 use self::fav_text_manager::FavTextManager;
@@ -416,8 +411,6 @@ fn main() {
             let state = view_window.global::<ViewState>();
             let mut shared = state.get_shared_view();
             shared.content = SharedString::default();
-            shared.show_img = false;
-
             state.set_shared_view(shared.clone());
             main_window.global::<ViewState>().set_shared_view(shared);
 
@@ -431,14 +424,12 @@ fn main() {
         let view_window = view_window.as_weak();
         let media_manager = media_manager.clone();
         move || {
-            media_manager.stop_video();
             let view_window = view_window.unwrap();
             let main_window = main_window.unwrap();
             let state = view_window.global::<ViewState>();
 
             let mut shared = state.get_shared_view();
             shared.content = SharedString::default();
-            shared.show_img = false;
 
             state.set_shared_view(shared.clone());
             main_window.global::<ViewState>().set_shared_view(shared);

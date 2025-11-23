@@ -304,21 +304,45 @@ impl MediaManager {
         let shared = state.get_shared_view();
         let path = shared.path.to_string();
 
+        let source_path = PathBuf::from(path);
+        if source_path
+            .extension()
+            .is_some_and(|e| IMAGE_FORMATS.contains(&e.to_str().unwrap_or_default()))
+        {
+            if let Some(window) = self.window.upgrade() {
+                let state = window.global::<ViewState>();
+                let image = Image::load_from_path(source_path.as_path()).unwrap();
+                let mut shared = state.get_shared_view();
+                shared.img_bg = image.clone();
+                shared.show_img = true;
+                state.set_shared_view(shared);
+                if sync_view {
+                    let view_window = self.view_window.unwrap();
+                    let state = view_window.global::<ViewState>();
+                    let mut shared = state.get_shared_view();
+                    shared.img_bg = image;
+                    shared.show_img = true;
+                    state.set_shared_view(shared);
+                }
+            }
+            return;
+        }
+
         let target_window = self.window.clone();
         let view_window = self.view_window.clone();
         let video_playing = self.video_playing.clone();
         video_playing.store(true, Ordering::Relaxed);
 
         let handle = std::thread::spawn(move || {
-            let Ok(src_file) = File::open(&path) else {
-                eprintln!("Cannot open video file: {}", path);
+            let Ok(src_file) = File::open(&source_path) else {
+                eprintln!("Cannot open video file: {source_path:?}");
                 return;
             };
 
             let size = src_file.metadata().unwrap().len();
             let reader = BufReader::new(src_file);
             let Ok(mut mp4_reader) = mp4::Mp4Reader::read_header(reader, size) else {
-                eprintln!("Cannot read MP4 header");
+                eprintln!("Cannot read MP4 header: {source_path:?}");
                 return;
             };
 
@@ -346,11 +370,21 @@ impl MediaManager {
             let wait_time = std::time::Duration::from_secs_f64(1.0 / track.frame_rate());
             let mut bitstream_converter = Mp4BitstreamConverter::for_mp4_track(track).unwrap();
             let mut buffer = Vec::new();
+            let mut frame_start;
+            let mut frame_count;
 
-            while video_playing.load(Ordering::Relaxed) {
+            'video_loop: loop {
+                if !video_playing.load(Ordering::Relaxed) {
+                    break;
+                }
+
+                // Resetear timing para cada loop
+                frame_start = std::time::Instant::now();
+                frame_count = 0;
+
                 for i in 1..=sample_count {
                     if !video_playing.load(Ordering::Relaxed) {
-                        break;
+                        break 'video_loop;
                     }
 
                     let Some(sample) = mp4_reader.read_sample(track_id, i).ok().flatten() else {
@@ -383,39 +417,20 @@ impl MediaManager {
                                 }
                             }
                         });
+                        frame_count += 1;
+                        let expected_time = frame_start + wait_time * frame_count as u32;
+                        let now = std::time::Instant::now();
+
+                        if now < expected_time {
+                            std::thread::sleep(expected_time - now);
+                        }
                     }
 
                     std::thread::sleep(wait_time);
                 }
 
-                // Flush remaining frames
-                for image in decoder.flush_remaining().unwrap_or_default() {
-                    if !video_playing.load(Ordering::Relaxed) {
-                        break;
-                    }
-                    let mut pixels = SharedPixelBuffer::<Rgb8Pixel>::new(width as _, height as _);
-                    image.write_rgb8(pixels.make_mut_bytes());
-
-                    let target_window = target_window.clone();
-                    let view_window = view_window.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if let Some(window) = target_window.upgrade() {
-                            let state = window.global::<ViewState>();
-                            let mut shared = state.get_shared_view();
-                            shared.img_bg = Image::from_rgb8(pixels.clone());
-                            shared.show_img = true;
-                            state.set_shared_view(shared);
-                            if sync_view {
-                                let view_window = view_window.unwrap();
-                                let state = view_window.global::<ViewState>();
-                                let mut shared = state.get_shared_view();
-                                shared.img_bg = Image::from_rgb8(pixels);
-                                shared.show_img = true;
-                                state.set_shared_view(shared);
-                            }
-                        }
-                    });
-                }
+                // small pause to prevent thrashing
+                std::thread::sleep(Duration::from_millis(16));
             }
 
             video_playing.store(false, Ordering::Relaxed);
