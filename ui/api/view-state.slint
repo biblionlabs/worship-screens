@@ -13,6 +13,12 @@ export struct ViewData {
     img-fit: ImageFit,
 }
 
+export struct EditMode {
+    editable: bool,
+    row: int,
+    col: int,
+}
+
 export global ViewState {
     in property <bool> off: false;
     in property <color> font-color: Colors.white;
@@ -31,12 +37,17 @@ export global ViewState {
     };
     in property <[[ViewData]]> media-list;
 
+    in property <EditMode> in-edit-mode: {
+        editable: false,
+        row: -1,
+        col: -1,
+    };
     in property <length> window-width: 720px - 30px;
     in property <length> window-height: 423px - 30px;
     in property <length> min-font-size: 14px;
     in property <length> max-font-size: 120px;
 
-    callback apply-changes();
+    callback apply-changes(EditMode);
     callback select-file();
 
     callback remove-media(int, int);

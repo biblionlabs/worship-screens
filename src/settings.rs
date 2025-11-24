@@ -3,8 +3,8 @@ use std::ops::{Deref, DerefMut};
 use serde::{Deserialize, Serialize};
 use ui::FileItem;
 
-use crate::user_data::Save;
 use crate::media_manager::MediaItem;
+use crate::user_data::Save;
 
 macro_rules! impl_deref {
     ($( $n:ident ( $t:ty ) : $f:literal ),*) => {
@@ -28,6 +28,12 @@ macro_rules! impl_deref {
 
         impl Save for $n {
             const NAME: &str = $f;
+        }
+
+        impl From<$t> for $n {
+            fn from(v: $t) -> Self {
+                Self(v)
+            }
         }
         )*
     };

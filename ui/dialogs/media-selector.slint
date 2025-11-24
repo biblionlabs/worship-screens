@@ -16,7 +16,7 @@ export component MultimediaDialog inherits PopupWindow {
     close_policy: no_auto_close;
     forward_focus: focus_scope;
 
-    property <int> fit-index: 1;
+    property <int> fit-index: ViewState.select-media-preview.img-fit == ImageFit.fill ? 0 : (ViewState.select-media-preview.img-fit == ImageFit.contain ? 1 : 2);
     property <[string]> fit-options: ["fill", "contain", "cover"];
 
     focus_scope := FocusScope {
@@ -25,6 +25,7 @@ export component MultimediaDialog inherits PopupWindow {
 
         key_pressed(event) => {
             if event.text == Key.Escape {
+                ViewState.in-edit-mode = { editable: false, row: -1, col: -1 };
                 root.close();
                 return accept;
             }
@@ -144,6 +145,7 @@ export component MultimediaDialog inherits PopupWindow {
                 Button {
                     text: "Cancelar";
                     clicked => {
+                        ViewState.in-edit-mode = { editable: false, row: -1, col: -1 };
                         root.close();
                     }
                 }
@@ -152,7 +154,8 @@ export component MultimediaDialog inherits PopupWindow {
                     text: "Aplicar";
                     primary: true;
                     clicked => {
-                        ViewState.apply-changes();
+                        ViewState.apply-changes(ViewState.in-edit-mode);
+                        ViewState.in-edit-mode = { editable: false, row: -1, col: -1 };
                         root.close();
                     }
                 }

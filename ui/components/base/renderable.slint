@@ -7,12 +7,14 @@ export component Renderable inherits VerticalLayout {
     in property <duration> hover-wait: 200ms;
     in property <bool> selected;
     in property <bool> removable;
+    in property <bool> editable;
 
     out property <bool> hover: false;
 
     callback preview();
     callback hover-preview();
     callback send-to-view();
+    callback edit-click();
     callback remove-click();
 
     hover-timer := Timer {
@@ -47,23 +49,56 @@ export component Renderable inherits VerticalLayout {
                 @children
             }
 
-            if removable && hover: Rectangle {
-                x: parent.width - self.width;
+            if hover: HorizontalLayout {
                 y: 0px;
-                width: i-rm-content.width + (5px * 2);
-                height: i-rm-content.height + (5px * 2);
+                x: parent.width - self.width;
+                alignment: end;
+                spacing: 5px;
 
-                border-radius: 8px;
-                background: Colors.indianred.brighter(i-rm-hover.has-hover ? 0.2 : 0.0);
+                if editable: VerticalLayout {
+                    alignment: start;
 
-                i-rm-content := Image {
-                    width: 16px;
-                    height: 16px;
-                    source: @image-url("../../icons/remove.svg");
+                    Rectangle {
+                        border-radius: 8px;
+                        background: Colors.gainsboro.brighter(i-edit-hover.has-hover ? 0.2 : 0.0);
+                        VerticalLayout {
+                            padding: 5px;
+
+                            Image {
+                                width: 16px;
+                                height: 16px;
+                                source: @image-url("../../icons/edit.svg");
+                            }
+                        }
+
+                        i-edit-hover := TouchArea {
+                            clicked => edit-click();
+                        }
+                    }
                 }
 
-                i-rm-hover := TouchArea {
-                    clicked => remove-click();
+                if removable: VerticalLayout {
+                    alignment: start;
+
+                    VerticalLayout {
+                        Rectangle {
+                            border-radius: 8px;
+                            background: Colors.indianred.brighter(i-rm-hover.has-hover ? 0.2 : 0.0);
+
+                            VerticalLayout {
+                                padding: 5px;
+                                i-rm-content := Image {
+                                    width: 16px;
+                                    height: 16px;
+                                    source: @image-url("../../icons/remove.svg");
+                                }
+                            }
+
+                            i-rm-hover := TouchArea {
+                                clicked => remove-click();
+                            }
+                        }
+                    }
                 }
             }
         }

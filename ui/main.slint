@@ -14,7 +14,7 @@ import { SettingsWindow } from "settings.slint";
 
 import { Bible, Settings, Verse } from "api/global.slint";
 import { FileItem, SongsState } from "api/songs.slint";
-import { ViewState, ViewBackgroundColor } from "api/view-state.slint";
+import { EditMode, ViewState, ViewBackgroundColor } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
 import { ColorPicker } from "components/color-picker.slint";
@@ -22,7 +22,7 @@ import { Renderable } from "components/base/renderable.slint";
 import { FileManagerDialog } from "dialogs/songs.slint";
 import { MultimediaDialog } from "dialogs/media-selector.slint";
 
-export { Bible, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
+export { Bible, EditMode, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export global MainState {
     in-out property <[string]> saved-texts;
@@ -299,16 +299,16 @@ export component MainWindow inherits Window {
                                     x: n * self.width;
                                     width: 240px;
                                     height: self.width / 1.7;
+                                    editable: true;
                                     removable: !e.tmp;
 
-                                    preview => {
-                                        ViewState.preview-media(e);
-                                    }
-                                    send-to-view => {
-                                        ViewState.sync-and-play(e);
-                                    }
-                                    remove-click => {
-                                        ViewState.remove-media(i, n)
+                                    preview => ViewState.preview-media(e);
+                                    send-to-view => ViewState.sync-and-play(e);
+                                    remove-click => ViewState.remove-media(i, n);
+                                    edit-click => {
+                                        ViewState.in-edit-mode = { editable: true, row: i, col: n };
+                                        ViewState.select-media-preview = e;
+                                        dialog-media-selector.show();
                                     }
 
                                     View {

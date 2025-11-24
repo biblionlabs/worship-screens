@@ -152,9 +152,20 @@ impl MediaManager {
     pub fn initialize(&self) {
         let width = self.window.unwrap().window().size().width;
         {
-            let media_list = self.media_list.lock().unwrap();
+            let mut media_list = self.media_list.lock().unwrap();
+            media_list.retain(|m| !m.tmp);
             set_media_list(width, self.window.clone(), media_list.clone());
         }
+    }
+
+    fn save_permanent_items(data: &Arc<UserData>, settings: &SourceMedia) {
+        let permanent_items: SourceMedia = settings
+            .iter()
+            .filter(|item| !item.tmp)
+            .cloned()
+            .collect::<Vec<_>>()
+            .into();
+        data.save(&permanent_items);
     }
 
     pub fn connect_callbacks(self: Arc<Self>) {
@@ -261,18 +272,29 @@ impl MediaManager {
             let data = self.data.clone();
             let main_window = self.window.clone();
             let media_list = self.media_list.clone();
-            move || {
+            move |edit_mode| {
                 let window = main_window.unwrap();
                 let width = window.window().size().width;
                 let state = window.global::<ViewState>();
                 let mut settings = media_list.lock().unwrap();
-                let state = state.get_select_media_preview();
-                let tmp = state.tmp;
+                let preview = state.get_select_media_preview();
 
-                settings.push(MediaItem::from(state));
+                if edit_mode.editable {
+                    let cols = if let a @ 1.. = ((width as f32 * 0.7) / 250.).floor() as usize {
+                        a
+                    } else {
+                        6
+                    };
 
-                if !tmp {
-                    data.save(&*settings);
+                    let real_index = (edit_mode.row as usize * cols) + edit_mode.col as usize;
+
+                    if real_index < settings.len() {
+                        settings[real_index] = MediaItem::from(preview);
+                        Self::save_permanent_items(&data, &settings);
+                    }
+                } else {
+                    settings.push(MediaItem::from(preview));
+                    Self::save_permanent_items(&data, &settings);
                 }
 
                 set_media_list(width, main_window.clone(), settings.clone());
@@ -299,7 +321,7 @@ impl MediaManager {
 
                 if real_index < settings.len() {
                     settings.remove(real_index);
-                    data.save(&*settings);
+                    Self::save_permanent_items(&data, &settings);
                 }
 
                 set_media_list(width, main_window.clone(), settings.clone());
