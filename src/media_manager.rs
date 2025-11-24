@@ -414,8 +414,10 @@ impl MediaManager {
                     return false;
                 };
                 let state = view_window.global::<ViewState>();
+                let media = state.get_shared_view();
                 media_data.img_bg = image.clone();
                 media_data.show_img = true;
+                media_data.content = media.content;
                 state.set_shared_view(media_data.clone());
             }
 
@@ -424,8 +426,10 @@ impl MediaManager {
                     return false;
                 };
                 let state = view_window.global::<ViewState>();
+                let media = state.get_shared_view();
                 media_data.img_bg = image.clone();
                 media_data.show_img = true;
+                media_data.content = media.content;
                 state.set_shared_view(media_data);
             }
             return true;
