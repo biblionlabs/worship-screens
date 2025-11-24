@@ -5,6 +5,7 @@ export struct ViewBackgroundColor {
 
 export struct ViewData {
     path: string,
+    tmp: bool,
     show-img: bool,
     color: ViewBackgroundColor,
     content: string,
@@ -35,7 +36,7 @@ export global ViewState {
     in property <length> min-font-size: 14px;
     in property <length> max-font-size: 120px;
 
-    callback apply-changes(bool);
+    callback apply-changes();
     callback select-file();
     callback remove-media(int, int);
     callback play-video(bool);

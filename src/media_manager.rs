@@ -86,6 +86,7 @@ impl<'a> From<&'a MediaItem> for ViewData {
         };
 
         Self {
+            tmp: false,
             path: value.path.clone().unwrap_or_default().to_shared_string(),
             show_img: ALL_MEDIA_FORMATS
                 .iter()
@@ -245,13 +246,15 @@ impl MediaManager {
             let data = self.data.clone();
             let main_window = self.window.clone();
             let media_list = self.media_list.clone();
-            move |tmp| {
+            move || {
                 let window = main_window.unwrap();
                 let width = window.window().size().width;
                 let state = window.global::<ViewState>();
                 let mut settings = media_list.lock().unwrap();
+                let state = state.get_select_media_preview();
+                let tmp = state.tmp;
 
-                settings.push(MediaItem::from(state.get_select_media_preview()));
+                settings.push(MediaItem::from(state));
 
                 if !tmp {
                     data.save(&*settings);

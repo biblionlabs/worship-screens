@@ -299,7 +299,7 @@ export component MainWindow inherits Window {
                                     x: n * self.width;
                                     width: 240px;
                                     height: self.width / 1.7;
-                                    removable: true;
+                                    removable: !e.tmp;
 
                                     preview => {
                                         ViewState.shared-view = e;

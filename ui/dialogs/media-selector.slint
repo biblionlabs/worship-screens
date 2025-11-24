@@ -16,7 +16,6 @@ export component MultimediaDialog inherits PopupWindow {
     close_policy: no_auto_close;
     forward_focus: focus_scope;
 
-    property <bool> temp-media: false;
     property <int> fit-index: 1;
     property <[string]> fit-options: ["fill", "contain", "cover"];
 
@@ -120,7 +119,10 @@ export component MultimediaDialog inherits PopupWindow {
 
                     InputCheck {
                         label: "Temporal Media";
-                        checked <=> temp-media;
+                        checked: ViewState.select-media-preview.tmp;
+                        changed checked => {
+                            ViewState.select-media-preview.tmp = self.checked;
+                        }
                     }
 
                     ColorPicker {
@@ -150,7 +152,7 @@ export component MultimediaDialog inherits PopupWindow {
                     text: "Aplicar";
                     primary: true;
                     clicked => {
-                        ViewState.apply-changes(temp-media);
+                        ViewState.apply-changes();
                         root.close();
                     }
                 }
