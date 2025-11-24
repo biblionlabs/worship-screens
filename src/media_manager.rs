@@ -48,6 +48,7 @@ pub struct MediaManager {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct MediaItem {
+    tmp: bool,
     pub path: Option<String>,
     pub color: ViewBackgroundColor,
     pub fit: ImageFit,
@@ -90,7 +91,7 @@ impl<'a> From<&'a MediaItem> for ViewData {
         };
 
         Self {
-            tmp: false,
+            tmp: value.tmp,
             path: value.path.clone().unwrap_or_default().to_shared_string(),
             show_img: ALL_MEDIA_FORMATS
                 .iter()
@@ -113,6 +114,7 @@ impl From<ViewData> for MediaItem {
         let cb = value.color.b;
 
         Self {
+            tmp: value.tmp,
             path: (!value.path.is_empty()).then_some(value.path.to_string()),
             color: ViewBackgroundColor {
                 a: [ca.red(), ca.green(), ca.blue(), ca.alpha()],
