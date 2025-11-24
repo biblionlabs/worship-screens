@@ -290,7 +290,18 @@ export component MainWindow inherits Window {
 
                             Button {
                                 text: "+";
-                                clicked => dialog-media-selector.show();
+                                clicked => {
+                                    ViewState.select-media-preview = {
+                                        show-img: false,
+                                        tmp: false,
+                                        is-logo: false,
+                                        path: "",
+                                        content: "",
+                                        img-fit: ImageFit.contain,
+                                        color: { a: Colors.black, b: Colors.black },
+                                    };
+                                    dialog-media-selector.show();
+                                }
                             }
                         }
 
