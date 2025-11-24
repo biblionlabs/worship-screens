@@ -44,3 +44,12 @@ impl_deref! {
     SourceSongs(Vec<FileItem>): "source_songs",
     SourceMedia(Vec<MediaItem>): "source_media"
 }
+
+#[derive(Clone, Default, Deserialize, Serialize)]
+pub struct AppSettings {
+    pub last_screen: Option<String>,
+}
+
+impl Save for AppSettings {
+    const NAME: &str = "settings";
+}

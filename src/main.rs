@@ -9,6 +9,7 @@ use ui::*;
 
 use self::fav_text_manager::FavTextManager;
 use self::media_manager::MediaManager;
+use self::settings::AppSettings;
 use self::song_manager::SongsManager;
 use self::user_data::UserData;
 
@@ -175,13 +176,6 @@ fn main() {
         }
     });
 
-    settings_window.on_save({
-        let settings_window = settings_window.as_weak();
-        move || {
-            // TODO: sync and save settings
-        }
-    });
-
     settings_window.on_select_bible({
         let setup = source_variants.clone();
         let source_variants = source_variants.clone();
@@ -212,24 +206,29 @@ fn main() {
         let monitors = monitors.clone();
         let view_window = view_window.as_weak();
         let media_manager = media_manager.clone();
+        let data_manager = data_manager.clone();
         move || {
             let main_window = main_window.unwrap();
             media_manager.initialize();
             media_manager.clone().connect_callbacks();
+
             main_window
                 .window()
                 .with_winit_window(|window| {
-                    let mut monitors = monitors.lock().unwrap();
-                    *monitors = window
+                    let mut monitors_map = monitors.lock().unwrap();
+                    *monitors_map = window
                         .available_monitors()
                         .flat_map(|m| m.name().map(|n| (n, m)))
                         .collect::<HashMap<_, _>>();
 
                     let settings = main_window.global::<Settings>();
+                    let mut monitor_names: Vec<String> = monitors_map.keys().cloned().collect();
+                    monitor_names.sort();
+
                     settings.set_monitors(ModelRc::from(
-                        monitors
+                        monitor_names
                             .iter()
-                            .map(|(n, _)| n.to_shared_string())
+                            .map(|n| n.to_shared_string())
                             .collect::<Vec<_>>()
                             .as_slice(),
                     ));
@@ -238,27 +237,56 @@ fn main() {
                         return;
                     };
 
-                    let Some(name) = current.name() else {
+                    let Some(current_name) = current.name() else {
                         return;
                     };
 
-                    let Some((n, (_, second_screen))) =
-                        monitors.iter().enumerate().find(|(_, (m, _))| **m != name)
-                    else {
+                    let app_settings = data_manager.load::<AppSettings>();
+
+                    let target_screen = if let Some(ref last_screen) = app_settings.last_screen {
+                        if monitors_map.contains_key(last_screen) && last_screen != &current_name {
+                            Some((
+                                last_screen.clone(),
+                                monitors_map.get(last_screen).unwrap().clone(),
+                            ))
+                        } else {
+                            monitors_map
+                                .iter()
+                                .find(|(name, _)| **name != current_name)
+                                .map(|(name, monitor)| (name.clone(), monitor.clone()))
+                        }
+                    } else {
+                        monitors_map
+                            .iter()
+                            .find(|(name, _)| **name != current_name)
+                            .map(|(name, monitor)| (name.clone(), monitor.clone()))
+                    };
+
+                    let Some((screen_name, second_screen)) = target_screen else {
+                        let view_window = view_window.unwrap();
+                        view_window.show().unwrap();
                         return;
                     };
+
+                    let mut updated_settings = app_settings;
+                    updated_settings.last_screen = Some(screen_name.clone());
+                    data_manager.save(&updated_settings);
+
+                    if let Some(idx) = monitor_names.iter().position(|n| n == &screen_name) {
+                        settings.set_selected_monitor(idx as _);
+                    }
 
                     let view_window = view_window.unwrap();
                     let state = view_window.global::<ViewState>();
                     state.set_window_width(second_screen.size().width as _);
                     state.set_window_height(second_screen.size().height as _);
-                    settings.set_selected_monitor(n as _);
 
                     slint::spawn_local({
                         let view_window = view_window.as_weak();
                         let second_screen = second_screen.clone();
                         async move {
-                            let w = view_window.unwrap().window().winit_window().await.unwrap();
+                            let view_window = view_window.unwrap();
+                            let w = view_window.window().winit_window().await.unwrap();
                             w.set_fullscreen(Some(
                                 slint::winit_030::winit::window::Fullscreen::Borderless(Some(
                                     second_screen,
@@ -267,6 +295,7 @@ fn main() {
                         }
                     })
                     .unwrap();
+
                     view_window.show().unwrap();
                 })
                 .unwrap();
@@ -348,14 +377,11 @@ fn main() {
     main_window.on_send_to_view({
         let view_window = view_window.as_weak();
         let main_window = main_window.as_weak();
-        let media_manager = media_manager.clone();
         move || {
             let view_window = view_window.unwrap();
             let main_window = main_window.unwrap();
             let main_state = main_window.global::<ViewState>();
             let view_state = view_window.global::<ViewState>();
-
-            let shared = main_state.get_shared_view();
 
             view_state.set_shared_view(main_state.get_shared_view());
         }
@@ -364,9 +390,17 @@ fn main() {
     main_window.on_change_monitor({
         let view_window = view_window.as_weak();
         let monitors = monitors.clone();
+        let data_manager = data_manager.clone();
         move |name| {
-            let monitors = monitors.lock().unwrap();
-            let monitor = monitors.get(&name.to_string()).unwrap();
+            let monitors_map = monitors.lock().unwrap();
+            let Some(monitor) = monitors_map.get(&name.to_string()) else {
+                return;
+            };
+
+            let mut app_settings = data_manager.load::<AppSettings>();
+            app_settings.last_screen = Some(name.to_string());
+            data_manager.save(&app_settings);
+
             slint::spawn_local({
                 let view_window = view_window.unwrap().as_weak();
                 let monitor = monitor.clone();
