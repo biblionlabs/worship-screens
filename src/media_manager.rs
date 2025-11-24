@@ -49,6 +49,8 @@ pub struct MediaManager {
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct MediaItem {
     tmp: bool,
+    #[serde(default)]
+    pub is_logo: bool,
     pub path: Option<String>,
     pub color: ViewBackgroundColor,
     pub fit: ImageFit,
@@ -92,6 +94,7 @@ impl<'a> From<&'a MediaItem> for ViewData {
 
         Self {
             tmp: value.tmp,
+            is_logo: value.is_logo,
             path: value.path.clone().unwrap_or_default().to_shared_string(),
             show_img: ALL_MEDIA_FORMATS
                 .iter()
@@ -115,6 +118,7 @@ impl From<ViewData> for MediaItem {
 
         Self {
             tmp: value.tmp,
+            is_logo: value.is_logo,
             path: (!value.path.is_empty()).then_some(value.path.to_string()),
             color: ViewBackgroundColor {
                 a: [ca.red(), ca.green(), ca.blue(), ca.alpha()],
@@ -168,6 +172,20 @@ impl MediaManager {
         data.save(&permanent_items);
     }
 
+    fn sort_media_list(settings: &mut SourceMedia) {
+        settings.sort_by(|a, b| match (a.is_logo, b.is_logo) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => std::cmp::Ordering::Equal,
+        });
+    }
+
+    fn unmark_all_logos(settings: &mut SourceMedia) {
+        for item in settings.iter_mut() {
+            item.is_logo = false;
+        }
+    }
+
     pub fn connect_callbacks(self: Arc<Self>) {
         let window = self.window.unwrap();
         let state = window.global::<ViewState>();
@@ -206,6 +224,22 @@ impl MediaManager {
                 }
 
                 EventResult::Propagate
+            }
+        });
+
+        // ---- show-logo ----
+        state.on_show_logo({
+            let instance = self.clone();
+            move || {
+                let settings = instance.media_list.lock().unwrap();
+
+                if let Some(logo) = settings.iter().find(|item| item.is_logo) {
+                    let logo_data = ViewData::from(logo);
+
+                    instance.play_output_video(logo_data);
+                } else {
+                    eprintln!("No logo configured");
+                }
             }
         });
 
@@ -279,6 +313,12 @@ impl MediaManager {
                 let mut settings = media_list.lock().unwrap();
                 let preview = state.get_select_media_preview();
 
+                let mut new_item = MediaItem::from(preview);
+                if new_item.is_logo {
+                    Self::unmark_all_logos(&mut settings);
+                    new_item.tmp = false;
+                }
+
                 if edit_mode.editable {
                     let cols = if let a @ 1.. = ((width as f32 * 0.7) / 250.).floor() as usize {
                         a
@@ -289,11 +329,13 @@ impl MediaManager {
                     let real_index = (edit_mode.row as usize * cols) + edit_mode.col as usize;
 
                     if real_index < settings.len() {
-                        settings[real_index] = MediaItem::from(preview);
+                        settings[real_index] = new_item;
+                        Self::sort_media_list(&mut settings);
                         Self::save_permanent_items(&data, &settings);
                     }
                 } else {
-                    settings.push(MediaItem::from(preview));
+                    settings.push(new_item);
+                    Self::sort_media_list(&mut settings);
                     Self::save_permanent_items(&data, &settings);
                 }
 
@@ -321,6 +363,7 @@ impl MediaManager {
 
                 if real_index < settings.len() {
                     settings.remove(real_index);
+                    Self::sort_media_list(&mut settings);
                     Self::save_permanent_items(&data, &settings);
                 }
 

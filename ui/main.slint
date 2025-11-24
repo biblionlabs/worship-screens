@@ -37,7 +37,6 @@ export component MainWindow inherits Window {
 
     in property <image> source;
 
-    callback set-image();
     callback search-verse <=> search-verse-input.edited;
 
     callback start-window();
@@ -88,7 +87,7 @@ export component MainWindow inherits Window {
 
                 logo-btn := Button {
                     text: "Logo";
-                    clicked => set-image();
+                    clicked => ViewState.show-logo();
                 }
 
                 shutdown-btn := Button {
@@ -319,6 +318,24 @@ export component MainWindow inherits Window {
                                         width: 100%;
                                         height: self.width / 1.7;
                                         data: e;
+
+                                        if e.is-logo: Rectangle {
+                                            x: 5px;
+                                            y: 5px;
+                                            width: 50px;
+                                            height: 25px;
+                                            border-radius: 4px;
+                                            background: Palette.accent-background;
+
+                                            Text {
+                                                text: "LOGO";
+                                                color: Colors.white;
+                                                font-size: 10px;
+                                                font-weight: 700;
+                                                horizontal-alignment: center;
+                                                vertical-alignment: center;
+                                            }
+                                        }
                                     }
                                 }
                             }

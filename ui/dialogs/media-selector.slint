@@ -93,7 +93,7 @@ export component MultimediaDialog inherits PopupWindow {
                         }
 
                         // Ajuste de imagen
-                        HorizontalBox {
+                        HorizontalLayout {
                             spacing: 12px;
                             Text {
                                 text: "Ajuste:";
@@ -119,6 +119,17 @@ export component MultimediaDialog inherits PopupWindow {
                     }
 
                     InputCheck {
+                        label: "Mark as Logo";
+                        checked: ViewState.select-media-preview.is-logo;
+                        changed checked => {
+                            ViewState.select-media-preview.is-logo = self.checked;
+                            if self.checked {
+                                ViewState.select-media-preview.tmp = false;
+                            }
+                        }
+                    }
+
+                    if !ViewState.select-media-preview.is-logo: InputCheck {
                         label: "Temporal Media";
                         checked: ViewState.select-media-preview.tmp;
                         changed checked => {

@@ -385,15 +385,6 @@ fn main() {
         }
     });
 
-    main_window.on_set_image({
-        let main_window = main_window.as_weak();
-        let view_window = view_window.as_weak();
-        move || {
-            let main_window = main_window.clone();
-            let view_window = view_window.clone();
-        }
-    });
-
     main_window.on_open_settings({
         let settings_window = settings_window.as_weak();
         move || {
