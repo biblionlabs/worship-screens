@@ -38,6 +38,8 @@ export global ViewState {
 
     callback apply-changes();
     callback select-file();
+
     callback remove-media(int, int);
-    callback play-video(bool);
+    callback preview-media(ViewData);
+    callback sync-and-play(ViewData);
 }

@@ -38,8 +38,12 @@ pub struct MediaManager {
     window: Weak<MainWindow>,
     view_window: Weak<ViewWindow>,
     media_list: Arc<Mutex<SourceMedia>>,
-    video_thread: Arc<Mutex<Option<JoinHandle<()>>>>,
-    video_playing: Arc<AtomicBool>,
+
+    preview_video_thread: Arc<Mutex<Option<JoinHandle<()>>>>,
+    preview_video_playing: Arc<AtomicBool>,
+
+    output_video_thread: Arc<Mutex<Option<JoinHandle<()>>>>,
+    output_video_playing: Arc<AtomicBool>,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -134,10 +138,12 @@ impl MediaManager {
         Self {
             data,
             window,
-            media_list,
             view_window,
-            video_thread: Arc::new(Mutex::new(None)),
-            video_playing: Arc::new(AtomicBool::new(false)),
+            media_list,
+            preview_video_thread: Arc::new(Mutex::new(None)),
+            preview_video_playing: Arc::new(AtomicBool::new(false)),
+            output_video_thread: Arc::new(Mutex::new(None)),
+            output_video_playing: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -167,7 +173,6 @@ impl MediaManager {
                         drop(handle);
                     }
 
-                    // Crear nuevo timer
                     let window = window.clone();
                     let media_list = media_list.clone();
                     let last_resize = last_resize.clone();
@@ -191,11 +196,19 @@ impl MediaManager {
             }
         });
 
-        // ---- Play video ----
-        state.on_play_video({
+        // ---- Preview Media (MainWindow) ----
+        state.on_preview_media({
             let instance = self.clone();
-            move |sync| {
-                instance.play_video(sync);
+            move |media_data| {
+                instance.play_preview_video(media_data);
+            }
+        });
+
+        // ---- Sync and Play ----
+        state.on_sync_and_play({
+            let instance = self.clone();
+            move |media_data| {
+                instance.play_output_video(media_data);
             }
         });
 
@@ -292,154 +305,199 @@ impl MediaManager {
         });
     }
 
-    pub fn stop_video(&self) {
-        self.video_playing.store(false, Ordering::Relaxed);
-
-        if let Some(handle) = self.video_thread.lock().unwrap().take() {
+    pub fn stop_preview_video(&self) {
+        self.preview_video_playing.store(false, Ordering::Relaxed);
+        if let Some(handle) = self.preview_video_thread.lock().unwrap().take() {
             let _ = handle.join();
         }
     }
 
-    pub fn play_video(&self, sync_view: bool) {
-        self.stop_video();
-        let binding = self.window.unwrap();
-        let state = binding.global::<ViewState>();
-        let shared = state.get_shared_view();
-        let path = shared.path.to_string();
+    pub fn stop_output_video(&self) {
+        self.output_video_playing.store(false, Ordering::Relaxed);
+        if let Some(handle) = self.output_video_thread.lock().unwrap().take() {
+            let _ = handle.join();
+        }
+    }
 
-        let source_path = PathBuf::from(path);
+    pub fn play_preview_video(&self, mut media_data: ViewData) {
+        self.stop_preview_video();
+
+        let path = media_data.path.to_string();
+        let source_path = PathBuf::from(&path);
+
         if source_path
             .extension()
             .is_some_and(|e| IMAGE_FORMATS.contains(&e.to_str().unwrap_or_default()))
         {
             if let Some(window) = self.window.upgrade() {
                 let state = window.global::<ViewState>();
-                let image = Image::load_from_path(source_path.as_path()).unwrap();
-                let mut shared = state.get_shared_view();
-                shared.img_bg = image.clone();
-                shared.show_img = true;
-                state.set_shared_view(shared);
-                if sync_view {
-                    let view_window = self.view_window.unwrap();
-                    let state = view_window.global::<ViewState>();
-                    let mut shared = state.get_shared_view();
-                    shared.img_bg = image;
-                    shared.show_img = true;
-                    state.set_shared_view(shared);
+                if let Ok(image) = Image::load_from_path(source_path.as_path()) {
+                    media_data.img_bg = image;
+                    media_data.show_img = true;
+                    state.set_shared_view(media_data);
                 }
             }
             return;
         }
 
         let target_window = self.window.clone();
-        let view_window = self.view_window.clone();
-        let video_playing = self.video_playing.clone();
+        let video_playing = self.preview_video_playing.clone();
         video_playing.store(true, Ordering::Relaxed);
 
         let handle = std::thread::spawn(move || {
-            let Ok(src_file) = File::open(&source_path) else {
-                eprintln!("Cannot open video file: {source_path:?}");
-                return;
-            };
+            Self::video_playback_loop(source_path, video_playing, Some(target_window), None);
+        });
 
-            let size = src_file.metadata().unwrap().len();
-            let reader = BufReader::new(src_file);
-            let Ok(mut mp4_reader) = mp4::Mp4Reader::read_header(reader, size) else {
-                eprintln!("Cannot read MP4 header: {source_path:?}");
-                return;
-            };
+        *self.preview_video_thread.lock().unwrap() = Some(handle);
+    }
 
-            let Some((_, track)) = mp4_reader
-                .tracks()
-                .iter()
-                .find(|(_, t)| t.media_type().ok() == Some(mp4::MediaType::H264))
-            else {
-                eprintln!("No H264 track found");
-                return;
-            };
+    pub fn play_output_video(&self, mut media_data: ViewData) {
+        self.stop_output_video();
 
-            let decoder_options = DecoderConfig::new().flush_after_decode(Flush::NoFlush);
-            let Ok(mut decoder) =
-                Decoder::with_api_config(openh264::OpenH264API::from_source(), decoder_options)
-            else {
-                eprintln!("Cannot create decoder");
-                return;
-            };
+        let path = media_data.path.to_string();
+        let source_path = PathBuf::from(&path);
 
-            let sample_count = track.sample_count();
-            let track_id = track.track_id();
-            let width = track.width() as usize;
-            let height = track.height() as usize;
-            let wait_time = std::time::Duration::from_secs_f64(1.0 / track.frame_rate());
-            let mut bitstream_converter = Mp4BitstreamConverter::for_mp4_track(track).unwrap();
-            let mut buffer = Vec::new();
-            let mut frame_start;
-            let mut frame_count;
+        if source_path
+            .extension()
+            .is_some_and(|e| IMAGE_FORMATS.contains(&e.to_str().unwrap_or_default()))
+        {
+            if let Ok(image) = Image::load_from_path(source_path.as_path()) {
+                if let Some(view_window) = self.view_window.upgrade() {
+                    let state = view_window.global::<ViewState>();
+                    media_data.img_bg = image.clone();
+                    media_data.show_img = true;
+                    state.set_shared_view(media_data);
+                }
+            }
+            return;
+        }
 
-            'video_loop: loop {
+        let view_window = self.view_window.clone();
+        let video_playing = self.output_video_playing.clone();
+        video_playing.store(true, Ordering::Relaxed);
+
+        let handle = std::thread::spawn(move || {
+            Self::video_playback_loop(
+                source_path,
+                video_playing,
+                None,
+                Some(view_window), // Sincronizar con ViewWindow
+            );
+        });
+
+        *self.output_video_thread.lock().unwrap() = Some(handle);
+    }
+
+    fn video_playback_loop(
+        source_path: PathBuf,
+        video_playing: Arc<AtomicBool>,
+        target_window: Option<Weak<MainWindow>>,
+        view_window: Option<Weak<ViewWindow>>,
+    ) {
+        let Ok(src_file) = File::open(&source_path) else {
+            eprintln!("Cannot open video file: {source_path:?}");
+            return;
+        };
+
+        let size = src_file.metadata().unwrap().len();
+        let reader = BufReader::new(src_file);
+        let Ok(mut mp4_reader) = Mp4Reader::read_header(reader, size) else {
+            eprintln!("Cannot read MP4 header: {source_path:?}");
+            return;
+        };
+
+        let Some((_, track)) = mp4_reader
+            .tracks()
+            .iter()
+            .find(|(_, t)| t.media_type().ok() == Some(mp4::MediaType::H264))
+        else {
+            eprintln!("No H264 track found");
+            return;
+        };
+
+        let decoder_options = DecoderConfig::new().flush_after_decode(Flush::NoFlush);
+        let Ok(mut decoder) = Decoder::with_api_config(OpenH264API::from_source(), decoder_options)
+        else {
+            eprintln!("Cannot create decoder");
+            return;
+        };
+
+        let sample_count = track.sample_count();
+        let track_id = track.track_id();
+        let width = track.width() as usize;
+        let height = track.height() as usize;
+        let wait_time = Duration::from_secs_f64(1.0 / track.frame_rate());
+        let mut bitstream_converter = Mp4BitstreamConverter::for_mp4_track(track).unwrap();
+        let mut buffer = Vec::new();
+
+        'video_loop: loop {
+            if !video_playing.load(Ordering::Relaxed) {
+                break;
+            }
+
+            let frame_start = Instant::now();
+            let mut frame_count = 0;
+
+            for i in 1..=sample_count {
                 if !video_playing.load(Ordering::Relaxed) {
-                    break;
+                    break 'video_loop;
                 }
 
-                // Resetear timing para cada loop
-                frame_start = std::time::Instant::now();
-                frame_count = 0;
+                let Some(sample) = mp4_reader.read_sample(track_id, i).ok().flatten() else {
+                    continue;
+                };
 
-                for i in 1..=sample_count {
-                    if !video_playing.load(Ordering::Relaxed) {
-                        break 'video_loop;
-                    }
+                bitstream_converter.convert_packet(&sample.bytes, &mut buffer);
 
-                    let Some(sample) = mp4_reader.read_sample(track_id, i).ok().flatten() else {
-                        continue;
-                    };
+                if let Ok(Some(image)) = decoder.decode(&buffer) {
+                    let mut pixels = SharedPixelBuffer::<Rgb8Pixel>::new(width as _, height as _);
+                    image.write_rgb8(pixels.make_mut_bytes());
 
-                    bitstream_converter.convert_packet(&sample.bytes, &mut buffer);
+                    let target_window_clone = target_window.clone();
+                    let view_window_clone = view_window.clone();
+                    let video_playing = video_playing.clone();
 
-                    if let Ok(Some(image)) = decoder.decode(&buffer) {
-                        let mut pixels =
-                            SharedPixelBuffer::<Rgb8Pixel>::new(width as _, height as _);
-                        image.write_rgb8(pixels.make_mut_bytes());
-
-                        let target_window = target_window.clone();
-                        let view_window = view_window.clone();
-                        let _ = slint::invoke_from_event_loop(move || {
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if !video_playing.load(Ordering::Relaxed) {
+                            return;
+                        }
+                        // Actualizar MainWindow
+                        if let Some(target_window) = target_window_clone {
                             if let Some(window) = target_window.upgrade() {
                                 let state = window.global::<ViewState>();
                                 let mut shared = state.get_shared_view();
                                 shared.img_bg = Image::from_rgb8(pixels.clone());
                                 shared.show_img = true;
-                                state.set_shared_view(shared.clone());
-                                if sync_view {
-                                    let view_window = view_window.unwrap();
-                                    let state = view_window.global::<ViewState>();
-                                    let mut shared = state.get_shared_view();
-                                    shared.img_bg = Image::from_rgb8(pixels);
-                                    shared.show_img = true;
-                                    state.set_shared_view(shared);
-                                }
+                                state.set_shared_view(shared);
                             }
-                        });
-                        frame_count += 1;
-                        let expected_time = frame_start + wait_time * frame_count as u32;
-                        let now = std::time::Instant::now();
-
-                        if now < expected_time {
-                            std::thread::sleep(expected_time - now);
                         }
+
+                        if let Some(view_window) = view_window_clone {
+                            if let Some(view_window) = view_window.upgrade() {
+                                let state = view_window.global::<ViewState>();
+                                let mut shared = state.get_shared_view();
+                                shared.img_bg = Image::from_rgb8(pixels);
+                                shared.show_img = true;
+                                state.set_shared_view(shared);
+                            }
+                        }
+                    });
+
+                    frame_count += 1;
+                    let expected_time = frame_start + wait_time * frame_count;
+                    let now = Instant::now();
+
+                    if now < expected_time {
+                        std::thread::sleep(expected_time - now);
                     }
-
-                    std::thread::sleep(wait_time);
                 }
-
-                // small pause to prevent thrashing
-                std::thread::sleep(Duration::from_millis(16));
             }
 
-            video_playing.store(false, Ordering::Relaxed);
-        });
+            // Pequeña pausa antes de loop
+            std::thread::sleep(Duration::from_millis(16));
+        }
 
-        *self.video_thread.lock().unwrap() = Some(handle);
+        video_playing.store(false, Ordering::Relaxed);
     }
 
     fn generate_video_thumbnail(source_path: &str) -> Option<Image> {
@@ -481,7 +539,6 @@ impl MediaManager {
             .ok()?;
         let mut buffer = Vec::new();
 
-        // Obtener el primer frame
         let sidx = track.sample_count().checked_div(2).unwrap_or(1);
 
         for i in sidx..=track.sample_count() {

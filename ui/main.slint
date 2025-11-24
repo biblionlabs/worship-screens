@@ -302,12 +302,10 @@ export component MainWindow inherits Window {
                                     removable: !e.tmp;
 
                                     preview => {
-                                        ViewState.shared-view = e;
-                                        ViewState.play-video(false);
+                                        ViewState.preview-media(e);
                                     }
                                     send-to-view => {
-                                        ViewState.shared-view = e;
-                                        ViewState.play-video(true);
+                                        ViewState.sync-and-play(e);
                                     }
                                     remove-click => {
                                         ViewState.remove-media(i, n)

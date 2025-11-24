@@ -415,7 +415,7 @@ fn main() {
             main_window.global::<ViewState>().set_shared_view(shared);
 
             state.set_off(true);
-            media_manager.stop_video();
+            media_manager.stop_output_video();
         }
     });
 
@@ -435,6 +435,7 @@ fn main() {
             main_window.global::<ViewState>().set_shared_view(shared);
 
             state.set_off(false);
+            media_manager.stop_output_video();
         }
     });
 
