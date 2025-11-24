@@ -343,24 +343,13 @@ impl MediaManager {
         }
     }
 
-    pub fn play_preview_video(&self, mut media_data: ViewData) {
+    pub fn play_preview_video(&self, media_data: ViewData) {
         self.stop_preview_video();
 
         let path = media_data.path.to_string();
         let source_path = PathBuf::from(&path);
 
-        if source_path
-            .extension()
-            .is_some_and(|e| IMAGE_FORMATS.contains(&e.to_str().unwrap_or_default()))
-        {
-            if let Some(window) = self.window.upgrade() {
-                let state = window.global::<ViewState>();
-                if let Ok(image) = Image::load_from_path(source_path.as_path()) {
-                    media_data.img_bg = image;
-                    media_data.show_img = true;
-                    state.set_shared_view(media_data);
-                }
-            }
+        if Self::show_image(&source_path, media_data, Some(self.window.clone()), None) {
             return;
         }
 
@@ -375,29 +364,24 @@ impl MediaManager {
         *self.preview_video_thread.lock().unwrap() = Some(handle);
     }
 
-    pub fn play_output_video(&self, mut media_data: ViewData) {
+    pub fn play_output_video(&self, media_data: ViewData) {
         self.stop_output_video();
 
         let path = media_data.path.to_string();
         let source_path = PathBuf::from(&path);
 
-        if source_path
-            .extension()
-            .is_some_and(|e| IMAGE_FORMATS.contains(&e.to_str().unwrap_or_default()))
-        {
-            if let Ok(image) = Image::load_from_path(source_path.as_path()) {
-                if let Some(view_window) = self.view_window.upgrade() {
-                    let state = view_window.global::<ViewState>();
-                    media_data.img_bg = image.clone();
-                    media_data.show_img = true;
-                    state.set_shared_view(media_data);
-                }
-            }
+        if Self::show_image(
+            &source_path,
+            media_data,
+            None,
+            Some(self.view_window.clone()),
+        ) {
             return;
         }
 
         let view_window = self.view_window.clone();
         let video_playing = self.output_video_playing.clone();
+
         video_playing.store(true, Ordering::Relaxed);
 
         let handle = std::thread::spawn(move || {
@@ -410,6 +394,44 @@ impl MediaManager {
         });
 
         *self.output_video_thread.lock().unwrap() = Some(handle);
+    }
+
+    fn show_image(
+        source_path: &PathBuf,
+        mut media_data: ViewData,
+        target_window: Option<Weak<MainWindow>>,
+        view_window: Option<Weak<ViewWindow>>,
+    ) -> bool {
+        if source_path
+            .extension()
+            .is_some_and(|e| IMAGE_FORMATS.contains(&e.to_str().unwrap_or_default()))
+        {
+            let Ok(image) = Image::load_from_path(source_path.as_path()) else {
+                return false;
+            };
+            if let Some(window) = target_window {
+                let Some(view_window) = window.upgrade() else {
+                    return false;
+                };
+                let state = view_window.global::<ViewState>();
+                media_data.img_bg = image.clone();
+                media_data.show_img = true;
+                state.set_shared_view(media_data.clone());
+            }
+
+            if let Some(window) = view_window {
+                let Some(view_window) = window.upgrade() else {
+                    return false;
+                };
+                let state = view_window.global::<ViewState>();
+                media_data.img_bg = image.clone();
+                media_data.show_img = true;
+                state.set_shared_view(media_data);
+            }
+            return true;
+        }
+
+        false
     }
 
     fn video_playback_loop(
@@ -485,7 +507,6 @@ impl MediaManager {
                         if !video_playing.load(Ordering::Relaxed) {
                             return;
                         }
-                        // Actualizar MainWindow
                         if let Some(target_window) = target_window_clone {
                             if let Some(window) = target_window.upgrade() {
                                 let state = window.global::<ViewState>();
