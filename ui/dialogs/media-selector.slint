@@ -118,22 +118,26 @@ export component MultimediaDialog inherits PopupWindow {
                         }
                     }
 
-                    InputCheck {
-                        label: "Mark as Logo";
-                        checked: ViewState.select-media-preview.is-logo;
-                        changed checked => {
-                            ViewState.select-media-preview.is-logo = self.checked;
-                            if self.checked {
-                                ViewState.select-media-preview.tmp = false;
+                    VerticalLayout {
+                        padding-left: 8px;
+
+                        InputCheck {
+                            label: "Mark as Logo";
+                            checked: ViewState.select-media-preview.is-logo;
+                            changed checked => {
+                                ViewState.select-media-preview.is-logo = self.checked;
+                                if self.checked {
+                                    ViewState.select-media-preview.tmp = false;
+                                }
                             }
                         }
-                    }
 
-                    if !ViewState.select-media-preview.is-logo: InputCheck {
-                        label: "Temporal Media";
-                        checked: ViewState.select-media-preview.tmp;
-                        changed checked => {
-                            ViewState.select-media-preview.tmp = self.checked;
+                        if !ViewState.select-media-preview.is-logo: InputCheck {
+                            label: "Temporal Media";
+                            checked: ViewState.select-media-preview.tmp;
+                            changed checked => {
+                                ViewState.select-media-preview.tmp = self.checked;
+                            }
                         }
                     }
 
