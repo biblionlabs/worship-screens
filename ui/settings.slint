@@ -22,12 +22,6 @@ export component SettingsWindow inherits Window {
     callback select-bible(string);
     callback search <=> search-input.edited;
     callback close();
-    callback save();
-
-    init => {
-        ViewState.window-width = preview.width;
-        ViewState.window-height = preview.height;
-    }
 
     VerticalLayout {
         width: parent.width;
@@ -97,16 +91,6 @@ export component SettingsWindow inherits Window {
             }
         }
 
-        Text {
-            text: "Default Screen:";
-            vertical-alignment: center;
-        }
-
-        preview := View {
-            width: 100%;
-            height: self.width / 1.7;
-        }
-
         HorizontalLayout {
             alignment: end;
             spacing: 10px;
@@ -115,11 +99,6 @@ export component SettingsWindow inherits Window {
             Button {
                 text: "Cancel";
                 clicked => root.close();
-            }
-
-            Button {
-                text: "Save";
-                clicked => root.save();
             }
         }
     }
