@@ -43,7 +43,7 @@ export component MainWindow inherits Window {
     callback start-window();
     callback open-settings <=> settings-btn.clicked;
 
-    callback shutdown-output <=> shutdown-btn.clicked;
+    callback shutdown-output();
     callback clear-output <=> clear-btn.clicked;
     callback change-monitor <=> select-monitors.selected;
 
@@ -92,7 +92,11 @@ export component MainWindow inherits Window {
                 }
 
                 shutdown-btn := Button {
-                    text: "Off";
+                    text: ViewState.off ? "On" : "Off";
+                    clicked => {
+                        ViewState.off = !ViewState.off;
+                        shutdown-output();
+                    }
                 }
 
                 clear-btn := Button {

@@ -414,7 +414,7 @@ fn main() {
             state.set_shared_view(shared.clone());
             main_window.global::<ViewState>().set_shared_view(shared);
 
-            state.set_off(true);
+            state.set_off(!state.get_off());
             media_manager.stop_output_video();
         }
     });
