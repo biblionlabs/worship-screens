@@ -8,8 +8,9 @@ export component Renderable inherits VerticalLayout {
     in property <bool> selected;
     in property <bool> removable;
     in property <bool> editable;
+    in property <bool> enabled: true;
     in property <brush> background: Palette.alternate-background;
-    in property <brush> border-color: background.brighter(0.5);
+    in property <brush> border-color: enabled ? background.brighter(0.5) : background.darker(0.8);
     in property <length> border-width;
     in property <length> border-radius: 8px;
 
@@ -31,12 +32,15 @@ export component Renderable inherits VerticalLayout {
     }
 
     Rectangle {
+        opacity: enabled ? 1.0 : 0.5;
         background: Palette.alternate-background.brighter((hover || selected) ? 0.2 : 0.0);
         border-width: border-width;
         border-color: border-color;
         border-radius: border-radius;
 
         TouchArea {
+            enabled: root.enabled;
+            
             clicked => preview();
             double-clicked => send-to-view();
 
@@ -55,7 +59,7 @@ export component Renderable inherits VerticalLayout {
                 @children
             }
 
-            if hover: HorizontalLayout {
+            if hover && enabled: HorizontalLayout {
                 y: 0px;
                 x: parent.width - self.width;
                 alignment: end;
