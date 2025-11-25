@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use setup_core::{Selection, SqliteDbSink, event};
 use slint::winit_030::WinitWindowAccessor;
@@ -7,12 +7,14 @@ use slint::winit_030::winit::monitor::MonitorHandle;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, ToSharedString};
 use ui::*;
 
+use self::bibles_manager::BiblesManager;
 use self::fav_text_manager::FavTextManager;
 use self::media_manager::MediaManager;
 use self::settings::AppSettings;
 use self::song_manager::SongsManager;
 use self::user_data::UserData;
 
+mod bibles_manager;
 mod bitstream_converter;
 mod fav_text_manager;
 mod media_manager;
@@ -26,7 +28,6 @@ fn main() {
     let selection: Arc<Mutex<Selection>> = Default::default();
 
     let main_window = MainWindow::new().unwrap();
-    let settings_window = SettingsWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
 
     let mut song_manager = SongsManager::new(main_window.as_weak(), data_manager.clone());
@@ -42,6 +43,7 @@ fn main() {
         view_window.as_weak(),
         data_manager.clone(),
     ));
+    let bibles_manager = Arc::new(OnceLock::<BiblesManager>::new());
 
     let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
     let source_variants = setup_core::SetupBuilder::new().cache_path(data_manager.data_dir(&["cache"]))
@@ -49,7 +51,6 @@ fn main() {
         .add_bible_from_url("spa_rv1960", "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/manifest.json", "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/desc.json", Some("https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/{bible_id}/books/{book}.json"))
         .on::<event::Message>({
             let main_window = main_window.as_weak();
-            let settings_window = settings_window.as_weak();
             move |msg| {
             //     let main_window = main_window.unwrap();
             //     let state = main_window.global::<MainState>();
@@ -57,7 +58,6 @@ fn main() {
             }})
         .on::<event::Completed>({
             let main_window = main_window.as_weak();
-            let settings_window = settings_window.as_weak();
             move |_msg| {
                 // let main_window = main_window.unwrap();
                 // let state = main_window.global::<MainState>();
@@ -72,132 +72,53 @@ fn main() {
             }})
         .on::<event::Progress>({
             let main_window = main_window.as_weak();
-            let settings_window = settings_window.as_weak();
+        let bibles_manager = bibles_manager.clone();
             move |(step_id, current, total)| {
                 if step_id == "crossrefs" {
                     return;
                 }
-            let settings_window = settings_window.clone();
-                slint::invoke_from_event_loop(move || {
-                // let main_window = main_window.unwrap();
-                // let state = main_window.global::<MainState>();
-
-                let settings_window = settings_window.unwrap();
-                let bibles = settings_window.get_bibles();
-                let Some(idx) = bibles.iter().position(|b| b.id == step_id) else {
-                    return;
-                };
-                let mut bible = bibles.row_data(idx).unwrap();
-                bible.installing = current != total;
-                bible.installed = current == total;
-                bible.progress = current as f32 / total as f32;
-                bibles.set_row_data(idx, bible);
-
-                // TODO: send notification about state
+                slint::invoke_from_event_loop({
+                    let main_window = main_window.clone();
+                    let bibles_manager = bibles_manager.clone();
+                    let step_id = step_id.clone();
+                    move || {
+                        if let Some(window) = main_window.upgrade() {
+                            let state = window.global::<MainState>();
+                            let bibles = state.get_bibles();
+                            if let Some(idx) = bibles.iter().position(|b| b.id == step_id) {
+                                if let Some(mut bible) = bibles.row_data(idx) {
+                                    bible.installing = current != total;
+                                    bible.installed = current == total;
+                                    bible.progress = current as f32 / total as f32;
+                                    bibles.set_row_data(idx, bible);
+                                }
+                            }
+                        }
+                        if let Some(bibles_manager) = bibles_manager.get() {
+                            bibles_manager.update_progress(&step_id, current, total);
+                        }
+                        // TODO: send notification about state
+                    }
                 }).unwrap();
             }})
         .build().1;
 
     let source_variants: Arc<setup_core::Setup> = Arc::new(source_variants);
-    // std::thread::spawn({
-    //     let source_variants = source_variants.clone();
-    //     let database = database.clone();
-    //     move || {
-    //         source_variants.install_cross(database.as_ref()).unwrap();
-    //         source_variants
-    //             .install_langs(database.as_ref(), &[])
-    //             .unwrap();
-    //     }
-    // });
+
+    _ = bibles_manager.set(BiblesManager::new(
+        main_window.as_weak(),
+        source_variants.clone(),
+        database.clone(),
+    ));
+
     std::thread::spawn({
         let source_variants = source_variants.clone();
-        let settings_window = settings_window.as_weak();
-        move || {
-            let settings_window = settings_window.clone();
-            let bibles = source_variants
-                .list_bibles()
-                .map(|bibles| {
-                    bibles
-                        .iter()
-                        .map(|(id, name, english, _lang)| Bible {
-                            id: id.into(),
-                            english_name: english.into(),
-                            installed: source_variants.is_bible_installed(id),
-                            installing: false,
-                            name: name.into(),
-                            progress: 0.0,
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .unwrap();
-            slint::invoke_from_event_loop(move || {
-                settings_window
-                    .unwrap()
-                    .set_bibles(ModelRc::from(bibles.as_slice()));
-            })
-            .unwrap();
-        }
-    });
-
-    settings_window.on_close({
-        let settings_window = settings_window.as_weak();
-        move || {
-            settings_window.unwrap().hide().unwrap();
-        }
-    });
-
-    settings_window.on_search({
-        let source_variants = source_variants.clone();
-        let settings_window = settings_window.as_weak();
-        move |s| {
-            let s = s.as_str().to_lowercase();
-            let settings_window = settings_window.unwrap();
-            let bibles = source_variants
-                .list_bibles()
-                .map(|bibles| {
-                    bibles
-                        .iter()
-                        .filter_map(|(id, name, english, _lang)| {
-                            (english.to_lowercase().contains(&s)
-                                || name.to_lowercase().contains(&s))
-                            .then_some(Bible {
-                                id: id.into(),
-                                english_name: english.into(),
-                                installed: source_variants.is_bible_installed(id),
-                                installing: false,
-                                name: name.into(),
-                                progress: 0.0,
-                            })
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .unwrap();
-            settings_window.set_bibles(ModelRc::from(bibles.as_slice()));
-        }
-    });
-
-    settings_window.on_select_bible({
-        let setup = source_variants.clone();
-        let source_variants = source_variants.clone();
-        let selection = selection.clone();
         let database = database.clone();
-        move |bible_id| {
-            let bible_id = bible_id.as_str().to_string();
-            let mut selection = selection.lock().unwrap();
-            if selection.bibles.contains(&bible_id) {
-                return;
-            }
-            selection.bibles.push(bible_id.clone());
-            source_variants.save_selection(&selection).unwrap();
-            std::thread::spawn({
-                let setup = setup.clone();
-                let database = database.clone();
-                move || {
-                    setup
-                        .install_bibles(database.as_ref(), &[bible_id])
-                        .unwrap();
-                }
-            });
+        move || {
+            source_variants.install_cross(database.as_ref()).unwrap();
+            source_variants
+                .install_langs(database.as_ref(), &[])
+                .unwrap();
         }
     });
 
@@ -207,10 +128,16 @@ fn main() {
         let view_window = view_window.as_weak();
         let media_manager = media_manager.clone();
         let data_manager = data_manager.clone();
+        let bibles_manager = bibles_manager.clone();
         move || {
             let main_window = main_window.unwrap();
             media_manager.initialize();
             media_manager.clone().connect_callbacks();
+
+            if let Some(bibles_manager) = bibles_manager.get() {
+                bibles_manager.initialize();
+                bibles_manager.connect_callbacks();
+            }
 
             main_window
                 .window()
@@ -312,16 +239,44 @@ fn main() {
 
             const MAX_CHARS: usize = 20;
 
-            let verses =
-                setup_core::service_db::SearchedVerse::from_search(database.conn.clone(), s)
-                    .unwrap()
-                    .iter()
-                    .flat_map(|v| {
-                        let text = &v.text;
-                        let text_len = text.len();
+            let Ok(verses_found) =
+                setup_core::service_db::SearchedVerse::from_search(s, database.db.verse_index())
+            else {
+                return;
+            };
+            let verses = verses_found
+                .iter()
+                .flat_map(|v| {
+                    let text = &v.text;
+                    let text_len = text.len();
 
-                        if text_len <= MAX_CHARS {
-                            vec![Verse {
+                    if text_len <= MAX_CHARS {
+                        vec![Verse {
+                            bible: Bible {
+                                english_name: v.bible.english_name.to_shared_string(),
+                                id: v.bible.id.to_shared_string(),
+                                installed: false,
+                                installing: false,
+                                name: v.bible.name.to_shared_string(),
+                                progress: 0.0,
+                            },
+                            part: 0,
+                            book: v.book.to_shared_string(),
+                            chapter: v.chapter,
+                            text: text.to_shared_string(),
+                            verse: v.verse,
+                        }]
+                    } else {
+                        let mut parts = Vec::new();
+                        let words: Vec<&str> = text.split_whitespace().collect();
+                        let total_words = words.len();
+                        let mut part = 1;
+                        let mut i = 0;
+
+                        while i < total_words {
+                            let end = (i + MAX_CHARS).min(total_words);
+                            let part_text = words[i..end].join(" ");
+                            parts.push(Verse {
                                 bible: Bible {
                                     english_name: v.bible.english_name.to_shared_string(),
                                     id: v.bible.id.to_shared_string(),
@@ -330,45 +285,20 @@ fn main() {
                                     name: v.bible.name.to_shared_string(),
                                     progress: 0.0,
                                 },
-                                part: 0,
+                                part,
                                 book: v.book.to_shared_string(),
                                 chapter: v.chapter,
-                                text: text.to_shared_string(),
+                                text: part_text.to_shared_string(),
                                 verse: v.verse,
-                            }]
-                        } else {
-                            let mut parts = Vec::new();
-                            let words: Vec<&str> = text.split_whitespace().collect();
-                            let total_words = words.len();
-                            let mut part = 1;
-                            let mut i = 0;
-
-                            while i < total_words {
-                                let end = (i + MAX_CHARS).min(total_words);
-                                let part_text = words[i..end].join(" ");
-                                parts.push(Verse {
-                                    bible: Bible {
-                                        english_name: v.bible.english_name.to_shared_string(),
-                                        id: v.bible.id.to_shared_string(),
-                                        installed: false,
-                                        installing: false,
-                                        name: v.bible.name.to_shared_string(),
-                                        progress: 0.0,
-                                    },
-                                    part,
-                                    book: v.book.to_shared_string(),
-                                    chapter: v.chapter,
-                                    text: part_text.to_shared_string(),
-                                    verse: v.verse,
-                                });
-                                part += 1;
-                                i = end;
-                            }
-
-                            parts
+                            });
+                            part += 1;
+                            i = end;
                         }
-                    })
-                    .collect::<Vec<_>>();
+
+                        parts
+                    }
+                })
+                .collect::<Vec<_>>();
 
             main_state.set_verses(ModelRc::from(verses.as_slice()));
         }
@@ -419,13 +349,6 @@ fn main() {
         }
     });
 
-    main_window.on_open_settings({
-        let settings_window = settings_window.as_weak();
-        move || {
-            settings_window.unwrap().show().unwrap();
-        }
-    });
-
     main_window.on_shutdown_output({
         let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
@@ -466,10 +389,8 @@ fn main() {
 
     main_window.window().on_close_requested({
         let view_window = view_window.as_weak();
-        let settings_window = settings_window.as_weak();
         move || {
             view_window.unwrap().hide().unwrap();
-            settings_window.unwrap().hide().unwrap();
             slint::CloseRequestResponse::HideWindow
         }
     });

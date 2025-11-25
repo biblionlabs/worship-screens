@@ -1,0 +1,172 @@
+import {
+    Button,
+    ListView,
+    ProgressIndicator,
+    Palette,
+    LineEdit,
+} from "std-widgets.slint";
+
+import { Bible } from "../api/global.slint";
+import { Renderable } from "../components/base/renderable.slint";
+
+export component BiblesDialog inherits PopupWindow {
+    in-out property <[Bible]> bibles;
+
+    callback search(string);
+    callback install-bible(string);
+
+    close-policy: no-auto-close;
+    forward-focus: focus-scope;
+
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0;
+
+        key-pressed(event) => {
+            if event.text == Key.Escape {
+                root.close();
+                return accept;
+            }
+            reject
+        }
+    }
+
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+        background: Palette.background.darker(50%).with-alpha(70%);
+    }
+
+    Rectangle {
+        width: 640px;
+        height: 600px;
+        x: (root.width / 2) - (self.width / 2);
+        y: (root.height / 2) - (self.height / 2);
+        background: Palette.background;
+        border-width: 2px;
+        border-radius: 8px;
+        border-color: Palette.alternate-background.brighter(30%);
+
+        VerticalLayout {
+            padding: 20px;
+            spacing: 16px;
+            height: 100%;
+            alignment: start;
+
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: space-between;
+
+                Text {
+                    text: "Manage Bibles";
+                    font-size: 24px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+            }
+
+            Text {
+                text: "Download and install Bible translations";
+                color: Palette.foreground.darker(40%);
+                font-size: 14px;
+            }
+
+            search-input := LineEdit {
+                placeholder-text: "Search: Reina Valera 1960, KJV...";
+                edited(text) => root.search(text);
+            }
+
+            if bibles.length == 0: VerticalLayout {
+                alignment: center;
+                height: 65%;
+
+                Text {
+                    text: search-input.text.is-empty ? "No Bibles available" : "No Bibles found matching your search";
+                    font-size: 16px;
+                    color: Palette.foreground.darker(50%);
+                    horizontal-alignment: center;
+                }
+            }
+
+            if bibles.length > 0: ListView {
+                height: 65%;
+
+                for bible in bibles: Renderable {
+                    padding-bottom: 10px;
+                    border-width: (bible.installed || bible.installing) ? 2px : 0px;
+                    border-color: bible.installing ? #f39c12 : (bible.installed ? #27ae60 : transparent);
+
+                    VerticalLayout {
+                        spacing: 8px;
+
+                        HorizontalLayout {
+                            padding: 12px;
+                            spacing: 12px;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                spacing: 4px;
+                                max-width: 440px;
+
+                                Text {
+                                    text: !bible.english-name.is-empty ? bible.english-name : bible.name;
+                                    font-size: 16px;
+                                    font-weight: 600;
+                                    color: Palette.foreground;
+                                    overflow: elide;
+                                }
+
+                                if !bible.name.is-empty && bible.name != bible.english-name: Text {
+                                    text: bible.name;
+                                    font-size: 13px;
+                                    overflow: elide;
+                                    color: Palette.foreground.darker(50%);
+                                }
+                            }
+
+                            if !bible.installed: Renderable {
+                                enabled: !bible.installing;
+                                background: Palette.control-background;
+                                border-width: 2px;
+
+                                preview => root.install-bible(bible.id);
+
+                                HorizontalLayout {
+                                    spacing: 10px;
+
+                                    Image {
+                                        width: 14px;
+                                        height: 14px;
+                                        colorize: Palette.foreground;
+                                        source: @image-url("../icons/download.svg");
+                                    }
+
+                                    Text {
+                                        color: Palette.foreground;
+                                        text: bible.installing ? "Installing" : "Install";
+                                    }
+                                }
+                            }
+                        }
+
+                        if bible.installing: ProgressIndicator {
+                            progress: bible.progress;
+                        }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                spacing: 10px;
+
+                Button {
+                    text: "Close";
+                    clicked => root.close();
+                }
+            }
+        }
+    }
+}

@@ -8,6 +8,10 @@ export component Renderable inherits VerticalLayout {
     in property <bool> selected;
     in property <bool> removable;
     in property <bool> editable;
+    in property <brush> background: Palette.alternate-background;
+    in property <brush> border-color: background.brighter(0.5);
+    in property <length> border-width;
+    in property <length> border-radius: 8px;
 
     out property <bool> hover: false;
 
@@ -28,7 +32,9 @@ export component Renderable inherits VerticalLayout {
 
     Rectangle {
         background: Palette.alternate-background.brighter((hover || selected) ? 0.2 : 0.0);
-        border-radius: 8px;
+        border-width: border-width;
+        border-color: border-color;
+        border-radius: border-radius;
 
         TouchArea {
             clicked => preview();

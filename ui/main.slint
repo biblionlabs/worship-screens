@@ -21,12 +21,17 @@ import { ColorPicker } from "components/color-picker.slint";
 import { Renderable } from "components/base/renderable.slint";
 import { FileManagerDialog } from "dialogs/songs.slint";
 import { MultimediaDialog } from "dialogs/media-selector.slint";
+import { BiblesDialog } from "dialogs/bibles.slint";
 
 export { Bible, EditMode, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export global MainState {
     in-out property <[string]> saved-texts;
     in property <[Verse]> verses;
+    in-out property <[Bible]> bibles;
+
+    callback search-bible(string);
+    callback install-bible(string);
 }
 
 export component MainWindow inherits Window {
@@ -40,7 +45,6 @@ export component MainWindow inherits Window {
     callback search-verse <=> search-verse-input.edited;
 
     callback start-window();
-    callback open-settings <=> settings-btn.clicked;
 
     callback shutdown-output();
     callback clear-output <=> clear-btn.clicked;
@@ -76,10 +80,6 @@ export component MainWindow inherits Window {
                 padding-bottom: 10px;
                 padding-right: 5px;
 
-                settings-btn := Button {
-                    text: "Settings";
-                }
-
                 select-monitors := ComboBox {
                     model: Settings.monitors;
                     current-index: Settings.selected-monitor;
@@ -110,7 +110,7 @@ export component MainWindow inherits Window {
             }
 
             TabWidget {
-                current-index: 2;
+                current-index: 0;
 
                 Tab {
                     title: "Verses";
@@ -119,10 +119,22 @@ export component MainWindow inherits Window {
                         spacing: 10px;
                         padding: 10px;
                         Row {
-                            search-verse-input := LineEdit {
+                            HorizontalLayout {
                                 colspan: 3;
-                                input-type: InputType.text;
-                                placeholder-text: "Busca: Juan 3:16, Romanos 14:10-14";
+                                width: 98%;
+                                spacing: 10px;
+                                alignment: stretch;
+
+                                Button {
+                                    text: "+";
+                                    clicked => dialog-bibles.show();
+                                }
+
+                                search-verse-input := LineEdit {
+                                    width: 100%;
+                                    input-type: InputType.text;
+                                    placeholder-text: "Busca: Juan 3:16, Romanos 14:10-14";
+                                }
                             }
                         }
 
@@ -478,6 +490,14 @@ export component MainWindow inherits Window {
         dialog-media-selector := MultimediaDialog {
             width: root.width;
             height: root.height;
+        }
+
+        dialog-bibles := BiblesDialog {
+            width: root.width;
+            height: root.height;
+            bibles <=> MainState.bibles;
+            search(query) => MainState.search-bible(query);
+            install-bible(id) => MainState.install-bible(id);
         }
     }
 }

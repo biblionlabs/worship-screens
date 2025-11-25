@@ -6,17 +6,17 @@ export global Settings {
 export struct Bible {
     id: string,
     name: string,
+    english-name: string,
     installed: bool,
     installing: bool,
     progress: float,
-    english-name: string,
 }
 
 export struct Verse {
     bible: Bible,
     book: string,
     chapter: int,
-    verse: { a: int, b: int },
     part: int,
+    verse: { a: int, b: int},
     text: string,
 }
