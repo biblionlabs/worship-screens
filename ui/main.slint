@@ -468,6 +468,8 @@ export component MainWindow inherits Window {
             preview := View {
                 width: 100%;
                 height: self.width / 1.7;
+                window-height: 400px / 1.7;
+                window-width: 400px;
                 data <=> ViewState.shared-view;
             }
 

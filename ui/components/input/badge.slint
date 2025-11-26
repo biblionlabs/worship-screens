@@ -1,0 +1,47 @@
+import { HorizontalBox, Palette } from "std-widgets.slint";
+
+export component Badge inherits Rectangle {
+    in property <string> label;
+    in-out property <bool> active: false;
+    
+    callback toggled(bool);
+    
+    width: layout.preferred-width;
+    height: 28px;
+    border-radius: 14px;
+    background: active ? Palette.accent-background : Palette.background. with-alpha(80%);
+    border-width: 2px;
+    border-color: active ? Palette.accent-background : Palette.border;
+    
+    animate background, border-color {
+        duration: 200ms;
+        easing: ease-in-out;
+    }
+    
+    TouchArea {
+        clicked => {
+            active = !active;
+            toggled(active);
+        }
+    }
+    
+    layout := HorizontalBox {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 6px;
+        alignment: center;
+        
+        Text {
+            text: label;
+            font-size: 12px;
+            font-weight: 600;
+            color: active ? Palette.accent-foreground : Palette.foreground;
+            vertical-alignment: center;
+            
+            animate color {
+                duration: 200ms;
+                easing: ease-in-out;
+            }
+        }
+    }
+}

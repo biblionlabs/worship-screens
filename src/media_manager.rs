@@ -16,7 +16,7 @@ use slint::{
     Color, ComponentHandle, Image, ModelRc, Rgb8Pixel, SharedPixelBuffer, SharedString,
     ToSharedString, Weak,
 };
-use ui::{MainWindow, ViewData, ViewState, ViewWindow};
+use ui::{MainWindow, ViewData, ViewFontData, ViewState, ViewWindow};
 
 use crate::bitstream_converter::Mp4BitstreamConverter;
 use crate::settings::SourceMedia;
@@ -54,12 +54,35 @@ pub struct MediaItem {
     pub path: Option<String>,
     pub color: ViewBackgroundColor,
     pub fit: ImageFit,
+    #[serde(default)]
+    pub font: FontData,
+    #[serde(default)]
+    pub verse_font: FontData,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct ViewBackgroundColor {
     pub a: [u8; 4], // RGBA
     pub b: [u8; 4], // RGBA
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct FontData {
+    pub color: [u8; 4],   // RGBA
+    pub stroke: [u8; 4],  // RGBA
+    pub stroke_size: f32, // pixels
+    pub font_size: f32,   // pixels
+}
+
+impl Default for FontData {
+    fn default() -> Self {
+        Self {
+            color: [255, 255, 255, 255], // White
+            stroke: [0, 0, 0, 255],      // Black
+            stroke_size: 2.0,
+            font_size: 24.0, // Default for verse
+        }
+    }
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -92,6 +115,40 @@ impl<'a> From<&'a MediaItem> for ViewData {
             ImageFit::Cover => i_slint_core::items::ImageFit::Cover,
         };
 
+        let font = ViewFontData {
+            color: Color::from_argb_u8(
+                value.font.color[3],
+                value.font.color[0],
+                value.font.color[1],
+                value.font.color[2],
+            ),
+            stroke: Color::from_argb_u8(
+                value.font.stroke[3],
+                value.font.stroke[0],
+                value.font.stroke[1],
+                value.font.stroke[2],
+            ),
+            stroke_size: value.font.stroke_size,
+            font_size: value.font.font_size,
+        };
+
+        let verse_font = ViewFontData {
+            color: Color::from_argb_u8(
+                value.verse_font.color[3],
+                value.verse_font.color[0],
+                value.verse_font.color[1],
+                value.verse_font.color[2],
+            ),
+            stroke: Color::from_argb_u8(
+                value.verse_font.stroke[3],
+                value.verse_font.stroke[0],
+                value.verse_font.stroke[1],
+                value.verse_font.stroke[2],
+            ),
+            stroke_size: value.verse_font.stroke_size,
+            font_size: value.verse_font.font_size,
+        };
+
         Self {
             tmp: value.tmp,
             is_logo: value.is_logo,
@@ -101,12 +158,15 @@ impl<'a> From<&'a MediaItem> for ViewData {
                 .any(|f| value.path.clone().unwrap_or_default().ends_with(f)),
             color,
             content: SharedString::default(),
+            verse: SharedString::default(),
             img_bg: value
                 .path
                 .as_deref()
                 .and_then(MediaManager::generate_video_thumbnail)
                 .unwrap_or_default(),
             img_fit,
+            font,
+            verse_font,
         }
     }
 }
@@ -115,6 +175,12 @@ impl From<ViewData> for MediaItem {
     fn from(value: ViewData) -> Self {
         let ca = value.color.a;
         let cb = value.color.b;
+
+        let font_color = value.font.color;
+        let font_stroke_color = value.font.stroke;
+
+        let verse_font_color = value.verse_font.color;
+        let verse_font_stroke_color = value.verse_font.stroke;
 
         Self {
             tmp: value.tmp,
@@ -128,6 +194,38 @@ impl From<ViewData> for MediaItem {
                 i_slint_core::items::ImageFit::Fill => ImageFit::Fill,
                 i_slint_core::items::ImageFit::Cover => ImageFit::Cover,
                 _ => ImageFit::Contain,
+            },
+            font: FontData {
+                color: [
+                    font_color.red(),
+                    font_color.green(),
+                    font_color.blue(),
+                    font_color.alpha(),
+                ],
+                stroke: [
+                    font_stroke_color.red(),
+                    font_stroke_color.green(),
+                    font_stroke_color.blue(),
+                    font_stroke_color.alpha(),
+                ],
+                stroke_size: value.font.stroke_size,
+                font_size: value.font.font_size,
+            },
+            verse_font: FontData {
+                color: [
+                    verse_font_color.red(),
+                    verse_font_color.green(),
+                    verse_font_color.blue(),
+                    verse_font_color.alpha(),
+                ],
+                stroke: [
+                    verse_font_stroke_color.red(),
+                    verse_font_stroke_color.green(),
+                    verse_font_stroke_color.blue(),
+                    verse_font_stroke_color.alpha(),
+                ],
+                stroke_size: value.verse_font.stroke_size,
+                font_size: value.verse_font.font_size,
             },
         }
     }
@@ -227,7 +325,6 @@ impl MediaManager {
             }
         });
 
-        // ---- show-logo ----
         state.on_show_logo({
             let instance = self.clone();
             move || {
@@ -243,7 +340,6 @@ impl MediaManager {
             }
         });
 
-        // ---- Preview Media (MainWindow) ----
         state.on_preview_media({
             let instance = self.clone();
             move |media_data| {
@@ -251,7 +347,6 @@ impl MediaManager {
             }
         });
 
-        // ---- Sync and Play ----
         state.on_sync_and_play({
             let instance = self.clone();
             move |media_data| {
@@ -259,7 +354,6 @@ impl MediaManager {
             }
         });
 
-        // ---- select-file ----
         state.on_select_file({
             let window = self.window.clone();
             move || {
@@ -271,12 +365,17 @@ impl MediaManager {
                     if let Some(window) = window.upgrade() {
                         let path_str = path.to_string_lossy().into_owned();
                         let state = window.global::<ViewState>();
+
+                        let default_preview = state.get_select_media_preview();
+
                         let mut shared = ViewData {
                             color: ui::ViewBackgroundColor {
                                 a: Color::from_rgb_u8(0, 0, 0),
                                 b: Color::from_rgb_u8(0, 0, 0),
                             },
                             img_fit: i_slint_core::items::ImageFit::Contain,
+                            font: default_preview.font,
+                            verse_font: default_preview.verse_font,
                             ..ViewData::default()
                         };
 
@@ -301,7 +400,6 @@ impl MediaManager {
             }
         });
 
-        // ---- apply-changes ----
         state.on_apply_changes({
             let data = self.data.clone();
             let main_window = self.window.clone();
@@ -343,7 +441,6 @@ impl MediaManager {
             }
         });
 
-        // ---- remove-media ---
         state.on_remove_media({
             let data = self.data.clone();
             let main_window = self.window.clone();
@@ -428,12 +525,7 @@ impl MediaManager {
         video_playing.store(true, Ordering::Relaxed);
 
         let handle = std::thread::spawn(move || {
-            Self::video_playback_loop(
-                source_path,
-                video_playing,
-                None,
-                Some(view_window), // Sincronizar con ViewWindow
-            );
+            Self::video_playback_loop(source_path, video_playing, None, Some(view_window));
         });
 
         *self.output_video_thread.lock().unwrap() = Some(handle);
@@ -585,7 +677,6 @@ impl MediaManager {
                 }
             }
 
-            // Pequeña pausa antes de loop
             std::thread::sleep(Duration::from_millis(16));
         }
 

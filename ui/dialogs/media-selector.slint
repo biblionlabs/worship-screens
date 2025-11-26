@@ -5,12 +5,13 @@ import {
     ScrollView,
     Palette,
     ComboBox,
-    LineEdit,
+    Slider,
+    Switch,
 } from "std-widgets.slint";
-import { ViewState, ViewBackgroundColor } from "../api/view-state.slint";
-import { ColorPicker } from "../components/color-picker.slint";
+import { ViewState } from "../api/view-state.slint";
+import { ColorPickerButton } from "../components/color-picker-button.slint";
 import { View } from "../components/view.slint";
-import { InputCheck } from "../components/input/check.slint";
+import { Badge } from "../components/input/badge.slint";
 
 export component MultimediaDialog inherits PopupWindow {
     close_policy: no_auto_close;
@@ -18,6 +19,7 @@ export component MultimediaDialog inherits PopupWindow {
 
     property <int> fit-index: ViewState.select-media-preview.img-fit == ImageFit.fill ? 0 : (ViewState.select-media-preview.img-fit == ImageFit.contain ? 1 : 2);
     property <[string]> fit-options: ["fill", "contain", "cover"];
+    property <bool> preview-mode: !ViewState.select-media-preview.content.is-empty;
 
     focus_scope := FocusScope {
         x: 0;
@@ -33,7 +35,6 @@ export component MultimediaDialog inherits PopupWindow {
         }
     }
 
-    // Background overlay
     Rectangle {
         x: 0;
         y: 0;
@@ -42,10 +43,9 @@ export component MultimediaDialog inherits PopupWindow {
         background: Palette.background.darker(50%).with-alpha(70%);
     }
 
-    // Diálogo principal
     Rectangle {
-        width: 500px;
-        height: 600px;
+        width: 580px;
+        height: 700px;
         x: (root.width / 2) - (self.width / 2);
         y: (root.height / 2) - (self.height / 2);
         background: Palette.background;
@@ -57,61 +57,186 @@ export component MultimediaDialog inherits PopupWindow {
             padding: 20px;
             spacing: 16px;
 
-            // Título
-            Text {
-                text: "Configurar Fondo Multimedia";
-                font-size: 20px;
-                font-weight: 700;
+            HorizontalBox {
+                alignment: space-between;
+                Text {
+                    text: "Configurar Fondo Multimedia";
+                    font-size: 20px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+
+                HorizontalBox {
+                    spacing: 10px;
+                    alignment: end;
+                    Text {
+                        text: "Vista Previa";
+                        font-size: 13px;
+                        vertical-alignment: center;
+                        color: Palette.foreground;
+                    }
+
+                    Switch {
+                        checked <=> preview-mode;
+
+                        changed checked => {
+                            if self.checked {
+                                ViewState.select-media-preview.font = {
+                                    color: Colors.white,
+                                    stroke: Colors.black,
+                                    stroke-size: 2px,
+                                };
+                                ViewState.select-media-preview.verse-font = {
+                                    color: Colors.white,
+                                    stroke: Colors.black,
+                                    stroke-size: 2px,
+                                    font-size: 24px,
+                                };
+                                ViewState.select-media-preview.content = "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree no se pierda, mas tenga vida eterna.";
+                                ViewState.select-media-preview.verse = "Juan 3:16";
+                            } else {
+                                ViewState.select-media-preview.content = "";
+                                ViewState.select-media-preview.verse = "";
+                            }
+                        }
+                    }
+                }
             }
 
-            preview := View {
+            Rectangle {
                 width: 80%;
                 height: self.width / 1.7;
-                data: ViewState.select-media-preview;
+                border-width: preview-mode ? 3px : 0px;
+                border-color: Palette.accent-background;
+                border-radius: 8px;
+                animate border-width { duration: 200ms; }
+
+                preview := View {
+                    width: 100%;
+                    height: 100%;
+                    window-width: parent.width;
+                    window-height: parent.height;
+                    data: ViewState.select-media-preview;
+                }
+
+                logo-badge := Badge {
+                    x: 12px;
+                    y: 12px;
+                    label: "Logo";
+                    active: ViewState.select-media-preview.is-logo;
+
+                    toggled(is-active) => {
+                        ViewState.select-media-preview.is-logo = is-active;
+                        if is-active {
+                            ViewState.select-media-preview.tmp = false;
+                        }
+                    }
+                }
+
+                if preview-mode: Rectangle {
+                    x: parent.width - self.width - 12px;
+                    y: 12px;
+                    width: label-preview.preferred-width + 16px;
+                    height: 28px;
+                    border-radius: 14px;
+                    background: Palette.accent-background.with-alpha(90%);
+
+                    label-preview := Text {
+                        text: "Preview";
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: Palette.accent-foreground;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
             }
 
-            // Área de scroll para contenido
             ScrollView {
                 vertical-stretch: 1;
                 horizontal-scrollbar-policy: always-off;
 
                 VerticalBox {
                     alignment: start;
+                    spacing: 20px;
 
-                    // Selector de archivo
-                    HorizontalBox {
-                        spacing: 8px;
-                        padding-top: 0px;
-                        padding-bottom: 0px;
-                        alignment: space-between;
+                    VerticalLayout {
+                        spacing: 12px;
 
-                        Button {
-                            text: "Seleccionar...";
-                            clicked => {
-                                ViewState.select-file();
+                        Rectangle {
+                            height: 35px;
+                            background: Palette.alternate-background;
+                            border-radius: 6px;
+
+                            HorizontalBox {
+                                padding: 10px;
+                                Text {
+                                    text: "⚙️ Configuración General";
+                                    font-size: 15px;
+                                    font-weight: 600;
+                                    vertical-alignment: center;
+                                }
                             }
                         }
 
-                        // Ajuste de imagen
-                        HorizontalLayout {
-                            spacing: 12px;
-                            Text {
-                                text: "Ajuste:";
-                                vertical-alignment: center;
-                                font-size: 13px;
+                        HorizontalBox {
+                            spacing: 16px;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                spacing: 6px;
+                                Text {
+                                    text: "Fondo";
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+
+                                ColorPickerButton {
+                                    allow-gradient: true;
+                                    selected-color: ViewState.select-media-preview.color;
+
+                                    color-changed(color) => {
+                                        ViewState.select-media-preview.color = color;
+                                    }
+                                }
                             }
 
-                            ComboBox {
-                                max-width: 150px;
-                                current-index <=> fit-index;
-                                model: fit-options;
-                                changed current-index => {
-                                    if self.current-index == 0 {
-                                        ViewState.select-media-preview.img-fit = ImageFit.fill;
-                                    } else if self.current-index == 1 {
-                                        ViewState.select-media-preview.img-fit = ImageFit.contain;
-                                    } else if self.current-index == 2 {
-                                        ViewState.select-media-preview.img-fit = ImageFit.cover;
+                            VerticalLayout {
+                                spacing: 6px;
+                                Text {
+                                    text: "Multimedia";
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+
+                                Button {
+                                    text: "Seleccionar... ";
+                                    clicked => {
+                                        ViewState.select-file();
+                                    }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: 6px;
+                                Text {
+                                    text: "Ajuste";
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+
+                                ComboBox {
+                                    width: 130px;
+                                    current-index <=> fit-index;
+                                    model: fit-options;
+                                    changed current-index => {
+                                        if self.current-index == 0 {
+                                            ViewState.select-media-preview.img-fit = ImageFit.fill;
+                                        } else if self.current-index == 1 {
+                                            ViewState.select-media-preview.img-fit = ImageFit.contain;
+                                        } else if self.current-index == 2 {
+                                            ViewState.select-media-preview.img-fit = ImageFit.cover;
+                                        }
                                     }
                                 }
                             }
@@ -119,43 +244,229 @@ export component MultimediaDialog inherits PopupWindow {
                     }
 
                     VerticalLayout {
-                        padding-left: 8px;
+                        spacing: 12px;
 
-                        InputCheck {
-                            label: "Mark as Logo";
-                            checked: ViewState.select-media-preview.is-logo;
-                            changed checked => {
-                                ViewState.select-media-preview.is-logo = self.checked;
-                                if self.checked {
-                                    ViewState.select-media-preview.tmp = false;
+                        Rectangle {
+                            height: 35px;
+                            background: Palette.alternate-background;
+                            border-radius: 6px;
+
+                            HorizontalBox {
+                                padding: 10px;
+                                Text {
+                                    text: "📝 Fuente Principal (Contenido)";
+                                    font-size: 15px;
+                                    font-weight: 600;
+                                    vertical-alignment: center;
                                 }
                             }
                         }
 
-                        if !ViewState.select-media-preview.is-logo: InputCheck {
-                            label: "Temporal Media";
-                            checked: ViewState.select-media-preview.tmp;
-                            changed checked => {
-                                ViewState.select-media-preview.tmp = self.checked;
+                        HorizontalBox {
+                            spacing: 20px;
+                            alignment: start;
+
+                            VerticalLayout {
+                                spacing: 6px;
+
+                                Text {
+                                    text: "Texto";
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+
+                                ColorPickerButton {
+                                    allow-gradient: false;
+                                    selected-color: ViewState.color-to-view(ViewState.select-media-preview.font.color);
+                                    color-changed(color) => {
+                                        ViewState.select-media-preview.font.color = color.a;
+                                    }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: 6px;
+
+                                Text {
+                                    text: "Borde";
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+
+                                ColorPickerButton {
+                                    allow-gradient: false;
+                                    selected-color: ViewState.color-to-view(ViewState.select-media-preview.font.stroke);
+                                    color-changed(color) => {
+                                        ViewState.select-media-preview.font.stroke = color.a;
+                                    }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: 6px;
+                                width: 75%;
+
+                                HorizontalBox {
+                                    alignment: space-between;
+                                    Text {
+                                        text: "Grosor";
+                                        font-size: 13px;
+                                        font-weight: 500;
+                                    }
+
+                                    Text {
+                                        text: Math.round(ViewState.select-media-preview.font.stroke-size / 1px) + "px";
+                                        font-size: 13px;
+                                        color: Palette.foreground.with-alpha(70%);
+                                    }
+                                }
+
+                                Slider {
+                                    minimum: 0;
+                                    maximum: 10;
+                                    value: ViewState.select-media-preview.font.stroke-size / 1px;
+                                    changed value => {
+                                        ViewState.select-media-preview.font.stroke-size = self.value * 1px;
+                                    }
+                                }
                             }
                         }
                     }
 
-                    ColorPicker {
-                        selected-color: ViewState.select-media-preview.color;
-                        allow-gradient: true;
-                        show-preview: false;
-                        changed selected-color => {
-                            ViewState.select-media-preview.color = self.selected-color;
+                    VerticalLayout {
+                        spacing: 12px;
+
+                        Rectangle {
+                            height: 35px;
+                            background: Palette.alternate-background;
+                            border-radius: 6px;
+
+                            HorizontalBox {
+                                padding: 10px;
+                                Text {
+                                    text: "📖 Fuente del Versículo";
+                                    font-size: 15px;
+                                    font-weight: 600;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+
+                        HorizontalBox {
+                            spacing: 20px;
+                            alignment: start;
+
+                            VerticalLayout {
+                                spacing: 6px;
+
+                                Text {
+                                    text: "Texto";
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+
+                                ColorPickerButton {
+                                    allow-gradient: false;
+                                    selected-color: ViewState.color-to-view(ViewState.select-media-preview.verse-font.color);
+                                    color-changed(color) => {
+                                        ViewState.select-media-preview.verse-font.color = color.a;
+                                    }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: 6px;
+
+                                Text {
+                                    text: "Borde";
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+
+                                ColorPickerButton {
+                                    allow-gradient: false;
+                                    selected-color: ViewState.color-to-view(ViewState.select-media-preview.verse-font.stroke);
+                                    color-changed(color) => {
+                                        ViewState.select-media-preview.verse-font.stroke = color.a;
+                                    }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: 6px;
+                                width: 75%;
+
+                                HorizontalBox {
+                                    alignment: space-between;
+                                    Text {
+                                        text: "Grosor";
+                                        font-size: 13px;
+                                        font-weight: 500;
+                                    }
+
+                                    Text {
+                                        text: Math.round(ViewState.select-media-preview.verse-font.stroke-size / 1px) + "px";
+                                        font-size: 13px;
+                                        color: Palette.foreground.with-alpha(70%);
+                                    }
+                                }
+
+                                Slider {
+                                    minimum: 0;
+                                    maximum: 10;
+                                    value: ViewState.select-media-preview.verse-font.stroke-size / 1px;
+                                    changed value => {
+                                        ViewState.select-media-preview.verse-font.stroke-size = self.value * 1px;
+                                    }
+                                }
+                            }
+                        }
+
+                        VerticalLayout {
+                            spacing: 6px;
+
+                            HorizontalBox {
+                                alignment: space-between;
+                                Text {
+                                    text: "Tamaño de Fuente";
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+
+                                Text {
+                                    text: Math.round(ViewState.select-media-preview.verse-font.font-size / 1px) + "px";
+                                    font-size: 13px;
+                                    color: Palette.foreground.with-alpha(70%);
+                                }
+                            }
+
+                            Slider {
+                                minimum: ViewState.min-font-size / 1px;
+                                maximum: ViewState.max-font-size / 1px;
+                                value: ViewState.select-media-preview.verse-font.font-size / 1px;
+                                changed value => {
+                                    ViewState.select-media-preview.verse-font.font-size = self.value * 1px;
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Botones de acción
             HorizontalBox {
                 spacing: 12px;
                 alignment: end;
+
+                if !ViewState.select-media-preview.is-logo: Button {
+                    text: "Guardar Temporal";
+
+                    clicked => {
+                        ViewState.select-media-preview.tmp = true;
+                        ViewState.apply-changes(ViewState.in-edit-mode);
+                        ViewState.in-edit-mode = { editable: false, row: -1, col: -1 };
+                        root.close();
+                    }
+                }
 
                 Button {
                     text: "Cancelar";

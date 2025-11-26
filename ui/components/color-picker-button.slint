@@ -1,0 +1,65 @@
+import { VerticalBox, HorizontalBox, Palette } from "std-widgets.slint";
+import { ViewBackgroundColor } from "../api/view-state.slint";
+import { ColorPicker } from "./color-picker.slint";
+
+export component ColorPickerButton inherits Rectangle {
+    in property <bool> allow-gradient: false;
+    in-out property <ViewBackgroundColor> selected-color: {
+        a: Colors.white,
+        b: Colors.white,
+    };
+
+    callback color-changed(ViewBackgroundColor);
+
+    width: 40px;
+    height: 40px;
+
+    background := Rectangle {
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        border-width: 2px;
+        border-color: Palette.border;
+        background: root.allow-gradient && root.selected-color.a != root.selected-color.b ? @linear-gradient(135deg, root.selected-color.a, root.selected-color.b) : root.selected-color.a;
+        touch := TouchArea {
+            clicked => popup.show();
+        }
+    }
+
+    popup := PopupWindow {
+        x: root.width + 8px;
+        y: -170px;
+        width: 370px;
+        height: 400px;
+        close-policy: close-on-click-outside;
+
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            background: Palette.background;
+            border-radius: 8px;
+            border-width: 2px;
+            border-color: Palette.border;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: Colors.black.with-alpha(30%);
+            drop-shadow-offset-y: 4px;
+
+            VerticalBox {
+                padding: 0px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+
+                picker := ColorPicker {
+                    allow-gradient: root.allow-gradient;
+                    show-preview: false;
+                    selected-color <=> root.selected-color;
+
+                    color-changed(color) => {
+                        root.selected-color = color;
+                        root.color-changed(color);
+                    }
+                }
+            }
+        }
+    }
+}

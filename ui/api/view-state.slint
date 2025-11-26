@@ -3,6 +3,13 @@ export struct ViewBackgroundColor {
     b: color,
 }
 
+export struct ViewFontData {
+    color: color,
+    stroke: color,
+    stroke-size: length,
+    font-size: length,
+}
+
 export struct ViewData {
     path: string,
     tmp: bool,
@@ -10,8 +17,11 @@ export struct ViewData {
     show-img: bool,
     color: ViewBackgroundColor,
     content: string,
+    verse: string,
     img-bg: image,
     img-fit: ImageFit,
+    font: ViewFontData,
+    verse-font: ViewFontData,
 }
 
 export struct EditMode {
@@ -22,20 +32,9 @@ export struct EditMode {
 
 export global ViewState {
     in property <bool> off: false;
-    in property <color> font-color: Colors.white;
-    in property <color> font-stroke: Colors.white;
-    in property <length> stroke-size: 0px;
 
-    in property <ViewData> select-media-preview: {
-        show-img: false,
-        img-fit: ImageFit.contain,
-        color: { a: Colors.black, b: Colors.black },
-    };
-    in property <ViewData> shared-view: {
-        show-img: false,
-        img-fit: ImageFit.contain,
-        color: { a: Colors.black, b: Colors.black },
-    };
+    in property <ViewData> select-media-preview: default-view-data();
+    in property <ViewData> shared-view: default-view-data();
     in property <[[ViewData]]> media-list;
 
     in property <EditMode> in-edit-mode: {
@@ -55,4 +54,30 @@ export global ViewState {
     callback remove-media(int, int);
     callback preview-media(ViewData);
     callback sync-and-play(ViewData);
+
+    public pure function default-view-data() -> ViewData {
+        return {
+            show-img: false,
+            img-fit: ImageFit.contain,
+            color: { a: Colors.black, b: Colors.black },
+            font: {
+                color: Colors.white,
+                stroke: Colors.black,
+                stroke-size: 2px,
+            },
+            verse-font: {
+                color: Colors.white,
+                stroke: Colors.black,
+                stroke-size: 2px,
+                font-size: 24px,
+            },
+        };
+    }
+
+    public pure function color-to-view(c: color) -> ViewBackgroundColor {
+        return {
+            a: c,
+            b: c,
+        };
+    }
 }
