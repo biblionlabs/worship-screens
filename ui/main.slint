@@ -145,10 +145,12 @@ export component MainWindow inherits Window {
                                         padding-bottom: 10px;
 
                                         preview => {
-                                            ViewState.shared-view.content = e.text + "\n\n" + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                            ViewState.shared-view.content = e.text;
+                                            ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
                                         }
                                         send-to-view => {
-                                            ViewState.shared-view.content = e.text + "\n\n" + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                            ViewState.shared-view.content = e.text;
+                                            ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
                                             root.send-to-view();
                                         }
 
@@ -160,7 +162,7 @@ export component MainWindow inherits Window {
                                                 overflow: elide;
                                                 vertical-alignment: center;
                                                 color: Palette.foreground;
-                                                text: (e.part > 0 ? " " + e.part + ". " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? "-" + e.verse.a + (e.verse.b > 0 ? ":" + e.verse.b : "") : "") : "");
+                                                text: (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
                                             }
 
                                             Text {
