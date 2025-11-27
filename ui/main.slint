@@ -18,7 +18,7 @@ import { EditMode, ViewState, ViewBackgroundColor } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
 import { ColorPicker } from "components/color-picker.slint";
-import { Renderable } from "components/base/renderable.slint";
+import { Renderable, RenderableList } from "components/base/renderable.slint";
 import { FileManagerDialog } from "dialogs/songs.slint";
 import { MultimediaDialog } from "dialogs/media-selector.slint";
 import { BiblesDialog } from "dialogs/bibles.slint";
@@ -143,45 +143,57 @@ export component MainWindow inherits Window {
                         Row {
                             VerticalLayout {
                                 colspan: 3;
-                                ListView {
-                                    for e in MainState.verses: vese-interactable := Renderable {
-                                        padding-bottom: 10px;
+                                verses-list := RenderableList {
+                                    item-count: MainState.verses.length;
+                                    item-focused(index) => {
+                                        let e = MainState.verses[index];
+                                        ViewState.shared-view.content = e.text;
+                                        ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                        root.send-to-view();
+                                    }
+                                    ListView {
+                                        for e[idx] in MainState.verses: vese-interactable := Renderable {
+                                            padding-bottom: 10px;
+                                            item-index: idx;
+                                            focused-index: verses-list.current-focused;
 
-                                        preview => {
-                                            ViewState.shared-view.content = e.text;
-                                            ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
-                                        }
-                                        send-to-view => {
-                                            ViewState.shared-view.content = e.text;
-                                            ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
-                                            root.send-to-view();
-                                        }
-
-                                        VerticalLayout {
-                                            spacing: 5px;
-
-                                            Text {
-                                                font-size: 12px;
-                                                overflow: elide;
-                                                vertical-alignment: center;
-                                                color: Palette.foreground;
-                                                text: (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                            preview => {
+                                                ViewState.shared-view.content = e.text;
+                                                ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                            }
+                                            send-to-view => {
+                                                verses-list.focus();
+                                                ViewState.shared-view.content = e.text;
+                                                ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                                root.send-to-view();
                                             }
 
-                                            Text {
-                                                font-size: 12px;
-                                                font-weight: 600;
-                                                vertical-alignment: center;
-                                                color: Palette.foreground.darker(60%);
-                                                text: !e.bible.english-name.is-empty ? e.bible.english-name : e.bible.name;
-                                            }
+                                            VerticalLayout {
+                                                spacing: 5px;
 
-                                            Text {
-                                                text: e.text;
-                                                font-size: 16px;
-                                                font-weight: 600;
-                                                vertical-alignment: center;
-                                                color: Palette.foreground;
+                                                Text {
+                                                    font-size: 12px;
+                                                    overflow: elide;
+                                                    vertical-alignment: center;
+                                                    color: Palette.foreground;
+                                                    text: (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                                }
+
+                                                Text {
+                                                    font-size: 12px;
+                                                    font-weight: 600;
+                                                    vertical-alignment: center;
+                                                    color: Palette.foreground.darker(60%);
+                                                    text: ! e.bible.english-name.is-empty ? e.bible.english-name : e.bible.name;
+                                                }
+
+                                                Text {
+                                                    text: e.text;
+                                                    font-size: 16px;
+                                                    font-weight: 600;
+                                                    vertical-alignment: center;
+                                                    color: Palette.foreground;
+                                                }
                                             }
                                         }
                                     }
@@ -220,24 +232,33 @@ export component MainWindow inherits Window {
                                 edited(s) => SongsState.on-search(s);
                             }
 
-                            ListView {
-                                for s[idx] in SongsState.songs: song-interactable := Renderable {
-                                    padding-bottom: 10px;
-                                    selected: idx == SongsState.selected-song;
+                            songs-list := RenderableList {
+                                item-count: SongsState.songs.length;
+                                item-focused(index) => {
+                                    SongsState.select-song(index);
+                                    SongsState.selected-paragraph = 0;
+                                    ViewState.shared-view.content = SongsState.songs[index].content[0];
+                                }
+                                ListView {
+                                    for s[idx] in SongsState.songs: song-interactable := Renderable {
+                                        padding-bottom: 10px;
+                                        selected: idx == SongsState.selected-song;
+                                        item-index: idx;
+                                        focused-index: songs-list.current-focused;
 
-                                    preview => {
-                                        SongsState.select-song(idx);
-                                    }
-                                    send-to-view => {
-                                        SongsState.select-song(idx);
-                                        SongsState.selected-paragraph = 0;
-                                        ViewState.shared-view.content = SongsState.songs[idx].content[0];
-                                    }
+                                        preview => SongsState.select-song(idx);
+                                        send-to-view => {
+                                            songs-list.focus();
+                                            SongsState.select-song(idx);
+                                            SongsState.selected-paragraph = 0;
+                                            ViewState.shared-view.content = SongsState.songs[idx].content[0];
+                                        }
 
-                                    Text {
-                                        text: s.path;
-                                        vertical-alignment: center;
-                                        color: Palette.foreground;
+                                        Text {
+                                            text: s.path;
+                                            vertical-alignment: center;
+                                            color: Palette.foreground;
+                                        }
                                     }
                                 }
                             }
@@ -256,25 +277,36 @@ export component MainWindow inherits Window {
                                 }
                             }
 
-                            ListView {
-                                for e[idx] in SongsState.songs[SongsState.selected-song].content: paragraph-interactable := Renderable {
-                                    padding-bottom: 10px;
-                                    selected: idx == SongsState.selected-paragraph;
+                            paragraphs-list := RenderableList {
+                                item-count: SongsState.songs[SongsState.selected-song].content.length;
+                                item-focused(index) => {
+                                    ViewState.shared-view.content = SongsState.songs[SongsState.selected-song].content[index];
+                                    SongsState.selected-paragraph = index;
+                                    root.send-to-view();
+                                }
+                                ListView {
+                                    for e[idx] in SongsState.songs[SongsState.selected-song].content: paragraph-interactable := Renderable {
+                                        padding-bottom: 10px;
+                                        selected: idx == SongsState.selected-paragraph;
+                                        item-index: idx;
+                                        focused-index: paragraphs-list.current-focused;
 
-                                    preview => {
-                                        ViewState.shared-view.content = e;
-                                        SongsState.selected-paragraph = idx;
-                                    }
-                                    send-to-view => {
-                                        ViewState.shared-view.content = e;
-                                        SongsState.selected-paragraph = idx;
-                                        root.send-to-view();
-                                    }
+                                        preview => {
+                                            ViewState.shared-view.content = e;
+                                            SongsState.selected-paragraph = idx;
+                                        }
+                                        send-to-view => {
+                                            paragraphs-list.focus();
+                                            ViewState.shared-view.content = e;
+                                            SongsState.selected-paragraph = idx;
+                                            root.send-to-view();
+                                        }
 
-                                    Text {
-                                        text: e;
-                                        vertical-alignment: center;
-                                        color: Palette.foreground;
+                                        Text {
+                                            text: e;
+                                            vertical-alignment: center;
+                                            color: Palette.foreground;
+                                        }
                                     }
                                 }
                             }
@@ -313,8 +345,21 @@ export component MainWindow inherits Window {
                                         is-logo: false,
                                         path: "",
                                         content: "",
+                                        verse: "",
                                         img-fit: ImageFit.contain,
                                         color: { a: Colors.black, b: Colors.black },
+                                        font: {
+                                            color: Colors.white,
+                                            stroke: Colors.black,
+                                            stroke-size: 2px,
+                                            font-size: 48px,
+                                        },
+                                        verse-font: {
+                                            color: Colors.white,
+                                            stroke: Colors.black,
+                                            stroke-size: 2px,
+                                            font-size: 24px,
+                                        },
                                     };
                                     dialog-media-selector.show();
                                 }
@@ -419,31 +464,41 @@ export component MainWindow inherits Window {
                             text: "Guardados";
                         }
 
-                        ListView {
-                            for e[idx] in MainState.saved-texts: r := Renderable {
-                                padding-bottom: 10px;
+                        saved-texts-list := RenderableList {
+                            item-count: MainState.saved-texts.length;
+                            item-focused(index) => {
+                                ViewState.shared-view.content = MainState.saved-texts[index];
+                                root.send-to-view();
+                            }
+                            ListView {
+                                for e[idx] in MainState.saved-texts: r := Renderable {
+                                    padding-bottom: 10px;
+                                    item-index: idx;
+                                    focused-index: saved-texts-list.current-focused;
 
-                                preview => {
-                                    ViewState.shared-view.content = e;
-                                }
-                                send-to-view => {
-                                    ViewState.shared-view.content = e;
-                                    root.send-to-view();
-                                }
-
-                                HorizontalLayout {
-                                    alignment: space-between;
-
-                                    Text {
-                                        text: e;
-                                        vertical-alignment: center;
-                                        color: Palette.foreground;
+                                    preview => {
+                                        ViewState.shared-view.content = e;
+                                    }
+                                    send-to-view => {
+                                        saved-texts-list.focus();
+                                        ViewState.shared-view.content = e;
+                                        root.send-to-view();
                                     }
 
-                                    Button {
-                                        enabled: r.hover;
-                                        text: "Eliminar";
-                                        clicked => remove-saved-text(idx);
+                                    HorizontalLayout {
+                                        alignment: space-between;
+
+                                        Text {
+                                            text: e;
+                                            vertical-alignment: center;
+                                            color: Palette.foreground;
+                                        }
+
+                                        Button {
+                                            enabled: r.hover || r.has-focus;
+                                            text: "Eliminar";
+                                            clicked => remove-saved-text(idx);
+                                        }
                                     }
                                 }
                             }

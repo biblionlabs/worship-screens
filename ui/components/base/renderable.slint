@@ -1,4 +1,4 @@
-import { Palette } from "std-widgets.slint";
+import { Palette, ScrollView } from "std-widgets.slint";
 
 export component Renderable inherits VerticalLayout {
     padding-left: 5px;
@@ -13,6 +13,11 @@ export component Renderable inherits VerticalLayout {
     in property <brush> border-color: enabled ? background.brighter(0.5) : background.darker(0.8);
     in property <length> border-width;
     in property <length> border-radius: 8px;
+    
+    // Keyboard navigation properties
+    in property <int> item-index: -1;
+    in property <int> focused-index: -1;
+    out property <bool> has-focus: root.item-index >= 0 && root.item-index == root.focused-index;
 
     out property <bool> hover: false;
 
@@ -21,6 +26,7 @@ export component Renderable inherits VerticalLayout {
     callback send-to-view();
     callback edit-click();
     callback remove-click();
+    callback request-focus();  // Nuevo callback para solicitar foco
 
     hover-timer := Timer {
         interval: hover-wait;
@@ -33,15 +39,21 @@ export component Renderable inherits VerticalLayout {
 
     Rectangle {
         opacity: enabled ? 1.0 : 0.5;
-        background: Palette.alternate-background.brighter((hover || selected) ? 0.2 : 0.0);
-        border-width: border-width;
-        border-color: border-color;
+        background: Palette.alternate-background.brighter((hover || selected || has-focus) ? 0.2 : 0.0);
+        border-width: has-focus ? 2px : (border-width > 0px ? border-width : 0px);
+        border-color: has-focus ? Palette.accent-background : border-color;
         border-radius: border-radius;
+        animate background, border-width, border-color {
+            duration: 150ms;
+            easing: ease-in-out;
+        }
 
         TouchArea {
             enabled: root.enabled;
-            
-            clicked => preview();
+            clicked => {
+                root.request-focus();
+                preview();
+            }
             double-clicked => send-to-view();
 
             changed has-hover => {
@@ -59,7 +71,7 @@ export component Renderable inherits VerticalLayout {
                 @children
             }
 
-            if hover && enabled: HorizontalLayout {
+            if (hover || has-focus) && enabled: HorizontalLayout {
                 y: 0px;
                 x: parent.width - self.width;
                 alignment: end;
@@ -111,6 +123,39 @@ export component Renderable inherits VerticalLayout {
                     }
                 }
             }
+        }
+    }
+}
+
+export component RenderableList inherits Rectangle {
+    in property <int> item-count: 0;
+    in-out property <int> current-focused: i-focus-scope.has-focus ? i-focus-scope.focused-item : -1;
+    callback item-focused(/* index */ int);
+
+    forward-focus: i-focus-scope;
+
+    i-focus-scope := FocusScope {
+        property <int> focused-item: 0;
+        width: 100%;
+        height: 100%;
+        key-pressed(event) => {
+            if event.text == Key.UpArrow {
+                self.focused-item = max(self.focused-item - 1, 0);
+                root.item-focused(self.focused-item);
+                return accept;
+            }
+            if event.text == Key.DownArrow {
+                self.focused-item = min(self.focused-item + 1, root.item-count - 1);
+                root.item-focused(self.focused-item);
+                return accept;
+            }
+            return reject;
+        }
+
+        ScrollView {
+            width: 100%;
+            height: 100%;
+            @children
         }
     }
 }
