@@ -43,6 +43,7 @@ export component MainWindow inherits Window {
     min-width: 1280px;
 
     in property <image> source;
+    property <string> local-text;
 
     callback search-verse <=> search-verse-input.edited;
 
@@ -392,20 +393,24 @@ export component MainWindow inherits Window {
 
                                 Button {
                                     text: "Guardar";
-                                    clicked => save-text(ViewState.shared-view.content);
+                                    clicked => save-text(local-text);
                                 }
 
                                 Button {
                                     text: "Send";
-                                    clicked => send-to-view();
+                                    clicked => {
+                                        ViewState.shared-view.content = local-text;
+                                        send-to-view();
+                                    }
                                 }
                             }
                         }
 
                         TextEdit {
-                            text: ViewState.shared-view.content;
+                            text: local-text;
                             placeholder-text: "Escribe tu mensaje aquí";
                             edited(text) => {
+                                local-text = text;
                                 ViewState.shared-view.content = text;
                             }
                         }
