@@ -2,7 +2,9 @@ import {
     VerticalBox,
     HorizontalBox,
     GridBox,
-    ScrollView, TextEdit, LineEdit,
+    ScrollView,
+    TextEdit,
+    LineEdit,
 } from "std-widgets.slint";
 
 import { ViewBackgroundColor } from "../api/view-state.slint";
@@ -40,7 +42,7 @@ component ColorSlider inherits Rectangle {
 }
 
 export component ColorPicker inherits Rectangle {
-    height: show-preview ? 350px : 235px;
+    height: show-preview ? (allow-gradient ? 300px : 260px) : (allow-gradient ? 235px : 200px);
 
     in property <bool> allow-gradient: true;
     in property <bool> show-preview: false;
@@ -56,6 +58,7 @@ export component ColorPicker inherits Rectangle {
     callback color-changed(ViewBackgroundColor);
 
     property <bool> editing-color-a: true;
+    property <bool> is-updating: false;
     property <float> hue-a: 0.58;
     property <float> saturation-a: 0.7;
     property <float> lightness-a: 0.55;
@@ -91,6 +94,44 @@ export component ColorPicker inherits Rectangle {
             [0.027, 0.632, 0.461, 1.0]  // #c0392b
         ]
     ];
+
+    function rgb-to-hsl(c: color) -> [float] {
+        let r = c.red / 255.0;
+        let g = c.green / 255.0;
+        let b = c.blue / 255.0;
+        let a = c.alpha / 255.0;
+        let max-val = max(r, max(g, b));
+        let min-val = min(r, min(g, b));
+        let delta = max-val - min-val;
+
+        let l = (max-val + min-val) / 2.0;
+
+        let s = delta == 0 ? 0.0 : delta / (1.0 - abs(2.0 * l - 1.0));
+        
+        // Hue
+        let h-temp = delta == 0 ? 0.0 : (max-val == r ? mod((g - b) / delta, 6.0) : max-val == g ? ((b - r) / delta + 2.0) : ((r - g) / delta + 4.0));
+        let h = h-temp / 6.0;
+        return [h < 0 ? h + 1.0 : h, s, l, a];
+    }
+
+    changed selected-color => sync();
+    init => sync();
+
+    function sync() {
+        if !is-updating {
+            let hsl-a = rgb-to-hsl(selected-color.a);
+            let hsl-b = rgb-to-hsl(selected-color.b);
+            hue-a = hsl-a[0];
+            saturation-a = hsl-a[1];
+            lightness-a = hsl-a[2];
+            alpha-a = hsl-a[3];
+            hue-b = hsl-b[0];
+            saturation-b = hsl-b[1];
+            lightness-b = hsl-b[2];
+            alpha-b = hsl-b[3];
+            gradient-mode = selected-color.a != selected-color.b;
+        }
+    }
 
     function color-to-hex(c: color) -> string {
         return "#" + int-to-hex(c.red) + int-to-hex(c.green) + int-to-hex(c.blue) + int-to-hex(c.alpha);
@@ -155,6 +196,7 @@ export component ColorPicker inherits Rectangle {
     }
 
     function update-colors() {
+        is-updating = true;
         if (gradient-mode) {
             selected-color = {
                 a: hsl-to-color(hue-a, saturation-a, lightness-a, alpha-a),
@@ -165,6 +207,7 @@ export component ColorPicker inherits Rectangle {
             selected-color = { a: col, b: col };
         }
         color-changed(selected-color);
+        is-updating = false;
     }
 
     VerticalBox {
@@ -193,7 +236,6 @@ export component ColorPicker inherits Rectangle {
             padding: 0px;
 
             VerticalLayout {
-                // height: 52px;
                 alignment: center;
 
                 InputCheck {
