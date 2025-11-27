@@ -2,8 +2,17 @@ import { VerticalBox, HorizontalBox, Palette } from "std-widgets.slint";
 import { ViewBackgroundColor } from "../api/view-state.slint";
 import { ColorPicker } from "./color-picker.slint";
 
+export enum ColorPickerPosition {
+    left,
+    right,
+    top,
+    bottom,
+}
+
 export component ColorPickerButton inherits Rectangle {
     in property <bool> allow-gradient: false;
+    in property <ColorPickerPosition> position: left;
+
     in-out property <ViewBackgroundColor> selected-color: {
         a: Colors.white,
         b: Colors.white,
@@ -11,15 +20,14 @@ export component ColorPickerButton inherits Rectangle {
 
     callback color-changed(ViewBackgroundColor);
 
-    width: 40px;
     height: 40px;
 
     background := Rectangle {
         width: 100%;
         height: 100%;
         border-radius: 8px;
-        border-width: 2px;
-        border-color: Palette.border;
+        border-width: 3px;
+        border-color: root.allow-gradient && root.selected-color.a != root.selected-color.b ? @linear-gradient(135deg, root.selected-color.a.darker(30%), root.selected-color.b.darker(30%)) : root.selected-color.a.darker(30%);
         background: root.allow-gradient && root.selected-color.a != root.selected-color.b ? @linear-gradient(135deg, root.selected-color.a, root.selected-color.b) : root.selected-color.a;
         touch := TouchArea {
             clicked => popup.show();
@@ -27,8 +35,8 @@ export component ColorPickerButton inherits Rectangle {
     }
 
     popup := PopupWindow {
-        x: root.width + 8px;
-        y: -170px;
+        x: position == ColorPickerPosition.left ? -378px : root.width + 8px;
+        y: position == ColorPickerPosition.top ? -170px : 0px;
         width: 370px;
         height: 400px;
         close-policy: close-on-click-outside;

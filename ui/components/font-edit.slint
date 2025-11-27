@@ -1,0 +1,231 @@
+import { ColorPickerButton, ColorPickerPosition } from "color-picker-button.slint";
+import { Slider, Palette } from "std-widgets.slint";
+import { ViewData, ViewState } from "../api/view-state.slint";
+
+export component FontEdit inherits VerticalLayout {
+    alignment: start;
+    spacing: 20px;
+
+    in-out property <ViewData> data;
+    in property <ColorPickerPosition> color-popup-position;
+
+    VerticalLayout {
+        spacing: 12px;
+
+        Rectangle {
+            height: 35px;
+            background: Palette.alternate-background;
+            border-radius: 6px;
+
+            HorizontalLayout {
+                padding: 10px;
+                Text {
+                    text: "📝 Fuente Principal (Contenido)";
+                    font-size: 15px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 20px;
+            alignment: start;
+
+            VerticalLayout {
+                spacing: 6px;
+
+                Text {
+                    text: "Texto";
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                ColorPickerButton {
+                    width: 40px;
+                    height: 40px;
+                    position: color-popup-position;
+                    allow-gradient: false;
+                    selected-color: ViewState.color-to-view(data.font.color);
+                    color-changed(color) => {
+                        data.font.color = color.a;
+                    }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 6px;
+
+                Text {
+                    text: "Borde";
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                ColorPickerButton {
+                    width: 40px;
+                    height: 40px;
+                    position: color-popup-position;
+                    allow-gradient: false;
+                    selected-color: ViewState.color-to-view(data.font.stroke);
+                    color-changed(color) => {
+                        data.font.stroke = color.a;
+                    }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 6px;
+                width: 65%;
+
+                HorizontalLayout {
+                    alignment: space-between;
+                    Text {
+                        text: "Grosor";
+                        font-size: 13px;
+                        font-weight: 500;
+                    }
+
+                    Text {
+                        text: Math.round(data.font.stroke-size / 1px) + "px";
+                        font-size: 13px;
+                        color: Palette.foreground.with-alpha(70%);
+                    }
+                }
+
+                Slider {
+                    minimum: 0;
+                    maximum: 10;
+                    value: data.font.stroke-size / 1px;
+                    changed value => {
+                        data.font.stroke-size = self.value * 1px;
+                    }
+                }
+            }
+        }
+    }
+
+    VerticalLayout {
+        spacing: 12px;
+
+        Rectangle {
+            height: 35px;
+            background: Palette.alternate-background;
+            border-radius: 6px;
+
+            HorizontalLayout {
+                padding: 10px;
+                Text {
+                    text: "📖 Fuente del Versículo";
+                    font-size: 15px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 20px;
+            alignment: start;
+
+            VerticalLayout {
+                spacing: 6px;
+
+                Text {
+                    text: "Texto";
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                ColorPickerButton {
+                    width: 40px;
+                    height: 40px;
+                    position: color-popup-position;
+                    allow-gradient: false;
+                    selected-color: ViewState.color-to-view(data.verse-font.color);
+                    color-changed(color) => {
+                        data.verse-font.color = color.a;
+                    }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 6px;
+
+                Text {
+                    text: "Borde";
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                ColorPickerButton {
+                    width: 40px;
+                    height: 40px;
+                    position: color-popup-position;
+                    allow-gradient: false;
+                    selected-color: ViewState.color-to-view(data.verse-font.stroke);
+                    color-changed(color) => {
+                        data.verse-font.stroke = color.a;
+                    }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 6px;
+                width: 65%;
+
+                HorizontalLayout {
+                    alignment: space-between;
+                    Text {
+                        text: "Grosor";
+                        font-size: 13px;
+                        font-weight: 500;
+                    }
+
+                    Text {
+                        text: Math.round(data.verse-font.stroke-size / 1px) + "px";
+                        font-size: 13px;
+                        color: Palette.foreground.with-alpha(70%);
+                    }
+                }
+
+                Slider {
+                    minimum: 0;
+                    maximum: 10;
+                    value: data.verse-font.stroke-size / 1px;
+                    changed value => {
+                        data.verse-font.stroke-size = self.value * 1px;
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 6px;
+
+            HorizontalLayout {
+                alignment: space-between;
+                Text {
+                    text: "Tamaño de Fuente";
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                Text {
+                    text: round(data.verse-font.font-size / 1px) + "px";
+                    font-size: 13px;
+                    color: Palette.foreground.with-alpha(70%);
+                }
+            }
+
+            Slider {
+                minimum: ViewState.min-font-size / 1px;
+                maximum: ViewState.max-font-size / 1px;
+                value: data.verse-font.font-size / 1px;
+                changed value => {
+                    data.verse-font.font-size = self.value * 1px;
+                }
+            }
+        }
+    }
+}

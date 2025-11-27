@@ -22,6 +22,7 @@ import { Renderable } from "components/base/renderable.slint";
 import { FileManagerDialog } from "dialogs/songs.slint";
 import { MultimediaDialog } from "dialogs/media-selector.slint";
 import { BiblesDialog } from "dialogs/bibles.slint";
+import { FontEdit } from "components/font-edit.slint";
 import { ColorPickerButton } from "components/color-picker-button.slint";
 
 export { Bible, EditMode, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
@@ -478,12 +479,17 @@ export component MainWindow inherits Window {
 
             ColorPickerButton {
                 height: 60px;
+                position: left;
                 allow-gradient: true;
                 selected-color: ViewState.shared-view.color;
 
                 color-changed(color) => {
                     ViewState.shared-view.color = color;
                 }
+            }
+
+            FontEdit {
+                data <=> ViewState.shared-view;
             }
         }
 

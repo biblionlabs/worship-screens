@@ -12,6 +12,7 @@ import { ViewState } from "../api/view-state.slint";
 import { ColorPickerButton } from "../components/color-picker-button.slint";
 import { View } from "../components/view.slint";
 import { Badge } from "../components/input/badge.slint";
+import { FontEdit } from "../components/font-edit.slint";
 
 export component MultimediaDialog inherits PopupWindow {
     close_policy: no_auto_close;
@@ -192,6 +193,7 @@ export component MultimediaDialog inherits PopupWindow {
                                 }
 
                                 ColorPickerButton {
+                                    position: right;
                                     allow-gradient: true;
                                     selected-color: ViewState.select-media-preview.color;
 
@@ -243,212 +245,9 @@ export component MultimediaDialog inherits PopupWindow {
                         }
                     }
 
-                    VerticalLayout {
-                        spacing: 12px;
-
-                        Rectangle {
-                            height: 35px;
-                            background: Palette.alternate-background;
-                            border-radius: 6px;
-
-                            HorizontalBox {
-                                padding: 10px;
-                                Text {
-                                    text: "📝 Fuente Principal (Contenido)";
-                                    font-size: 15px;
-                                    font-weight: 600;
-                                    vertical-alignment: center;
-                                }
-                            }
-                        }
-
-                        HorizontalBox {
-                            spacing: 20px;
-                            alignment: start;
-
-                            VerticalLayout {
-                                spacing: 6px;
-
-                                Text {
-                                    text: "Texto";
-                                    font-size: 13px;
-                                    font-weight: 500;
-                                }
-
-                                ColorPickerButton {
-                                    allow-gradient: false;
-                                    selected-color: ViewState.color-to-view(ViewState.select-media-preview.font.color);
-                                    color-changed(color) => {
-                                        ViewState.select-media-preview.font.color = color.a;
-                                    }
-                                }
-                            }
-
-                            VerticalLayout {
-                                spacing: 6px;
-
-                                Text {
-                                    text: "Borde";
-                                    font-size: 13px;
-                                    font-weight: 500;
-                                }
-
-                                ColorPickerButton {
-                                    allow-gradient: false;
-                                    selected-color: ViewState.color-to-view(ViewState.select-media-preview.font.stroke);
-                                    color-changed(color) => {
-                                        ViewState.select-media-preview.font.stroke = color.a;
-                                    }
-                                }
-                            }
-
-                            VerticalLayout {
-                                spacing: 6px;
-                                width: 75%;
-
-                                HorizontalBox {
-                                    alignment: space-between;
-                                    Text {
-                                        text: "Grosor";
-                                        font-size: 13px;
-                                        font-weight: 500;
-                                    }
-
-                                    Text {
-                                        text: Math.round(ViewState.select-media-preview.font.stroke-size / 1px) + "px";
-                                        font-size: 13px;
-                                        color: Palette.foreground.with-alpha(70%);
-                                    }
-                                }
-
-                                Slider {
-                                    minimum: 0;
-                                    maximum: 10;
-                                    value: ViewState.select-media-preview.font.stroke-size / 1px;
-                                    changed value => {
-                                        ViewState.select-media-preview.font.stroke-size = self.value * 1px;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    VerticalLayout {
-                        spacing: 12px;
-
-                        Rectangle {
-                            height: 35px;
-                            background: Palette.alternate-background;
-                            border-radius: 6px;
-
-                            HorizontalBox {
-                                padding: 10px;
-                                Text {
-                                    text: "📖 Fuente del Versículo";
-                                    font-size: 15px;
-                                    font-weight: 600;
-                                    vertical-alignment: center;
-                                }
-                            }
-                        }
-
-                        HorizontalBox {
-                            spacing: 20px;
-                            alignment: start;
-
-                            VerticalLayout {
-                                spacing: 6px;
-
-                                Text {
-                                    text: "Texto";
-                                    font-size: 13px;
-                                    font-weight: 500;
-                                }
-
-                                ColorPickerButton {
-                                    allow-gradient: false;
-                                    selected-color: ViewState.color-to-view(ViewState.select-media-preview.verse-font.color);
-                                    color-changed(color) => {
-                                        ViewState.select-media-preview.verse-font.color = color.a;
-                                    }
-                                }
-                            }
-
-                            VerticalLayout {
-                                spacing: 6px;
-
-                                Text {
-                                    text: "Borde";
-                                    font-size: 13px;
-                                    font-weight: 500;
-                                }
-
-                                ColorPickerButton {
-                                    allow-gradient: false;
-                                    selected-color: ViewState.color-to-view(ViewState.select-media-preview.verse-font.stroke);
-                                    color-changed(color) => {
-                                        ViewState.select-media-preview.verse-font.stroke = color.a;
-                                    }
-                                }
-                            }
-
-                            VerticalLayout {
-                                spacing: 6px;
-                                width: 75%;
-
-                                HorizontalBox {
-                                    alignment: space-between;
-                                    Text {
-                                        text: "Grosor";
-                                        font-size: 13px;
-                                        font-weight: 500;
-                                    }
-
-                                    Text {
-                                        text: Math.round(ViewState.select-media-preview.verse-font.stroke-size / 1px) + "px";
-                                        font-size: 13px;
-                                        color: Palette.foreground.with-alpha(70%);
-                                    }
-                                }
-
-                                Slider {
-                                    minimum: 0;
-                                    maximum: 10;
-                                    value: ViewState.select-media-preview.verse-font.stroke-size / 1px;
-                                    changed value => {
-                                        ViewState.select-media-preview.verse-font.stroke-size = self.value * 1px;
-                                    }
-                                }
-                            }
-                        }
-
-                        VerticalLayout {
-                            spacing: 6px;
-
-                            HorizontalBox {
-                                alignment: space-between;
-                                Text {
-                                    text: "Tamaño de Fuente";
-                                    font-size: 13px;
-                                    font-weight: 500;
-                                }
-
-                                Text {
-                                    text: Math.round(ViewState.select-media-preview.verse-font.font-size / 1px) + "px";
-                                    font-size: 13px;
-                                    color: Palette.foreground.with-alpha(70%);
-                                }
-                            }
-
-                            Slider {
-                                minimum: ViewState.min-font-size / 1px;
-                                maximum: ViewState.max-font-size / 1px;
-                                value: ViewState.select-media-preview.verse-font.font-size / 1px;
-                                changed value => {
-                                    ViewState.select-media-preview.verse-font.font-size = self.value * 1px;
-                                }
-                            }
-                        }
+                    FontEdit {
+                        color-popup-position: right;
+                        data <=> ViewState.select-media-preview;
                     }
                 }
             }
