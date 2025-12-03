@@ -25,7 +25,6 @@ mod user_data;
 fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
     let data_manager: Arc<UserData> = Default::default();
-    let selection: Arc<Mutex<Selection>> = Default::default();
 
     let main_window = MainWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
@@ -352,7 +351,6 @@ fn main() {
     main_window.on_shutdown_output({
         let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
-        let media_manager = media_manager.clone();
         move || {
             let main_window = main_window.unwrap();
             let view_window = view_window.unwrap();
@@ -363,14 +361,31 @@ fn main() {
             main_window.global::<ViewState>().set_shared_view(shared);
 
             state.set_off(!state.get_off());
+        }
+    });
+
+    main_window.on_clear_image({
+        let main_window = main_window.as_weak();
+        let view_window = view_window.as_weak();
+        let media_manager = media_manager.clone();
+        move || {
+            media_manager.stop_preview_video();
             media_manager.stop_output_video();
+            let view_window = view_window.unwrap();
+            let main_window = main_window.unwrap();
+            let state = view_window.global::<ViewState>();
+
+            let mut shared = state.get_shared_view();
+            shared.show_img = false;
+
+            state.set_shared_view(shared.clone());
+            main_window.global::<ViewState>().set_shared_view(shared);
         }
     });
 
     main_window.on_clear_output({
         let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
-        let media_manager = media_manager.clone();
         move || {
             let view_window = view_window.unwrap();
             let main_window = main_window.unwrap();
@@ -383,7 +398,6 @@ fn main() {
             main_window.global::<ViewState>().set_shared_view(shared);
 
             state.set_off(false);
-            media_manager.stop_output_video();
         }
     });
 

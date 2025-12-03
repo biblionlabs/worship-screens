@@ -51,6 +51,7 @@ export component MainWindow inherits Window {
 
     callback shutdown-output();
     callback clear-output <=> clear-btn.clicked;
+    callback clear-image <=> clear-img-btn.clicked;
     callback change-monitor <=> select-monitors.selected;
 
     callback send-to-view <=> send-btn.clicked;
@@ -523,6 +524,11 @@ export component MainWindow inherits Window {
             HorizontalLayout {
                 spacing: 5px;
                 alignment: end;
+
+                clear-img-btn := Button {
+                    visible: ViewState.shared-view.show-img; 
+                    text: "Stop Video/Image";
+                }
 
                 send-btn := Button {
                     text: "Send";
