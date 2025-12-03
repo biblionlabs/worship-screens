@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use setup_core::{Selection, SqliteDbSink, event};
+use notify_rust::Notification;
+use setup_core::{SqliteDbSink, event};
 use slint::winit_030::WinitWindowAccessor;
 use slint::winit_030::winit::monitor::MonitorHandle;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, ToSharedString};
@@ -47,27 +48,19 @@ fn main() {
     let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
     let source_variants = setup_core::SetupBuilder::new().cache_path(data_manager.data_dir(&["cache"]))
         // Add Reina Valera 1960 Bible
-        .add_bible_from_url("spa_rv1960", "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/manifest.json", "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/desc.json", Some("https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/{bible_id}/books/{book}.json"))
+        .add_bible_from_url(
+            "spa_rv1960",
+            "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/manifest.json", 
+            "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/desc.json",
+            Some("https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/{bible_id}/books/{book}.json")
+        )
         .on::<event::Message>({
-            let main_window = main_window.as_weak();
             move |msg| {
-            //     let main_window = main_window.unwrap();
-            //     let state = main_window.global::<MainState>();
                 println!("Msg: {msg}");
             }})
-        .on::<event::Completed>({
-            let main_window = main_window.as_weak();
-            move |_msg| {
-                // let main_window = main_window.unwrap();
-                // let state = main_window.global::<MainState>();
-
-            }})
         .on::<event::Error>({
-            let main_window = main_window.as_weak();
             move |e| {
-                // let main_window = main_window.unwrap();
-                // let state = main_window.global::<MainState>();
-                eprintln!("Error: {e}");
+                Notification::new().summary("Worship Screens Failed to install Bible").body(&e).show().inspect_err(|e| eprintln!("{e}")).unwrap();
             }})
         .on::<event::Progress>({
             let main_window = main_window.as_weak();
@@ -84,19 +77,23 @@ fn main() {
                         if let Some(window) = main_window.upgrade() {
                             let state = window.global::<MainState>();
                             let bibles = state.get_bibles();
-                            if let Some(idx) = bibles.iter().position(|b| b.id == step_id) {
-                                if let Some(mut bible) = bibles.row_data(idx) {
-                                    bible.installing = current != total;
-                                    bible.installed = current == total;
-                                    bible.progress = current as f32 / total as f32;
-                                    bibles.set_row_data(idx, bible);
+                            if let Some((idx, mut bible)) = bibles.iter().position(|b| b.id == step_id).and_then(|row| bibles.row_data(row).map(|b| (row, b))) {
+                                bible.installing = current != total;
+                                bible.installed = current == total;
+                                bible.progress = current as f32 / total as f32;
+                                if current == total {
+                                    _ = Notification::new()
+                                        .summary("Worship Screens Bible Installed")
+                                        .body(&format!("{} success installed", bible.name.as_str()))
+                                        .show()
+                                        .inspect_err(|e| eprintln!("{e}"));
                                 }
+                                bibles.set_row_data(idx, bible);
                             }
                         }
                         if let Some(bibles_manager) = bibles_manager.get() {
                             bibles_manager.update_progress(&step_id, current, total);
                         }
-                        // TODO: send notification about state
                     }
                 }).unwrap();
             }})
