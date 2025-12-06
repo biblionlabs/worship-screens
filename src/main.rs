@@ -50,7 +50,7 @@ fn main() {
     let bibles_manager = Arc::new(OnceLock::<BiblesManager>::new());
 
     let cache_dir = data_manager.data_dir(&["cache"]);
-    _ = check_for_updates(&cache_dir).inspect_err(|e| eprint!("Error: {e}"));
+    let need_update = check_for_updates(&cache_dir);
 
     let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
     let source_variants = setup_core::SetupBuilder::new().cache_path(cache_dir)
@@ -125,6 +125,15 @@ fn main() {
         }
     });
 
+    main_window.on_open_release({
+        let need_update = need_update.clone();
+        move || {
+            if let Some(latest_release) = need_update.as_ref() {
+                let _ = open::that(&latest_release.html_url);
+            }
+        }
+    });
+
     main_window.on_start_window({
         let main_window = main_window.as_weak();
         let monitors = monitors.clone();
@@ -141,6 +150,10 @@ fn main() {
                 bibles_manager.initialize();
                 bibles_manager.connect_callbacks();
             }
+
+            main_window
+                .global::<MainState>()
+                .set_need_update(need_update.is_some());
 
             main_window
                 .window()

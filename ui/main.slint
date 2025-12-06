@@ -28,6 +28,7 @@ import { ColorPickerButton } from "components/color-picker-button.slint";
 export { Bible, EditMode, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export global MainState {
+    in property <bool> need-update;
     in-out property <[string]> saved-texts;
     in property <[Verse]> verses;
     in-out property <[Bible]> bibles;
@@ -48,6 +49,7 @@ export component MainWindow inherits Window {
     callback search-verse <=> search-verse-input.edited;
 
     callback start-window();
+    callback open-release();
 
     callback shutdown-output();
     callback clear-output <=> clear-btn.clicked;
@@ -83,6 +85,12 @@ export component MainWindow inherits Window {
                 padding-top: 10px;
                 padding-bottom: 10px;
                 padding-right: 5px;
+
+                if MainState.need-update: Button {
+                    text: "Update Available";
+                    primary: true;
+                    clicked => open-release();
+                }
 
                 select-monitors := ComboBox {
                     model: Settings.monitors;
