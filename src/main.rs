@@ -1,3 +1,5 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -9,6 +11,7 @@ use slint::{ComponentHandle, Model, ModelRc, SharedString, ToSharedString};
 use ui::*;
 
 use self::bibles_manager::BiblesManager;
+use self::check_update::check_for_updates;
 use self::fav_text_manager::FavTextManager;
 use self::media_manager::MediaManager;
 use self::settings::AppSettings;
@@ -17,6 +20,7 @@ use self::user_data::UserData;
 
 mod bibles_manager;
 mod bitstream_converter;
+mod check_update;
 mod fav_text_manager;
 mod media_manager;
 mod settings;
@@ -45,8 +49,11 @@ fn main() {
     ));
     let bibles_manager = Arc::new(OnceLock::<BiblesManager>::new());
 
+    let cache_dir = data_manager.data_dir(&["cache"]);
+    _ = check_for_updates(&cache_dir).inspect_err(|e| eprint!("Error: {e}"));
+
     let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
-    let source_variants = setup_core::SetupBuilder::new().cache_path(data_manager.data_dir(&["cache"]))
+    let source_variants = setup_core::SetupBuilder::new().cache_path(cache_dir)
         // Add Reina Valera 1960 Bible
         .add_bible_from_url(
             "spa_rv1960",
