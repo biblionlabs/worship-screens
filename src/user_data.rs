@@ -1,5 +1,6 @@
 use std::env;
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
 use std::process::Command;
 
 use serde::Serialize;

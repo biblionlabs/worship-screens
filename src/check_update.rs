@@ -73,24 +73,19 @@ pub fn check_for_updates(cache_dir: &PathBuf) -> Result<(), Box<dyn std::error::
     let release_version = Version::parse(release_version_str)?;
 
     if release_version > current_version {
-        Notification::new()
+        let _n = Notification::new()
             .summary("Actualización disponible")
             .body(&format!(
-                "Nueva versión {} disponible{}",
+                "Nueva versión ({}) disponible",
                 latest_release.tag_name,
-                if latest_release.prerelease {
-                    " (pre-release)"
-                } else {
-                    ""
-                }
             ))
-            .action("open", "Descargar")
-            .show()?
-            .wait_for_action(|action| {
-                if action == "open" {
-                    let _ = open::that(&latest_release.html_url);
-                }
-            });
+            .show()?;
+        #[cfg(target_os = "linux")]
+        _n.wait_for_action(|action| {
+            if let "default" | "clicked" = action {
+                let _ = open::that(&latest_release.html_url);
+            }
+        });
     }
 
     Ok(())
