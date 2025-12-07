@@ -134,6 +134,10 @@ export component RenderableList inherits Rectangle {
 
     forward-focus: i-focus-scope;
 
+    changed current-focused => {
+        i-focus-scope.focused-item = current-focused;
+    }
+
     i-focus-scope := FocusScope {
         property <int> focused-item: 0;
         width: 100%;

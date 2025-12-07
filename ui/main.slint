@@ -180,6 +180,7 @@ export component MainWindow inherits Window {
                                             }
                                             send-to-view => {
                                                 verses-list.focus();
+                                                verses-list.current-focused = idx;
                                                 ViewState.shared-view.content = e.text;
                                                 ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
                                                 root.send-to-view();
@@ -266,6 +267,7 @@ export component MainWindow inherits Window {
                                         preview => SongsState.select-song(idx);
                                         send-to-view => {
                                             songs-list.focus();
+                                            songs-list.current-focused = idx;
                                             SongsState.select-song(idx);
                                             SongsState.selected-paragraph = 0;
                                             ViewState.shared-view.content = SongsState.songs[idx].content[0];
@@ -314,6 +316,7 @@ export component MainWindow inherits Window {
                                         }
                                         send-to-view => {
                                             paragraphs-list.focus();
+                                            paragraphs-list.current-focused = idx;
                                             ViewState.shared-view.content = e;
                                             SongsState.selected-paragraph = idx;
                                             root.send-to-view();
@@ -498,6 +501,7 @@ export component MainWindow inherits Window {
                                     }
                                     send-to-view => {
                                         saved-texts-list.focus();
+                                        saved-texts-list.current-focused = idx;
                                         ViewState.shared-view.content = e;
                                         root.send-to-view();
                                     }
