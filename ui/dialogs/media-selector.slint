@@ -13,36 +13,12 @@ import { ColorPickerButton } from "../components/color-picker-button.slint";
 import { View } from "../components/view.slint";
 import { Badge } from "../components/input/badge.slint";
 import { FontEdit } from "../components/font-edit.slint";
+import { DialogBase } from "base.slint";
 
-export component MultimediaDialog inherits PopupWindow {
-    close_policy: no_auto_close;
-    forward_focus: focus_scope;
-
+export component MultimediaDialog inherits DialogBase {
     property <int> fit-index: ViewState.select-media-preview.img-fit == ImageFit.fill ? 0 : (ViewState.select-media-preview.img-fit == ImageFit.contain ? 1 : 2);
     property <[string]> fit-options: ["fill", "contain", "cover"];
     property <bool> preview-mode: !ViewState.select-media-preview.content.is-empty;
-
-    focus_scope := FocusScope {
-        x: 0;
-        width: 0;
-
-        key_pressed(event) => {
-            if event.text == Key.Escape {
-                ViewState.in-edit-mode = { editable: false, row: -1, col: -1 };
-                root.close();
-                return accept;
-            }
-            reject
-        }
-    }
-
-    Rectangle {
-        x: 0;
-        y: 0;
-        width: 100%;
-        height: 100%;
-        background: Palette.background.darker(50%).with-alpha(70%);
-    }
 
     Rectangle {
         width: 580px;

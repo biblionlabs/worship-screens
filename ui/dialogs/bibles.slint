@@ -8,36 +8,13 @@ import {
 
 import { Bible } from "../api/global.slint";
 import { Renderable } from "../components/base/renderable.slint";
+import { DialogBase } from "base.slint";
 
-export component BiblesDialog inherits PopupWindow {
+export component BiblesDialog inherits DialogBase {
     in-out property <[Bible]> bibles;
 
     callback search(string);
     callback install-bible(string);
-
-    close-policy: no-auto-close;
-    forward-focus: focus-scope;
-
-    focus-scope := FocusScope {
-        x: 0;
-        width: 0;
-
-        key-pressed(event) => {
-            if event.text == Key.Escape {
-                root.close();
-                return accept;
-            }
-            reject
-        }
-    }
-
-    Rectangle {
-        x: 0;
-        y: 0;
-        width: 100%;
-        height: 100%;
-        background: Palette.background.darker(50%).with-alpha(70%);
-    }
 
     Rectangle {
         width: 640px;

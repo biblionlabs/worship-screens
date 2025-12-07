@@ -1,5 +1,6 @@
 import { FileItem, SongsState } from "../api/songs.slint";
 import { VerticalBox, Button, ScrollView, Palette } from "std-widgets.slint";
+import { DialogBase } from "base.slint";
 
 export component FileItemRow inherits Rectangle {
     in property <FileItem> item;
@@ -54,35 +55,8 @@ export component FileItemRow inherits Rectangle {
     }
 }
 
-export component FileManagerDialog inherits PopupWindow {
+export component FileManagerDialog inherits DialogBase {
     in-out property <[FileItem]> items: SongsState.songs-origin;
-
-    close_policy: no_auto_close;
-    forward_focus: focus_scope;
-
-    focus_scope := FocusScope {
-        x: 0;
-        width: 0;
-
-        key_pressed(event) => {
-            if event.text == Key.Escape {
-                root.close();
-                return accept;
-            }
-
-            reject
-        }
-    }
-
-    // BG
-    Rectangle {
-        x: 0;
-        y: 0;
-        width: 100%;
-        height: 100%;
-
-        background: Palette.background.darker(50%).with-alpha(70%);
-    }
 
     Rectangle {
         width: 600px;

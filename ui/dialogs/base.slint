@@ -1,0 +1,32 @@
+import { Palette } from "std-widgets.slint";
+
+export component DialogBase inherits PopupWindow {
+    close_policy: no_auto_close;
+    forward_focus: focus_scope;
+
+    focus_scope := FocusScope {
+        x: 0;
+        width: 0;
+
+        key_pressed(event) => {
+            if event.text == Key.Escape {
+                root.close();
+                return accept;
+            }
+
+            reject
+        }
+    }
+
+    // BG
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+
+        background: Palette.background.darker(50%).with-alpha(70%);
+    }
+
+    @children
+}
