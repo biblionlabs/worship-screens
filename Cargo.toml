@@ -1,6 +1,6 @@
 [package]
 name = "worship-screens"
-version = "0.1.1-alpha.2"
+version = "0.1.1-alpha.3"
 description = "Present image/video/animations with text/verse on external monitor"
 authors = ["Sergio Ribera <contact@sergioribera.rs>"]
 license = "MIT OR Apache-2.0"

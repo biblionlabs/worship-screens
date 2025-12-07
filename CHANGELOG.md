@@ -1,3 +1,18 @@
+## [0.1.1-alpha.3] - 2025-12-07
+
+### 🚀 Features
+
+- Add tracing logger
+- Show changelog popup when update version
+
+### 🐛 Bug Fixes
+
+- Crash on file watch changes
+- Send to view focus and keyboard navigation
+
+### 🚜 Refactor
+
+- Move all dialog to base dialog component
 ## [0.1.1-alpha.2] - 2025-12-06
 
 ### 🚀 Features
@@ -76,6 +91,7 @@
 - Main window min width
 - Clip view component
 - Update deps
+- Release worship presentations version
 ## [0.1.1-alpha.1] - 2025-11-04
 
 ### 🚀 Features
