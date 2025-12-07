@@ -2,7 +2,7 @@ import {
     ColorPickerButton,
     ColorPickerPosition,
 } from "color-picker-button.slint";
-import { Palette } from "std-widgets.slint";
+import { Palette, ComboBox } from "std-widgets.slint";
 import { ViewData, ViewFontData, ViewState } from "../api/view-state.slint";
 import { SliderLabel } from "input/slider-label.slint";
 
@@ -31,7 +31,8 @@ export component FontEditSection inherits VerticalLayout {
 
     HorizontalLayout {
         spacing: 20px;
-        alignment: start;
+        padding-left: 10px;
+        padding-right: 10px;
 
         VerticalLayout {
             spacing: 6px;
@@ -89,15 +90,45 @@ export component FontEditSection inherits VerticalLayout {
         }
     }
 
-    SliderLabel {
-        minimum: 24;
-        maximum: 1024;
-        sufix: "px";
-        label: "Tamaño de Fuente";
-        value: font.font-size / 1px;
-        value-show: Math.round(font.font-size / 1px);
-        changed value => {
-            font.font-size = self.value * 1px;
+    HorizontalLayout {
+        spacing: 20px;
+        alignment: start;
+        padding-left: 10px;
+        padding-right: 10px;
+
+        VerticalLayout {
+            spacing: 6px;
+            width: 45%;
+
+            Text {
+                text: "Fuente";
+                font-size: 13px;
+                font-weight: 500;
+            }
+
+            ComboBox {
+                model: ViewState.installed-fonts;
+                current-value: font.name;
+
+                changed current-index => {
+                    if self.current-index >= 0 && self.current-index < ViewState.installed-fonts.length {
+                        font.name = ViewState.installed-fonts[self.current-index];
+                    }
+                }
+            }
+        }
+
+        SliderLabel {
+            width: 45%;
+            minimum: 24;
+            maximum: 1024;
+            sufix: "px";
+            label: "Tamaño de Fuente";
+            value: font.font-size / 1px;
+            value-show: Math.round(font.font-size / 1px);
+            changed value => {
+                font.font-size = self.value * 1px;
+            }
         }
     }
 }

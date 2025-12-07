@@ -23,11 +23,11 @@
         libraries = with pkgs; [
           libGL
           fontconfig
+          freetype
           pkgs.stdenv.cc.cc.lib
           rustPlatform.bindgenHook
           xorg.libX11
           xorg.libxcb
-          freetype
           libxkbcommon
 
           wayland

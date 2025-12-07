@@ -21,6 +21,7 @@ use self::media_manager::MediaManager;
 use self::settings::AppSettings;
 use self::song_manager::SongsManager;
 use self::user_data::UserData;
+use self::utils::list_system_fonts;
 
 mod bibles_manager;
 mod bitstream_converter;
@@ -56,6 +57,9 @@ fn main() {
 
     let main_window = MainWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
+    main_window
+        .global::<ViewState>()
+        .set_installed_fonts(ModelRc::from(list_system_fonts().as_slice()));
 
     let mut song_manager = SongsManager::new(main_window.as_weak(), data_manager.clone());
     song_manager.initialize();

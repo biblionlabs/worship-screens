@@ -44,6 +44,7 @@ export component View inherits Rectangle {
         horizontal-alignment: center;
         vertical-alignment: center;
         text: data.content;
+        font-family: data.font.name;
         font-size: computed-content-fs;
     }
 
@@ -56,6 +57,7 @@ export component View inherits Rectangle {
         stroke-style: outside;
         horizontal-alignment: center;
         vertical-alignment: center;
+        font-family: data.verse-font.name;
         font-size: computed-verse-fs;
     }
 }

@@ -45,9 +45,9 @@ slint = { version = "1.13.1", default-features = false, features = [
 
 [dependencies]
 image = "0.25"
-mp4 = "0.14.0"
-notify = "8.2.0"
-openh264 = "0.9.0"
+mp4 = "0.14"
+notify = "8.2"
+openh264 = "0.9"
 rfd = "0.15"
 serde.workspace = true
 serde_json = "1"
@@ -62,9 +62,15 @@ tokio = { version = "1.48", default-features = false, features = [
 ] }
 ui = { path = "./crates/ui" }
 notify-rust = { version = "4.11", default-features = false, features = ["z"] }
-semver = "1.0.27"
-reqwest = { version = "0.12.24", default-features = false, features = ["json", "rustls-tls", "system-proxy", "http2"] }
-open = "5.3.3"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
-tracing = "0.1.43"
-tracing-appender = "0.2.4"
+semver = "1"
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "rustls-tls",
+    "system-proxy",
+    "http2",
+] }
+open = "5.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1"
+tracing-appender = "0.2"
+fontdb = "0.23"

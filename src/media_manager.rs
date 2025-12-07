@@ -117,6 +117,7 @@ impl<'a> From<&'a MediaItem> for ViewData {
         };
 
         let font = ViewFontData {
+            name: SharedString::new(),
             color: Color::from_argb_u8(
                 value.font.color[3],
                 value.font.color[0],
@@ -134,6 +135,7 @@ impl<'a> From<&'a MediaItem> for ViewData {
         };
 
         let verse_font = ViewFontData {
+            name: SharedString::new(),
             color: Color::from_argb_u8(
                 value.verse_font.color[3],
                 value.verse_font.color[0],

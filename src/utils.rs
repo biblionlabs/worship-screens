@@ -1,4 +1,26 @@
+use std::collections::HashSet;
+
 use slint::SharedString;
+use tracing::debug;
+
+pub fn list_system_fonts() -> Vec<SharedString> {
+    let mut db = fontdb::Database::new();
+    db.load_system_fonts();
+
+    let mut db = db
+        .faces()
+        .map(|f| {
+            f.families
+                .iter()
+                .map(|f| SharedString::from(&f.0))
+                .collect::<HashSet<_>>()
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+    debug!("Loaded {} fonts from system", db.len());
+    db.sort();
+    db
+}
 
 pub fn parse_last_changelog_to_markdown_lines(raw_env: &str) -> Vec<ui::MarkdownLine> {
     let raw = raw_env.replace("\\n", "\n").replace("\\\\", "\\");
