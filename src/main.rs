@@ -251,20 +251,27 @@ fn main() {
                     if last_seen.as_deref() != Some(current_version) {
                         let raw_env = env!("LAST_CHANGELOG");
                         let lines = utils::parse_last_changelog_to_markdown_lines(raw_env);
+                        let main_state = main_window.global::<MainState>();
 
-                        // convertir a ModelRc y enviarlo al UI
-                        main_window
-                            .global::<MainState>()
-                            .set_last_changelog(ModelRc::from(lines.as_slice()));
+                        main_state.set_last_changelog(ModelRc::from(lines.as_slice()));
 
-                        main_window
-                            .global::<MainState>()
-                            .set_show_changelog_on_start(true);
+                        main_state.set_show_changelog_on_start(true);
 
                         let mut save_settings = updated_settings.clone();
                         save_settings.last_seen_version = Some(current_version.to_string());
                         data_manager.save(&save_settings);
                     }
+
+                    let mut main_shared_view = main_window.global::<ViewState>().get_shared_view();
+                    if let Some(font) = updated_settings.content_font {
+                        main_shared_view.font = font;
+                    }
+                    if let Some(font) = updated_settings.verse_font {
+                        main_shared_view.verse_font = font;
+                    }
+                    main_window
+                        .global::<ViewState>()
+                        .set_shared_view(main_shared_view);
 
                     let view_window = view_window.unwrap();
                     let state = view_window.global::<ViewState>();
@@ -461,8 +468,19 @@ fn main() {
     });
 
     main_window.window().on_close_requested({
+        let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
+        let data_manager = data_manager.clone();
         move || {
+            let main_window = main_window.unwrap();
+            let mut settings = data_manager.load::<AppSettings>();
+            let shared_view = main_window.global::<ViewState>().get_shared_view();
+
+            settings.content_font.replace(shared_view.font);
+            settings.verse_font.replace(shared_view.verse_font);
+
+            data_manager.save(&settings);
+
             view_window.unwrap().hide().unwrap();
             slint::CloseRequestResponse::HideWindow
         }

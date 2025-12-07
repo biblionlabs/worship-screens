@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use serde::{Deserialize, Serialize};
-use ui::FileItem;
+use ui::{FileItem, ViewFontData};
 
 use crate::media_manager::MediaItem;
 use crate::user_data::Save;
@@ -49,6 +49,8 @@ impl_deref! {
 pub struct AppSettings {
     pub last_screen: Option<String>,
     pub last_seen_version: Option<String>,
+    pub content_font: Option<ViewFontData>,
+    pub verse_font: Option<ViewFontData>,
 }
 
 impl Save for AppSettings {

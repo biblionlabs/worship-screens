@@ -3,7 +3,9 @@ export struct ViewBackgroundColor {
     b: color,
 }
 
+@rust-attr(derive(serde::Serialize, serde::Deserialize))
 export struct ViewFontData {
+    name: string,
     color: color,
     stroke: color,
     stroke-size: length,
