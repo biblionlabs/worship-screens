@@ -3,8 +3,104 @@ import {
     ColorPickerPosition,
 } from "color-picker-button.slint";
 import { Palette } from "std-widgets.slint";
-import { ViewData, ViewState } from "../api/view-state.slint";
+import { ViewData, ViewFontData, ViewState } from "../api/view-state.slint";
 import { SliderLabel } from "input/slider-label.slint";
+
+export component FontEditSection inherits VerticalLayout {
+    spacing: 12px;
+
+    in property <string> name;
+    in property <ColorPickerPosition> color-popup-position;
+    in-out property <ViewFontData> font;
+
+    Rectangle {
+        height: 35px;
+        background: Palette.alternate-background;
+        border-radius: 6px;
+
+        HorizontalLayout {
+            padding: 10px;
+            Text {
+                text: name;
+                font-size: 15px;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 20px;
+        alignment: start;
+
+        VerticalLayout {
+            spacing: 6px;
+
+            Text {
+                text: "Texto";
+                font-size: 13px;
+                font-weight: 500;
+            }
+
+            ColorPickerButton {
+                width: 40px;
+                height: 40px;
+                position: color-popup-position;
+                allow-gradient: false;
+                selected-color: ViewState.color-to-view(font.color);
+                color-changed(color) => {
+                    font.color = color.a;
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 6px;
+
+            Text {
+                text: "Borde";
+                font-size: 13px;
+                font-weight: 500;
+            }
+
+            ColorPickerButton {
+                width: 40px;
+                height: 40px;
+                position: color-popup-position;
+                allow-gradient: false;
+                selected-color: ViewState.color-to-view(font.stroke);
+                color-changed(color) => {
+                    font.stroke = color.a;
+                }
+            }
+        }
+
+        SliderLabel {
+            width: 65%;
+            minimum: 0;
+            maximum: 50;
+            sufix: "px";
+            label: "Grosor";
+            value: font.stroke-size / 1px;
+            value-show: Math.round(font.stroke-size / 1px);
+            changed value => {
+                font.stroke-size = self.value * 1px;
+            }
+        }
+    }
+
+    SliderLabel {
+        minimum: 24;
+        maximum: 1024;
+        sufix: "px";
+        label: "Tamaño de Fuente";
+        value: font.font-size / 1px;
+        value-show: Math.round(font.font-size / 1px);
+        changed value => {
+            font.font-size = self.value * 1px;
+        }
+    }
+}
 
 export component FontEdit inherits VerticalLayout {
     alignment: start;
@@ -13,187 +109,23 @@ export component FontEdit inherits VerticalLayout {
     in-out property <ViewData> data;
     in property <ColorPickerPosition> color-popup-position;
 
-    VerticalLayout {
-        spacing: 12px;
+    FontEditSection {
+        name: "📝 Fuente Principal (Contenido)";
+        font: data.font;
+        color-popup-position <=> color-popup-position;
 
-        Rectangle {
-            height: 35px;
-            background: Palette.alternate-background;
-            border-radius: 6px;
-
-            HorizontalLayout {
-                padding: 10px;
-                Text {
-                    text: "📝 Fuente Principal (Contenido)";
-                    font-size: 15px;
-                    font-weight: 600;
-                    vertical-alignment: center;
-                }
-            }
-        }
-
-        HorizontalLayout {
-            spacing: 20px;
-            alignment: start;
-
-            VerticalLayout {
-                spacing: 6px;
-
-                Text {
-                    text: "Texto";
-                    font-size: 13px;
-                    font-weight: 500;
-                }
-
-                ColorPickerButton {
-                    width: 40px;
-                    height: 40px;
-                    position: color-popup-position;
-                    allow-gradient: false;
-                    selected-color: ViewState.color-to-view(data.font.color);
-                    color-changed(color) => {
-                        data.font.color = color.a;
-                    }
-                }
-            }
-
-            VerticalLayout {
-                spacing: 6px;
-
-                Text {
-                    text: "Borde";
-                    font-size: 13px;
-                    font-weight: 500;
-                }
-
-                ColorPickerButton {
-                    width: 40px;
-                    height: 40px;
-                    position: color-popup-position;
-                    allow-gradient: false;
-                    selected-color: ViewState.color-to-view(data.font.stroke);
-                    color-changed(color) => {
-                        data.font.stroke = color.a;
-                    }
-                }
-            }
-
-            SliderLabel {
-                width: 65%;
-                minimum: 0;
-                maximum: 50;
-                sufix: "px";
-                label: "Grosor";
-                value: data.font.stroke-size / 1px;
-                value-show: Math.round(data.font.stroke-size / 1px);
-                changed value => {
-                    data.font.stroke-size = self.value * 1px;
-                }
-            }
-        }
-
-        SliderLabel {
-            minimum: 24;
-            maximum: 1024;
-            sufix: "px";
-            label: "Tamaño de Fuente";
-            value: data.font.font-size / 1px;
-            value-show: Math.round(data.font.font-size / 1px);
-            changed value => {
-                data.font.font-size = self.value * 1px;
-            }
+        changed font => {
+            data.font = self.font;
         }
     }
 
-    VerticalLayout {
-        spacing: 12px;
+    FontEditSection {
+        name: "📖 Fuente del Versículo";
+        font: data.verse-font;
+        color-popup-position <=> color-popup-position;
 
-        Rectangle {
-            height: 35px;
-            background: Palette.alternate-background;
-            border-radius: 6px;
-
-            HorizontalLayout {
-                padding: 10px;
-                Text {
-                    text: "📖 Fuente del Versículo";
-                    font-size: 15px;
-                    font-weight: 600;
-                    vertical-alignment: center;
-                }
-            }
-        }
-
-        HorizontalLayout {
-            spacing: 20px;
-            alignment: start;
-
-            VerticalLayout {
-                spacing: 6px;
-
-                Text {
-                    text: "Texto";
-                    font-size: 13px;
-                    font-weight: 500;
-                }
-
-                ColorPickerButton {
-                    width: 40px;
-                    height: 40px;
-                    position: color-popup-position;
-                    allow-gradient: false;
-                    selected-color: ViewState.color-to-view(data.verse-font.color);
-                    color-changed(color) => {
-                        data.verse-font.color = color.a;
-                    }
-                }
-            }
-
-            VerticalLayout {
-                spacing: 6px;
-
-                Text {
-                    text: "Borde";
-                    font-size: 13px;
-                    font-weight: 500;
-                }
-
-                ColorPickerButton {
-                    width: 40px;
-                    height: 40px;
-                    position: color-popup-position;
-                    allow-gradient: false;
-                    selected-color: ViewState.color-to-view(data.verse-font.stroke);
-                    color-changed(color) => {
-                        data.verse-font.stroke = color.a;
-                    }
-                }
-            }
-
-            SliderLabel {
-                width: 65%;
-                minimum: 0;
-                maximum: 50;
-                sufix: "px";
-                label: "Grosor";
-                value: data.verse-font.stroke-size / 1px;
-                value-show: Math.round(data.verse-font.stroke-size / 1px);
-                changed value => {
-                    data.verse-font.stroke-size = self.value * 1px;
-                }
-            }
-        }
-
-        SliderLabel {
-            minimum: 18;
-            maximum: 1024;
-            sufix: "px";
-            label: "Tamaño de Fuente";
-            value: data.verse-font.font-size / 1px;
-            value-show: Math.round(data.verse-font.font-size / 1px);
-            changed value => {
-                data.verse-font.font-size = self.value * 1px;
-            }
+        changed font => {
+            data.verse-font = self.font;
         }
     }
 }
