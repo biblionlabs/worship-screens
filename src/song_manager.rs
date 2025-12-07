@@ -45,20 +45,27 @@ impl SongsManager {
                         event.kind,
                         EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
                     ) {
-                        let window = window.unwrap();
-                        let state = window.global::<SongsState>();
-                        let mut songs_cache = songs_cache.lock().unwrap();
+                        _ = slint::invoke_from_event_loop({
+                            let window = window.clone();
+                            let songs_cache = songs_cache.clone();
+                            move || {
+                                let Some(window) = window.upgrade() else {
+                                    return;
+                                };
+                                let state = window.global::<SongsState>();
+                                let mut songs_cache = songs_cache.lock().unwrap();
+                                for path in event.paths {
+                                    if !path.exists() {
+                                        remove_song_from_cache(&path, &state, &mut songs_cache);
+                                        continue;
+                                    }
 
-                        for path in event.paths {
-                            if !path.exists() {
-                                remove_song_from_cache(&path, &state, &mut songs_cache);
-                                continue;
+                                    if path.is_file() {
+                                        process_file_into_state(&path, &state, &mut songs_cache);
+                                    }
+                                }
                             }
-
-                            if path.is_file() {
-                                process_file_into_state(&path, &state, &mut songs_cache);
-                            }
-                        }
+                        });
                     }
                 }
             }
