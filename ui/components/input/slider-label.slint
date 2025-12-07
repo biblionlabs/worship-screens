@@ -1,0 +1,37 @@
+import { Slider, Palette, LineEdit } from "std-widgets.slint";
+
+export component SliderLabel inherits VerticalLayout {
+    spacing: 6px;
+    alignment: start;
+
+    in property <string> label;
+    in property <string> sufix: "px";
+    in property <float> minimum;
+    in property <float> maximum;
+    in property <float> value-show;
+
+    in-out property <float> value;
+
+    HorizontalLayout {
+        alignment: space-between;
+        Text {
+            text: label;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        HorizontalLayout {
+            Text {
+                text: sufix;
+                font-size: 13px;
+                color: Palette.foreground.with-alpha(70%);
+            }
+        }
+    }
+
+    Slider {
+        minimum: minimum;
+        maximum: maximum;
+        value <=> root.value;
+    }
+}

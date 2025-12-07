@@ -2,8 +2,9 @@ import {
     ColorPickerButton,
     ColorPickerPosition,
 } from "color-picker-button.slint";
-import { Slider, Palette } from "std-widgets.slint";
+import { Palette } from "std-widgets.slint";
 import { ViewData, ViewState } from "../api/view-state.slint";
+import { SliderLabel } from "input/slider-label.slint";
 
 export component FontEdit inherits VerticalLayout {
     alignment: start;
@@ -77,61 +78,29 @@ export component FontEdit inherits VerticalLayout {
                 }
             }
 
-            VerticalLayout {
-                spacing: 6px;
+            SliderLabel {
                 width: 65%;
-
-                HorizontalLayout {
-                    alignment: space-between;
-                    Text {
-                        text: "Grosor";
-                        font-size: 13px;
-                        font-weight: 500;
-                    }
-
-                    Text {
-                        text: Math.round(data.font.stroke-size / 1px) + "px";
-                        font-size: 13px;
-                        color: Palette.foreground.with-alpha(70%);
-                    }
-                }
-
-                Slider {
-                    minimum: 0;
-                    maximum: 50;
-                    value: data.font.stroke-size / 1px;
-                    changed value => {
-                        data.font.stroke-size = self.value * 1px;
-                    }
+                minimum: 0;
+                maximum: 50;
+                sufix: "px";
+                label: "Grosor";
+                value: data.font.stroke-size / 1px;
+                value-show: Math.round(data.font.stroke-size / 1px);
+                changed value => {
+                    data.font.stroke-size = self.value * 1px;
                 }
             }
         }
 
-        VerticalLayout {
-            spacing: 6px;
-
-            HorizontalLayout {
-                alignment: space-between;
-                Text {
-                    text: "Tamaño de Fuente";
-                    font-size: 13px;
-                    font-weight: 500;
-                }
-
-                Text {
-                    text: round(data.font.font-size / 1px) + "px";
-                    font-size: 13px;
-                    color: Palette.foreground.with-alpha(70%);
-                }
-            }
-
-            Slider {
-                minimum: 24;
-                maximum: 1024;
-                value: data.font.font-size / 1px;
-                changed value => {
-                    data.font.font-size = self.value * 1px;
-                }
+        SliderLabel {
+            minimum: 24;
+            maximum: 1024;
+            sufix: "px";
+            label: "Tamaño de Fuente";
+            value: data.font.font-size / 1px;
+            value-show: Math.round(data.font.font-size / 1px);
+            changed value => {
+                data.font.font-size = self.value * 1px;
             }
         }
     }
@@ -201,61 +170,29 @@ export component FontEdit inherits VerticalLayout {
                 }
             }
 
-            VerticalLayout {
-                spacing: 6px;
+            SliderLabel {
                 width: 65%;
-
-                HorizontalLayout {
-                    alignment: space-between;
-                    Text {
-                        text: "Grosor";
-                        font-size: 13px;
-                        font-weight: 500;
-                    }
-
-                    Text {
-                        text: Math.round(data.verse-font.stroke-size / 1px) + "px";
-                        font-size: 13px;
-                        color: Palette.foreground.with-alpha(70%);
-                    }
-                }
-
-                Slider {
-                    minimum: 0;
-                    maximum: 50;
-                    value: data.verse-font.stroke-size / 1px;
-                    changed value => {
-                        data.verse-font.stroke-size = self.value * 1px;
-                    }
+                minimum: 0;
+                maximum: 50;
+                sufix: "px";
+                label: "Grosor";
+                value: data.verse-font.stroke-size / 1px;
+                value-show: Math.round(data.verse-font.stroke-size / 1px);
+                changed value => {
+                    data.verse-font.stroke-size = self.value * 1px;
                 }
             }
         }
 
-        VerticalLayout {
-            spacing: 6px;
-
-            HorizontalLayout {
-                alignment: space-between;
-                Text {
-                    text: "Tamaño de Fuente";
-                    font-size: 13px;
-                    font-weight: 500;
-                }
-
-                Text {
-                    text: round(data.verse-font.font-size / 1px) + "px";
-                    font-size: 13px;
-                    color: Palette.foreground.with-alpha(70%);
-                }
-            }
-
-            Slider {
-                minimum: 18;
-                maximum: 1024;
-                value: data.verse-font.font-size / 1px;
-                changed value => {
-                    data.verse-font.font-size = self.value * 1px;
-                }
+        SliderLabel {
+            minimum: 18;
+            maximum: 1024;
+            sufix: "px";
+            label: "Tamaño de Fuente";
+            value: data.verse-font.font-size / 1px;
+            value-show: Math.round(data.verse-font.font-size / 1px);
+            changed value => {
+                data.verse-font.font-size = self.value * 1px;
             }
         }
     }
