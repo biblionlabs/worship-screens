@@ -16,6 +16,7 @@ use slint::{
     Color, ComponentHandle, Image, ModelRc, Rgb8Pixel, SharedPixelBuffer, SharedString,
     ToSharedString, Weak,
 };
+use tracing::error;
 use ui::{MainWindow, ViewData, ViewFontData, ViewState, ViewWindow};
 
 use crate::bitstream_converter::Mp4BitstreamConverter;
@@ -335,7 +336,7 @@ impl MediaManager {
 
                     instance.play_output_video(logo_data);
                 } else {
-                    eprintln!("No logo configured");
+                    error!("No logo configured");
                 }
             }
         });
@@ -580,14 +581,14 @@ impl MediaManager {
         view_window: Option<Weak<ViewWindow>>,
     ) {
         let Ok(src_file) = File::open(&source_path) else {
-            eprintln!("Cannot open video file: {source_path:?}");
+            error!("Cannot open video file: {source_path:?}");
             return;
         };
 
         let size = src_file.metadata().unwrap().len();
         let reader = BufReader::new(src_file);
         let Ok(mut mp4_reader) = Mp4Reader::read_header(reader, size) else {
-            eprintln!("Cannot read MP4 header: {source_path:?}");
+            error!("Cannot read MP4 header: {source_path:?}");
             return;
         };
 
@@ -596,14 +597,14 @@ impl MediaManager {
             .iter()
             .find(|(_, t)| t.media_type().ok() == Some(mp4::MediaType::H264))
         else {
-            eprintln!("No H264 track found");
+            error!("No H264 track found");
             return;
         };
 
         let decoder_options = DecoderConfig::new().flush_after_decode(Flush::NoFlush);
         let Ok(mut decoder) = Decoder::with_api_config(OpenH264API::from_source(), decoder_options)
         else {
-            eprintln!("Cannot create decoder");
+            error!("Cannot create decoder");
             return;
         };
 
@@ -692,16 +693,16 @@ impl MediaManager {
             return Image::load_from_path(&source_path).ok();
         }
         let src_file = File::open(source_path)
-            .inspect_err(|e| eprintln!("Cannot open file: {e}"))
+            .inspect_err(|e| error!("Cannot open file: {e}"))
             .ok()?;
         let size = src_file
             .metadata()
-            .inspect_err(|e| eprintln!("Cannot get metadata: {e}"))
+            .inspect_err(|e| error!("Cannot get metadata: {e}"))
             .ok()?
             .len();
         let reader = BufReader::new(src_file);
         let mut mp4_reader = Mp4Reader::read_header(reader, size)
-            .inspect_err(|e| eprintln!("Cannot read mp4 reader: {e}"))
+            .inspect_err(|e| error!("Cannot read mp4 reader: {e}"))
             .ok()?;
 
         let (_, track) = mp4_reader
@@ -711,14 +712,14 @@ impl MediaManager {
 
         let decoder_options = DecoderConfig::new().flush_after_decode(Flush::NoFlush);
         let mut decoder = Decoder::with_api_config(OpenH264API::from_source(), decoder_options)
-            .inspect_err(|e| eprintln!("Cannot decode: {e}"))
+            .inspect_err(|e| error!("Cannot decode: {e}"))
             .ok()?;
 
         let track_id = track.track_id();
         let width = track.width() as usize;
         let height = track.height() as usize;
         let mut bitstream_converter = Mp4BitstreamConverter::for_mp4_track(track)
-            .inspect_err(|e| eprintln!("Cannot convert mp4 bitstream: {e}"))
+            .inspect_err(|e| error!("Cannot convert mp4 bitstream: {e}"))
             .ok()?;
         let mut buffer = Vec::new();
 

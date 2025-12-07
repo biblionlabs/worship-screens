@@ -8,6 +8,10 @@ use setup_core::{SqliteDbSink, event};
 use slint::winit_030::WinitWindowAccessor;
 use slint::winit_030::winit::monitor::MonitorHandle;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, ToSharedString};
+use tracing::error;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::EnvFilter;
+
 use ui::*;
 
 use self::bibles_manager::BiblesManager;
@@ -30,6 +34,24 @@ mod user_data;
 fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
     let data_manager: Arc<UserData> = Default::default();
+
+    // Start Traing
+    let builder = tracing_appender::rolling::Builder::new()
+        .rotation(tracing_appender::rolling::Rotation::DAILY)
+        .filename_suffix(".log")
+        .build(data_manager.data_dir(&["logs"]))
+        .unwrap();
+    let (non_blocking, _guard) = tracing_appender::non_blocking(builder);
+    tracing_subscriber::fmt()
+        .with_ansi(false)
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .try_from_env()
+                .unwrap_or_default(),
+        )
+        .with_writer(non_blocking)
+        .init();
 
     let main_window = MainWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
@@ -61,13 +83,9 @@ fn main() {
             "https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/spa_rv1960/desc.json",
             Some("https://raw.githubusercontent.com/biblionlabs/extra_data_source/refs/heads/main/bibles/{bible_id}/books/{book}.json")
         )
-        .on::<event::Message>({
-            move |msg| {
-                println!("Msg: {msg}");
-            }})
         .on::<event::Error>({
             move |e| {
-                Notification::new().summary("Worship Screens Failed to install Bible").body(&e).show().inspect_err(|e| eprintln!("{e}")).unwrap();
+                Notification::new().summary("Worship Screens Failed to install Bible").body(&e).show().inspect_err(|e| error!("{e}")).unwrap();
             }})
         .on::<event::Progress>({
             let main_window = main_window.as_weak();
@@ -93,7 +111,7 @@ fn main() {
                                         .summary("Worship Screens Bible Installed")
                                         .body(&format!("{} success installed", bible.name.as_str()))
                                         .show()
-                                        .inspect_err(|e| eprintln!("{e}"));
+                                        .inspect_err(|e| error!("{e}"));
                                 }
                                 bibles.set_row_data(idx, bible);
                             }

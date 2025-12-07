@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
+use tracing::error;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CachedRelease {
@@ -23,26 +24,26 @@ struct GithubRelease {
 
 pub fn check_for_updates(cache_dir: &PathBuf) -> Option<CachedRelease> {
     fs::create_dir_all(&cache_dir)
-        .inspect_err(|e| eprint!("Error: {e}"))
+        .inspect_err(|e| error!("Error: {e}"))
         .ok()?;
 
     let cache_file = cache_dir.join("latest_release.json");
     let current_version = Version::parse(env!("CARGO_PKG_VERSION"))
-        .inspect_err(|e| eprint!("Error: {e}"))
+        .inspect_err(|e| error!("Error: {e}"))
         .ok()?;
 
     let should_fetch = if cache_file.exists() {
         let cached_data: CachedRelease = serde_json::from_str(
             &fs::read_to_string(&cache_file)
-                .inspect_err(|e| eprint!("Error: {e}"))
+                .inspect_err(|e| error!("Error: {e}"))
                 .ok()?,
         )
-        .inspect_err(|e| eprint!("Error: {e}"))
+        .inspect_err(|e| error!("Error: {e}"))
         .ok()?;
         let cached_time = SystemTime::UNIX_EPOCH + Duration::from_secs(cached_data.timestamp);
         let elapsed = SystemTime::now()
             .duration_since(cached_time)
-            .inspect_err(|e| eprint!("Error: {e}"))
+            .inspect_err(|e| error!("Error: {e}"))
             .ok()?;
 
         elapsed.as_secs() > 172800
@@ -62,16 +63,16 @@ pub fn check_for_updates(cache_dir: &PathBuf) -> Option<CachedRelease> {
             .get(&api_url)
             .header("User-Agent", "rust-update-checker")
             .send()
-            .inspect_err(|e| eprint!("Error: {e}"))
+            .inspect_err(|e| error!("Error: {e}"))
             .ok()?
             .json()
-            .inspect_err(|e| eprint!("Error: {e}"))
+            .inspect_err(|e| error!("Error: {e}"))
             .ok()?;
 
         let latest = releases
             .first()
             .ok_or("No releases found")
-            .inspect_err(|e| eprint!("Error: {e}"))
+            .inspect_err(|e| error!("Error: {e}"))
             .ok()?;
 
         let cached = CachedRelease {
@@ -80,7 +81,7 @@ pub fn check_for_updates(cache_dir: &PathBuf) -> Option<CachedRelease> {
             prerelease: latest.prerelease,
             timestamp: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
-                .inspect_err(|e| eprint!("Error: {e}"))
+                .inspect_err(|e| error!("Error: {e}"))
                 .ok()?
                 .as_secs(),
         };
@@ -88,26 +89,26 @@ pub fn check_for_updates(cache_dir: &PathBuf) -> Option<CachedRelease> {
         fs::write(
             &cache_file,
             serde_json::to_string_pretty(&cached)
-                .inspect_err(|e| eprint!("Error: {e}"))
+                .inspect_err(|e| error!("Error: {e}"))
                 .ok()?,
         )
-        .inspect_err(|e| eprint!("Error: {e}"))
+        .inspect_err(|e| error!("Error: {e}"))
         .ok()?;
 
         cached
     } else {
         serde_json::from_str(
             &fs::read_to_string(&cache_file)
-                .inspect_err(|e| eprint!("Error: {e}"))
+                .inspect_err(|e| error!("Error: {e}"))
                 .ok()?,
         )
-        .inspect_err(|e| eprint!("Error: {e}"))
+        .inspect_err(|e| error!("Error: {e}"))
         .ok()?
     };
 
     let release_version_str = latest_release.tag_name.trim_start_matches('v');
     let release_version = Version::parse(release_version_str)
-        .inspect_err(|e| eprint!("Error: {e}"))
+        .inspect_err(|e| error!("Error: {e}"))
         .ok()?;
 
     if release_version > current_version {
@@ -118,7 +119,7 @@ pub fn check_for_updates(cache_dir: &PathBuf) -> Option<CachedRelease> {
                 latest_release.tag_name,
             ))
             .show()
-            .inspect_err(|e| eprint!("Error: {e}"))
+            .inspect_err(|e| error!("Error: {e}"))
             .ok()?;
         #[cfg(target_os = "linux")]
         _n.wait_for_action(|action| {

@@ -65,3 +65,6 @@ notify-rust = { version = "4.11", default-features = false, features = ["z"] }
 semver = "1.0.27"
 reqwest = { version = "0.12.24", default-features = false, features = ["json", "rustls-tls", "system-proxy", "http2"] }
 open = "5.3.3"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+tracing = "0.1.43"
+tracing-appender = "0.2.4"
