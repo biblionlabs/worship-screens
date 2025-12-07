@@ -182,7 +182,7 @@ export component MainWindow inherits Window {
                                                 verses-list.focus();
                                                 verses-list.current-focused = idx;
                                                 ViewState.shared-view.content = e.text;
-                                                ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                                ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
                                                 root.send-to-view();
                                             }
 
@@ -560,6 +560,7 @@ export component MainWindow inherits Window {
                 height: self.width / 1.7;
                 window-height: 400px / 1.7;
                 window-width: 400px;
+                render-scale: 0.3;
                 data <=> ViewState.shared-view;
             }
 

@@ -1,6 +1,7 @@
 import { ViewData, ViewState } from "../api/view-state.slint";
 
 export component View inherits Rectangle {
+    in property <float> render-scale: 1.0;
     in property <length> window-width: ViewState.window-width;
     in property <length> window-height: ViewState.window-height;
     in-out property <ViewData> data: {
@@ -9,6 +10,13 @@ export component View inherits Rectangle {
     };
 
     clip: true;
+
+    property <length> computed-content-fs: data.font.font-size * render-scale;
+    property <length> computed-verse-fs: data.verse-font.font-size * render-scale;
+
+    property <length> computed-stroke-width: data.font.stroke-size * render-scale;
+    property <length> computed-verse-stroke-width: data.verse-font.stroke-size * render-scale;
+    property <length> verse-bottom-offset: 30px * render-scale;
 
     Rectangle {
         width: parent.width;
@@ -31,47 +39,23 @@ export component View inherits Rectangle {
         wrap: word-wrap;
         color: data.font.color;
         stroke: data.font.stroke;
-        stroke-width: data.font.stroke-size;
+        stroke-width: computed-stroke-width;
         stroke-style: outside;
         horizontal-alignment: center;
         vertical-alignment: center;
         text: data.content;
-        font-size: {
-            let text-length = data.content.character-count;
-
-            let available-height = (root.window-width - data.verse-font.font-size - 30px) / 1px;
-            let available-width = (root.window-height - 30px) / 1px;
-
-            // Estimación de área necesaria por carácter (ajustable)
-            // Un carácter ocupa aprox: ancho_fuente * alto_fuente
-            // Para fuente proporcional: ancho ≈ 0.6 * altura
-
-            // Calculamos cuántas líneas aproximadas tendremos
-            // Caracteres por línea ≈ ancho_disponible / (font-size * 0.6)
-            // Total líneas ≈ total_caracteres / caracteres_por_línea
-
-            // Fórmula inversa: dado el espacio, encontrar font-size óptimo
-            // Alto total necesario = num_lineas * font-size * 1.2 (line-height)
-            // available-height = (text-length / (available-width / (font-size * 0.6))) * font-size * 1.2
-
-            // Simplificando y resolviendo para font-size:
-            let area-factor = sqrt(available-height * available-width / text-length);
-            let calculated = area-factor * 1.2; // Factor de ajuste (reducir para más margen)
-
-            // Aplicar límites
-            max(ViewState.min-font-size, min(ViewState.max-font-size, calculated * 1px))
-        };
+        font-size: computed-content-fs;
     }
 
     if !data.verse.is-empty: Text {
-        y: parent.height - data.verse-font.font-size - 30px;
+        y: parent.height - computed-verse-fs - verse-bottom-offset;
         text: data.verse;
-        font-size: data.verse-font.font-size;
         color: data.verse-font.color;
         stroke: data.verse-font.stroke;
-        stroke-width: data.verse-font.stroke-size;
+        stroke-width: computed-verse-stroke-width;
         stroke-style: outside;
         horizontal-alignment: center;
         vertical-alignment: center;
+        font-size: computed-verse-fs;
     }
 }

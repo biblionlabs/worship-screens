@@ -44,8 +44,6 @@ export global ViewState {
     };
     in property <length> window-width: 720px - 30px;
     in property <length> window-height: 423px - 30px;
-    in property <length> min-font-size: 4px;
-    in property <length> max-font-size: 120px;
 
     callback apply-changes(EditMode);
     callback select-file();
@@ -64,12 +62,13 @@ export global ViewState {
                 color: Colors.white,
                 stroke: Colors.black,
                 stroke-size: 2px,
+                font-size: 120px,
             },
             verse-font: {
                 color: Colors.white,
                 stroke: Colors.black,
                 stroke-size: 2px,
-                font-size: 24px,
+                font-size: 80px,
             },
         };
     }

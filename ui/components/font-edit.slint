@@ -1,4 +1,7 @@
-import { ColorPickerButton, ColorPickerPosition } from "color-picker-button.slint";
+import {
+    ColorPickerButton,
+    ColorPickerPosition,
+} from "color-picker-button.slint";
 import { Slider, Palette } from "std-widgets.slint";
 import { ViewData, ViewState } from "../api/view-state.slint";
 
@@ -95,11 +98,39 @@ export component FontEdit inherits VerticalLayout {
 
                 Slider {
                     minimum: 0;
-                    maximum: 10;
+                    maximum: 50;
                     value: data.font.stroke-size / 1px;
                     changed value => {
                         data.font.stroke-size = self.value * 1px;
                     }
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 6px;
+
+            HorizontalLayout {
+                alignment: space-between;
+                Text {
+                    text: "Tamaño de Fuente";
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                Text {
+                    text: round(data.font.font-size / 1px) + "px";
+                    font-size: 13px;
+                    color: Palette.foreground.with-alpha(70%);
+                }
+            }
+
+            Slider {
+                minimum: 24;
+                maximum: 1024;
+                value: data.font.font-size / 1px;
+                changed value => {
+                    data.font.font-size = self.value * 1px;
                 }
             }
         }
@@ -191,7 +222,7 @@ export component FontEdit inherits VerticalLayout {
 
                 Slider {
                     minimum: 0;
-                    maximum: 10;
+                    maximum: 50;
                     value: data.verse-font.stroke-size / 1px;
                     changed value => {
                         data.verse-font.stroke-size = self.value * 1px;
@@ -219,8 +250,8 @@ export component FontEdit inherits VerticalLayout {
             }
 
             Slider {
-                minimum: ViewState.min-font-size / 1px;
-                maximum: ViewState.max-font-size / 1px;
+                minimum: 18;
+                maximum: 1024;
                 value: data.verse-font.font-size / 1px;
                 changed value => {
                     data.verse-font.font-size = self.value * 1px;
