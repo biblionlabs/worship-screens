@@ -165,7 +165,7 @@ export component MainWindow inherits Window {
                                     item-focused(index) => {
                                         let e = MainState.verses[index];
                                         ViewState.shared-view.content = e.text;
-                                        ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                        ViewState.shared-view.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
                                         root.send-to-view();
                                     }
                                     ListView {
@@ -176,7 +176,7 @@ export component MainWindow inherits Window {
 
                                             preview => {
                                                 ViewState.shared-view.content = e.text;
-                                                ViewState.shared-view.verse = (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                                ViewState.shared-view.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
                                             }
                                             send-to-view => {
                                                 verses-list.focus();
@@ -194,7 +194,7 @@ export component MainWindow inherits Window {
                                                     overflow: elide;
                                                     vertical-alignment: center;
                                                     color: Palette.foreground;
-                                                    text: (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a + (e.verse.b > 0 ? "-" + e.verse.b : "") : "") : "");
+                                                    text: (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
                                                 }
 
                                                 Text {
@@ -546,7 +546,7 @@ export component MainWindow inherits Window {
                 alignment: end;
 
                 clear-img-btn := Button {
-                    visible: ViewState.shared-view.show-img; 
+                    visible: ViewState.shared-view.show-img;
                     text: "Stop Video/Image";
                 }
 
