@@ -17,6 +17,7 @@ import { FileItem, SongsState } from "api/songs.slint";
 import { EditMode, ViewState, ViewBackgroundColor } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
+import { MarkdownLine, MarkdownLineKind } from "components/markdown.slint";
 import { ColorPicker } from "components/color-picker.slint";
 import { Renderable, RenderableList } from "components/base/renderable.slint";
 import { FileManagerDialog } from "dialogs/songs.slint";
@@ -24,14 +25,17 @@ import { MultimediaDialog } from "dialogs/media-selector.slint";
 import { BiblesDialog } from "dialogs/bibles.slint";
 import { FontEdit } from "components/font-edit.slint";
 import { ColorPickerButton } from "components/color-picker-button.slint";
+import { ChangelogDialog } from "dialogs/changelog.slint";
 
-export { Bible, EditMode, FileItem, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
+export { Bible, EditMode, FileItem, MarkdownLine, MarkdownLineKind, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export global MainState {
     in property <bool> need-update;
     in-out property <[string]> saved-texts;
     in property <[Verse]> verses;
     in-out property <[Bible]> bibles;
+    in property <[MarkdownLine]> last-changelog;
+    in property <bool> show-changelog-on-start;
 
     callback search-bible(string);
     callback install-bible(string);
@@ -49,6 +53,7 @@ export component MainWindow inherits Window {
     callback search-verse <=> search-verse-input.edited;
 
     callback start-window();
+    callback open(string);
     callback open-release();
 
     callback shutdown-output();
@@ -67,6 +72,9 @@ export component MainWindow inherits Window {
             start-window();
             ViewState.window-width = preview.width;
             ViewState.window-height = preview.height;
+            if MainState.show-changelog-on-start {
+                dialog-changelog.show();
+            }
             starter-timer.stop();
         }
     }
@@ -584,6 +592,14 @@ export component MainWindow inherits Window {
             bibles <=> MainState.bibles;
             search(query) => MainState.search-bible(query);
             install-bible(id) => MainState.install-bible(id);
+        }
+
+        dialog-changelog := ChangelogDialog {
+            width: root.width;
+            height: root.height;
+            changelog: MainState.last-changelog;
+            donate-clicked => open("https://github.com/biblionlabs/worship-screens");
+            homepage-clicked => open("https://github.com/biblionlabs/worship-screens");
         }
     }
 }

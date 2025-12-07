@@ -1,0 +1,88 @@
+import { Palette } from "std-widgets.slint";
+
+export enum MarkdownLineKind {
+    h2,
+    h3,
+    p,
+    li,
+    code,
+    hr
+}
+
+export struct MarkdownLine {
+    kind: MarkdownLineKind,
+    text: string,
+    level: int,
+    bullet: string,
+}
+
+export component MarkdownView inherits VerticalLayout {
+    in property <[MarkdownLine]> markdown;
+
+    spacing: 6px;
+
+    for line in markdown: HorizontalLayout {
+
+        if line.kind == MarkdownLineKind.h2: HorizontalLayout {
+            padding-top: 10px;
+            Text {
+                text: line.text;
+                font-size: 22px;
+                font-weight: 800;
+                color: Palette.foreground;
+                wrap: word-wrap;
+            }
+        }
+        if line.kind == MarkdownLineKind.h3: HorizontalLayout {
+            padding-top: 10px;
+            Text {
+                text: line.text;
+                font-size: 16px;
+                font-weight: 700;
+                color: Palette.foreground.darker(40%);
+                wrap: word-wrap;
+            }
+        }
+        if line.kind == MarkdownLineKind.li: HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+
+            Text {
+                text: line.bullet == "" ? "•" : line.bullet;
+                font-size: 12px;
+                vertical-alignment: center;
+                color: Palette.foreground.darker(20%);
+            }
+
+            Text {
+                text: line.text;
+                font-size: 12px;
+                wrap: word-wrap;
+                color: Palette.foreground;
+            }
+        }
+        if line.kind == MarkdownLineKind.code: Rectangle {
+            background: Palette.alternate-background;
+            border-radius: 4px;
+
+            Text {
+                text: line.text;
+                font-family: "monospace";
+                font-size: 12px;
+                wrap: word-wrap;
+                color: Palette.foreground;
+            }
+        }
+        if line.kind == MarkdownLineKind.hr: Rectangle {
+            height: 1px;
+            width: 100%;
+            background: Palette.alternate-background.darker(40%);
+        }
+        if line.kind == MarkdownLineKind.p: Text {
+            text: line.text;
+            font-size: 12px;
+            wrap: word-wrap;
+            color: Palette.foreground;
+        }
+    }
+}

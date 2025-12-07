@@ -48,6 +48,7 @@ impl_deref! {
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct AppSettings {
     pub last_screen: Option<String>,
+    pub last_seen_version: Option<String>,
 }
 
 impl Save for AppSettings {

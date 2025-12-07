@@ -30,6 +30,7 @@ mod media_manager;
 mod settings;
 mod song_manager;
 mod user_data;
+mod utils;
 
 fn main() {
     let monitors: Arc<Mutex<HashMap<String, MonitorHandle>>> = Default::default();
@@ -143,11 +144,17 @@ fn main() {
         }
     });
 
+    main_window.on_open(move |url| {
+        let _ = open::that(url.as_str())
+            .inspect_err(|e| error!("Failed to open URL: {} => {e}", url.as_str()));
+    });
     main_window.on_open_release({
         let need_update = need_update.clone();
         move || {
             if let Some(latest_release) = need_update.as_ref() {
-                let _ = open::that(&latest_release.html_url);
+                let _ = open::that(&latest_release.html_url).inspect_err(|e| {
+                    error!("Failed to open URL: {} => {e}", latest_release.html_url)
+                });
             }
         }
     });
@@ -235,6 +242,28 @@ fn main() {
 
                     if let Some(idx) = monitor_names.iter().position(|n| n == &screen_name) {
                         settings.set_selected_monitor(idx as _);
+                    }
+
+                    // ---------- NEW: show changelog dialog ----------
+                    let current_version = env!("CARGO_PKG_VERSION");
+                    let last_seen = updated_settings.last_seen_version.clone();
+
+                    if last_seen.as_deref() != Some(current_version) {
+                        let raw_env = env!("LAST_CHANGELOG");
+                        let lines = utils::parse_last_changelog_to_markdown_lines(raw_env);
+
+                        // convertir a ModelRc y enviarlo al UI
+                        main_window
+                            .global::<MainState>()
+                            .set_last_changelog(ModelRc::from(lines.as_slice()));
+
+                        main_window
+                            .global::<MainState>()
+                            .set_show_changelog_on_start(true);
+
+                        let mut save_settings = updated_settings.clone();
+                        save_settings.last_seen_version = Some(current_version.to_string());
+                        data_manager.save(&save_settings);
                     }
 
                     let view_window = view_window.unwrap();

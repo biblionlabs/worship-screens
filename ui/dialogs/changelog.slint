@@ -1,0 +1,71 @@
+import { DialogBase } from "base.slint";
+import { MarkdownView, MarkdownLine } from "../components/markdown.slint";
+import { Button, ScrollView, Palette } from "std-widgets.slint";
+
+export component ChangelogDialog inherits DialogBase {
+    in property <[MarkdownLine]> changelog;
+    callback donate-clicked();
+    callback homepage-clicked();
+
+    Rectangle {
+        width: 720px;
+        height: 520px;
+        x: (root.width / 2) - (self.width / 2);
+        y: (root.height / 2) - (self.height / 2);
+        background: Palette.background;
+        border-width: 2px;
+        border-radius: 8px;
+        border-color: Palette.alternate-background.brighter(30%);
+
+        VerticalLayout {
+            padding: 16px;
+            spacing: 12px;
+
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: space-between;
+
+                Text {
+                    text: "Novedades";
+                    font-size: 20px;
+                    font-weight: 800;
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+
+                    Button {
+                        text: "Donar";
+                        primary: true;
+                        clicked => root.donate-clicked();
+                    }
+
+                    Button {
+                        text: "Página";
+                        clicked => root.homepage-clicked();
+                    }
+
+                    Button {
+                        text: "Cerrar";
+                        clicked => root.close();
+                    }
+                }
+            }
+
+            Rectangle {
+                border-radius: 6px;
+                background: Palette.alternate-background;
+                vertical-stretch: 1;
+                ScrollView {
+                    VerticalLayout {
+                        padding: 10px;
+                        spacing: 8px;
+                        MarkdownView {
+                            markdown: root.changelog;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
