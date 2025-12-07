@@ -26,7 +26,7 @@ export component Renderable inherits VerticalLayout {
     callback send-to-view();
     callback edit-click();
     callback remove-click();
-    callback request-focus();  // Nuevo callback para solicitar foco
+    callback request-focus();
 
     hover-timer := Timer {
         interval: hover-wait;
@@ -145,11 +145,13 @@ export component RenderableList inherits Rectangle {
         key-pressed(event) => {
             if event.text == Key.UpArrow {
                 self.focused-item = max(self.focused-item - 1, 0);
+                current-focused = self.focused-item;
                 root.item-focused(self.focused-item);
                 return accept;
             }
             if event.text == Key.DownArrow {
                 self.focused-item = min(self.focused-item + 1, root.item-count - 1);
+                current-focused = self.focused-item;
                 root.item-focused(self.focused-item);
                 return accept;
             }
