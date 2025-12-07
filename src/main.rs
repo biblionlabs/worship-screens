@@ -413,16 +413,10 @@ fn main() {
     });
 
     main_window.on_shutdown_output({
-        let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
         move || {
-            let main_window = main_window.unwrap();
             let view_window = view_window.unwrap();
             let state = view_window.global::<ViewState>();
-            let mut shared = state.get_shared_view();
-            shared.content = SharedString::default();
-            state.set_shared_view(shared.clone());
-            main_window.global::<ViewState>().set_shared_view(shared);
 
             state.set_off(!state.get_off());
         }
