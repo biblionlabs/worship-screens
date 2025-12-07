@@ -1,3 +1,22 @@
+## [0.1.1-alpha.4] - 2025-12-07
+
+### 🚀 Features
+
+- Preserve preview state on close
+- Add system font selector
+
+### 🐛 Bug Fixes
+
+- Clear verse on clear screen
+- Remove part from verse to send into preview and output
+- On/off not clear contents
+- Use custom font size and preview output real
+- Focus on navigate with arrow keys
+
+### ⚙️ Miscellaneous Tasks
+
+- Separate slider font size into a components
+- Separe sections on font edit
 ## [0.1.1-alpha.3] - 2025-12-07
 
 ### 🚀 Features
@@ -13,6 +32,10 @@
 ### 🚜 Refactor
 
 - Move all dialog to base dialog component
+
+### ⚙️ Miscellaneous Tasks
+
+- Release worship presentations version
 ## [0.1.1-alpha.2] - 2025-12-06
 
 ### 🚀 Features
