@@ -457,6 +457,7 @@ fn main() {
 
             let mut shared = state.get_shared_view();
             shared.content = SharedString::default();
+            shared.verse = SharedString::default();
 
             state.set_shared_view(shared.clone());
             main_window.global::<ViewState>().set_shared_view(shared);
