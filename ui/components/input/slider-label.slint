@@ -21,6 +21,14 @@ export component SliderLabel inherits VerticalLayout {
         }
 
         HorizontalLayout {
+            spacing: 5px;
+
+            Text {
+                text: value-show;
+                font-size: 13px;
+                font-weight: 500;
+            }
+
             Text {
                 text: sufix;
                 font-size: 13px;
