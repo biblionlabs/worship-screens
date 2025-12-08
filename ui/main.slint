@@ -250,34 +250,27 @@ export component MainWindow inherits Window {
                                 edited(s) => SongsState.on-search(s);
                             }
 
-                            songs-list := RenderableList {
-                                item-count: SongsState.songs.length;
-                                item-focused(index) => {
-                                    SongsState.select-song(index);
-                                    SongsState.selected-paragraph = 0;
-                                    ViewState.shared-view.content = SongsState.songs[index].content[0];
-                                }
-                                ListView {
-                                    for s[idx] in SongsState.songs: song-interactable := Renderable {
-                                        padding-bottom: 10px;
-                                        selected: idx == SongsState.selected-song;
-                                        item-index: idx;
-                                        focused-index: songs-list.current-focused;
+                            songs-list := ListView {
+                                for s[idx] in SongsState.songs: song-interactable := Renderable {
+                                    padding-bottom: 10px;
+                                    selected: idx == SongsState.selected-song;
 
-                                        preview => SongsState.select-song(idx);
-                                        send-to-view => {
-                                            songs-list.focus();
-                                            songs-list.current-focused = idx;
-                                            SongsState.select-song(idx);
-                                            SongsState.selected-paragraph = 0;
-                                            ViewState.shared-view.content = SongsState.songs[idx].content[0];
-                                        }
+                                    preview => SongsState.select-song(idx);
+                                    send-to-view => {
+                                        SongsState.select-song(idx);
+                                        SongsState.selected-paragraph = 0;
+                                        ViewState.shared-view.content = SongsState.songs[idx].content[0];
+                                        /* Send first paragraph to output */
+                                        paragraphs-list.focus();
+                                        paragraphs-list.current-focused = 0;
+                                        SongsState.selected-paragraph = 0;
+                                        root.send-to-view();
+                                    }
 
-                                        Text {
-                                            text: s.path;
-                                            vertical-alignment: center;
-                                            color: Palette.foreground;
-                                        }
+                                    Text {
+                                        text: s.path;
+                                        vertical-alignment: center;
+                                        color: Palette.foreground;
                                     }
                                 }
                             }
@@ -286,14 +279,11 @@ export component MainWindow inherits Window {
                         VerticalLayout {
                             alignment: stretch;
                             padding: 10px;
+                            spacing: 10px;
 
-                            if SongsState.selected-song >= 0: VerticalLayout {
-                                spacing: 5px;
-
-                                Text {
-                                    text: SongsState.songs[SongsState.selected-song].path;
-                                    font-size: 24px;
-                                }
+                            if SongsState.selected-song >= 0: Text {
+                                text: SongsState.songs[SongsState.selected-song].path;
+                                font-size: 24px;
                             }
 
                             paragraphs-list := RenderableList {
