@@ -18,6 +18,7 @@ use self::bibles_manager::BiblesManager;
 use self::check_update::check_for_updates;
 use self::fav_text_manager::FavTextManager;
 use self::media_manager::MediaManager;
+use self::schedule_manager::ScheduleManager;
 use self::settings::AppSettings;
 use self::song_manager::SongsManager;
 use self::user_data::UserData;
@@ -28,6 +29,7 @@ mod bitstream_converter;
 mod check_update;
 mod fav_text_manager;
 mod media_manager;
+mod schedule_manager;
 mod settings;
 mod song_manager;
 mod user_data;
@@ -68,6 +70,10 @@ fn main() {
     let fav_manager = FavTextManager::new(main_window.as_weak(), data_manager.clone());
     fav_manager.initialize();
     fav_manager.connect_callbacks();
+
+    let schedule_manager = ScheduleManager::new(main_window.as_weak());
+    schedule_manager.initialize();
+    schedule_manager.connect_callbacks();
 
     let media_manager = Arc::new(MediaManager::new(
         main_window.as_weak(),

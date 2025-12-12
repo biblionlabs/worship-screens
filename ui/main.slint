@@ -17,6 +17,7 @@ import { FileItem, SongsState } from "api/songs.slint";
 import {
     EditMode,
     TextView,
+    ViewData,
     ViewState,
     ViewBackgroundColor,
 } from "api/view-state.slint";
@@ -31,8 +32,9 @@ import { BiblesDialog } from "dialogs/bibles.slint";
 import { FontEdit } from "components/font-edit.slint";
 import { ColorPickerButton } from "components/color-picker-button.slint";
 import { ChangelogDialog } from "dialogs/changelog.slint";
+import { ScheduledKind, ScheduleState } from "api/schedule.slint";
 
-export { Bible, EditMode, FileItem, MarkdownLine, MarkdownLineKind, Settings, SettingsWindow, SongsState, TextView, Verse, ViewWindow, ViewState, ViewBackgroundColor }
+export { Bible, EditMode, FileItem, MarkdownLine, MarkdownLineKind, ScheduledKind, ScheduleState, Settings, SettingsWindow, SongsState, TextView, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export global MainState {
     in property <bool> need-update;
@@ -94,6 +96,14 @@ export component MainWindow inherits Window {
 
     callback save-text(TextView);
     callback remove-saved-text(int);
+
+    callback add-processed-item(ViewData, ScheduledKind, string);
+
+    callback schedule-request-remove(int);
+    callback schedule-request-move-up(int);
+    callback schedule-request-move-down(int);
+    callback schedule-request-send(int);
+    callback schedule-request-clear();
 
     starter-timer := Timer {
         interval: 1s;
@@ -158,7 +168,7 @@ export component MainWindow inherits Window {
                 background: Colors.dimgray.with-alpha(20%);
             }
 
-            TabWidget {
+            central-tabs := TabWidget {
                 current-index: 0;
 
                 Tab {
@@ -199,9 +209,21 @@ export component MainWindow inherits Window {
                                     }
                                     ListView {
                                         for e[idx] in MainState.verses: vese-interactable := Renderable {
+                                            property <ViewData> vd;
+                                            addable: true;
                                             padding-bottom: 10px;
                                             item-index: idx;
                                             focused-index: verses-list.current-focused;
+
+                                            add-click => {
+                                                vd.content = e.text;
+                                                vd.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
+                                                vd.font = ViewState.shared-view.font;
+                                                vd.color = ViewState.shared-view.color;
+
+                                                let label = vd.verse != "" ? vd.verse : (e.book + " " + e.chapter);
+                                                root.add-processed-item(vd, ScheduledKind.Verse, label);
+                                            }
 
                                             preview => {
                                                 ViewState.shared-view.content = e.text;
@@ -281,10 +303,22 @@ export component MainWindow inherits Window {
 
                             songs-list := ListView {
                                 for s[idx] in SongsState.songs: song-interactable := Renderable {
+                                    property <ViewData> vd;
+                                    addable: true;
                                     padding-bottom: 10px;
                                     selected: idx == SongsState.selected-song;
 
                                     preview => SongsState.select-song(idx);
+
+                                    add-click => {
+                                        vd.content = SongsState.songs[idx].content.length > 0 ? SongsState.songs[idx].content[0] : "";
+                                        vd.verse = SongsState.songs[idx].path;
+                                        vd.font = ViewState.shared-view.font;
+                                        vd.color = ViewState.shared-view.color;
+
+                                        root.add-processed-item(vd, ScheduledKind.Song, SongsState.songs[idx].path);
+                                    }
+
                                     send-to-view => {
                                         SongsState.select-song(idx);
                                         SongsState.selected-paragraph = 0;
@@ -425,6 +459,8 @@ export component MainWindow inherits Window {
                                         dialog-media-selector.show();
                                     }
 
+                                    add-click => root.add-processed-item(e, ScheduledKind.Media, e.path);
+
                                     View {
                                         width: 100%;
                                         height: self.width / 1.7;
@@ -512,12 +548,14 @@ export component MainWindow inherits Window {
 
                         saved-texts-list := ListView {
                             for e[idx] in MainState.saved-texts: r := Renderable {
+                                removable: true;
+                                addable: true;
                                 padding-bottom: 10px;
-                                item-index: idx;
                                 border-width: 3px;
                                 border-color: e.color.a != e.color.b ? @linear-gradient(135deg, e.color.a.darker(30%), e.color.b.darker(30%)) : e.color.a.darker(30%);
                                 background: e.color.a != e.color.b ? @linear-gradient(135deg, e.color.a, e.color.b) : e.color.a;
 
+                                remove-click => remove-saved-text(idx);
                                 preview => {
                                     ViewState.shared-view.content = e.content;
                                     ViewState.shared-view.font = e.font;
@@ -537,12 +575,6 @@ export component MainWindow inherits Window {
                                         text: e.content;
                                         vertical-alignment: center;
                                         color: e.font.color;
-                                    }
-
-                                    Button {
-                                        enabled: r.hover || r.has-focus;
-                                        text: "Eliminar";
-                                        clicked => remove-saved-text(idx);
                                     }
                                 }
                             }
@@ -598,8 +630,93 @@ export component MainWindow inherits Window {
                 }
             }
 
-            FontEdit {
-                data <=> ViewState.shared-view;
+            TabWidget {
+                current-index: 0;
+                height: 100%;
+
+                Tab {
+                    title: "Edit Font";
+
+                    FontEdit {
+                        show-main-title: false;
+                        data <=> ViewState.shared-view;
+                    }
+                }
+
+                Tab {
+                    title: "Schedule Content";
+
+                    VerticalLayout {
+                        spacing: 5px;
+                        padding-top: 5px;
+
+                        schedule-list := RenderableList {
+                            item-count: ScheduleState.items.length;
+                            item-focused(index) => {
+                                ScheduleState.select(index);
+                                let it = ScheduleState.items[index];
+                                ViewState.shared-view = it.view-data;
+                                root.send-to-view();
+                            }
+
+                            ListView {
+                                for it[i] in ScheduleState.items: schedule-row := Renderable {
+                                    padding-bottom: 10px;
+                                    item-index: i;
+                                    focused-index: schedule-list.current-focused;
+                                    removable: true;
+                                    selected: i == ScheduleState.selected-item;
+
+                                    remove-click => root.schedule-request-remove(i);
+                                    preview => {
+                                        ViewState.shared-view = it.view-data;
+                                    }
+
+                                    send-to-view => {
+                                        ViewState.shared-view = it.view-data;
+                                        root.send-to-view();
+                                    }
+
+                                    VerticalLayout {
+                                        spacing: 6px;
+
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            Text {
+                                                text: it.kind == ScheduledKind.Verse ? "📖" : (it.kind == ScheduledKind.Song ? "🎵" : (it.kind == ScheduledKind.Media ? "🖼️" : "✉️"));
+                                                vertical-alignment: center;
+                                            }
+
+                                            Text {
+                                                text: it.label;
+                                                font-size: 14px;
+                                                vertical-alignment: center;
+                                                overflow: elide;
+                                                horizontal-stretch: 1;
+                                            }
+                                        }
+
+                                        HorizontalLayout {
+                                            spacing: 6px;
+
+                                            Button {
+                                                text: "↑";
+                                                enabled: i > 0;
+                                                clicked => root.schedule-request-move-up(i);
+                                            }
+
+                                            Button {
+                                                text: "↓";
+                                                enabled: i < ScheduleState.items.length - 1;
+                                                clicked => root.schedule-request-move-down(i);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

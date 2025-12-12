@@ -1,0 +1,28 @@
+import { ViewData, ViewState } from "./view-state.slint";
+
+export enum ScheduledKind {
+    Verse,
+    Song,
+    Media,
+    Text,
+}
+
+export struct ScheduledItem {
+    id: int,
+    kind: ScheduledKind,
+    label: string,
+    view-data: ViewData,
+}
+
+export global ScheduleState {
+    in property <[ScheduledItem]> items;
+    in-out property <int> selected-item: -1;
+
+    public function select(index: int) {
+        if index >= 0 && index < items.length {
+            selected-item = index;
+        } else {
+            selected-item = -1;
+        }
+    }
+}

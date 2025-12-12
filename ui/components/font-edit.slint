@@ -13,7 +13,7 @@ export component FontEditSection inherits VerticalLayout {
     in property <ColorPickerPosition> color-popup-position;
     in-out property <ViewFontData> font;
 
-    Rectangle {
+    if !name.is-empty: Rectangle {
         height: 35px;
         background: Palette.alternate-background;
         border-radius: 6px;
@@ -138,10 +138,12 @@ export component FontEdit inherits VerticalLayout {
     spacing: 20px;
 
     in-out property <ViewData> data;
+    in property <bool> show-main-title: true;
     in property <ColorPickerPosition> color-popup-position;
 
     FontEditSection {
-        name: "📝 Fuente Principal (Contenido)";
+        name: show-main-title ? "📝 Fuente Principal (Contenido)" : "";
+        padding-top: show-main-title ? 0px : 10px;
         font: data.font;
         color-popup-position <=> color-popup-position;
 

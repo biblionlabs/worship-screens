@@ -6,6 +6,7 @@ export component Renderable inherits VerticalLayout {
 
     in property <duration> hover-wait: 200ms;
     in property <bool> selected;
+    in property <bool> addable;
     in property <bool> removable;
     in property <bool> editable;
     in property <bool> enabled: true;
@@ -24,6 +25,7 @@ export component Renderable inherits VerticalLayout {
     callback preview();
     callback hover-preview();
     callback send-to-view();
+    callback add-click();
     callback edit-click();
     callback remove-click();
     callback request-focus();
@@ -99,6 +101,29 @@ export component Renderable inherits VerticalLayout {
                     }
                 }
 
+                if addable: VerticalLayout {
+                    alignment: start;
+
+                    Rectangle {
+                        border-radius: 8px;
+                        background: Colors.royalblue.brighter(i-add-hover.has-hover ? 0.2 : 0.0);
+                        VerticalLayout {
+                            padding: 5px;
+
+                            Image {
+                                width: 16px;
+                                height: 16px;
+                                colorize: white;
+                                source: @image-url("../../icons/plus.svg");
+                            }
+                        }
+
+                        i-add-hover := TouchArea {
+                            clicked => add-click();
+                        }
+                    }
+                }
+
                 if removable: VerticalLayout {
                     alignment: start;
 
@@ -109,9 +134,11 @@ export component Renderable inherits VerticalLayout {
 
                             VerticalLayout {
                                 padding: 5px;
-                                i-rm-content := Image {
+
+                                Image {
                                     width: 16px;
                                     height: 16px;
+                                    colorize: white;
                                     source: @image-url("../../icons/remove.svg");
                                 }
                             }
