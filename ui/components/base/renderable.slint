@@ -39,7 +39,7 @@ export component Renderable inherits VerticalLayout {
 
     Rectangle {
         opacity: enabled ? 1.0 : 0.5;
-        background: Palette.alternate-background.brighter((hover || selected || has-focus) ? 0.2 : 0.0);
+        background: background.brighter((hover || selected || has-focus) ? 0.2 : 0.0);
         border-width: has-focus ? 2px : (border-width > 0px ? border-width : 0px);
         border-color: has-focus ? Palette.accent-background : border-color;
         border-radius: border-radius;

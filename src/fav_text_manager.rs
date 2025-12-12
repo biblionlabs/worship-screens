@@ -27,8 +27,6 @@ impl FavTextManager {
         let window = self.window.unwrap();
         let state = window.global::<MainState>();
         let favs = self.fav_cache.lock().unwrap();
-        let favs = favs.iter().map(SharedString::from).collect::<Vec<_>>();
-
         state.set_saved_texts(ModelRc::from(favs.as_slice()));
     }
 
@@ -42,7 +40,7 @@ impl FavTextManager {
             let window = self.window.clone();
 
             move |text| {
-                let t = text.trim().to_string();
+                let t = text.content.trim();
                 if t.is_empty() {
                     return;
                 }
@@ -50,14 +48,13 @@ impl FavTextManager {
                 let mut favs = fav_cache.lock().unwrap();
 
                 // evitar duplicados
-                if !favs.contains(&t) {
-                    favs.push(t.clone());
+                if !favs.contains(&text) {
+                    favs.push(text.clone());
                     data.save(&*favs);
                 }
 
                 if let Some(window) = window.upgrade() {
                     let state = window.global::<MainState>();
-                    let favs = favs.iter().map(SharedString::from).collect::<Vec<_>>();
                     state.set_saved_texts(ModelRc::from(favs.as_slice()));
                 }
             }
@@ -79,7 +76,6 @@ impl FavTextManager {
 
                 if let Some(window) = window.upgrade() {
                     let state = window.global::<MainState>();
-                    let favs = favs.iter().map(SharedString::from).collect::<Vec<_>>();
                     state.set_saved_texts(ModelRc::from(favs.as_slice()));
                 }
             }

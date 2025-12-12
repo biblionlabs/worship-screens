@@ -1,3 +1,4 @@
+@rust-attr(derive(serde::Serialize, serde::Deserialize))
 export struct ViewBackgroundColor {
     a: color,
     b: color,
@@ -24,6 +25,13 @@ export struct ViewData {
     img-fit: ImageFit,
     font: ViewFontData,
     verse-font: ViewFontData,
+}
+
+@rust-attr(derive(serde::Serialize, serde::Deserialize))
+export struct TextView {
+    color: ViewBackgroundColor,
+    content: string,
+    font: ViewFontData,
 }
 
 export struct EditMode {

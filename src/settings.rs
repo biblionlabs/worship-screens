@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use serde::{Deserialize, Serialize};
-use ui::{FileItem, ViewFontData};
+use ui::{FileItem, TextView, ViewFontData};
 
 use crate::media_manager::MediaItem;
 use crate::user_data::Save;
@@ -40,7 +40,7 @@ macro_rules! impl_deref {
 }
 
 impl_deref! {
-    FavoriteTexts(Vec<String>): "fav_texts",
+    FavoriteTexts(Vec<TextView>): "fav_texts",
     SourceSongs(Vec<FileItem>): "source_songs",
     SourceMedia(Vec<MediaItem>): "source_media"
 }

@@ -33,7 +33,7 @@ export component View inherits Rectangle {
         source: data.img-bg;
     }
 
-    Text {
+    if !data.is-logo: Text {
         width: 100%;
         height: 100%;
         wrap: word-wrap;
@@ -48,7 +48,7 @@ export component View inherits Rectangle {
         font-size: computed-content-fs;
     }
 
-    if !data.verse.is-empty: Text {
+    if !data.is-logo && !data.verse.is-empty: Text {
         y: parent.height - computed-verse-fs - verse-bottom-offset;
         text: data.verse;
         color: data.verse-font.color;

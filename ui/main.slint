@@ -14,7 +14,12 @@ import { SettingsWindow } from "settings.slint";
 
 import { Bible, Settings, Verse } from "api/global.slint";
 import { FileItem, SongsState } from "api/songs.slint";
-import { EditMode, ViewState, ViewBackgroundColor } from "api/view-state.slint";
+import {
+    EditMode,
+    TextView,
+    ViewState,
+    ViewBackgroundColor,
+} from "api/view-state.slint";
 
 import { View } from "components/view.slint";
 import { MarkdownLine, MarkdownLineKind } from "components/markdown.slint";
@@ -27,11 +32,34 @@ import { FontEdit } from "components/font-edit.slint";
 import { ColorPickerButton } from "components/color-picker-button.slint";
 import { ChangelogDialog } from "dialogs/changelog.slint";
 
-export { Bible, EditMode, FileItem, MarkdownLine, MarkdownLineKind, Settings, SettingsWindow, SongsState, Verse, ViewWindow, ViewState, ViewBackgroundColor }
+export { Bible, EditMode, FileItem, MarkdownLine, MarkdownLineKind, Settings, SettingsWindow, SongsState, TextView, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export global MainState {
     in property <bool> need-update;
-    in-out property <[string]> saved-texts;
+    in-out property <[TextView]> saved-texts: [
+        {
+            color:{ a:Colors.rgba(0,0,0,1.0), b:Colors.rgba(0,0,0,1.0) },
+            content:"probando ando",
+            font:{
+                color:Colors.rgba(255,255,255,1.0),
+                font_size:120px,
+                name:"Unifont",
+                stroke:Colors.rgba(0,0,0,1.0),
+                stroke_size:2px
+            }
+        },
+        {
+            color:{ a:Colors.rgba(48,217,22,1.0), b:Colors.rgba(41,128,185,1.0) },
+            content:"probando ando",
+            font:{
+                color:Colors.rgba(255,255,255,1.0),
+                font_size:231px,
+                name:"Unifont",
+                stroke:Colors.rgba(0,0,0,1.0),
+                stroke_size:2px
+            }
+        }
+    ];
     in property <[Verse]> verses;
     in-out property <[Bible]> bibles;
     in property <[MarkdownLine]> last-changelog;
@@ -63,7 +91,7 @@ export component MainWindow inherits Window {
 
     callback send-to-view <=> send-btn.clicked;
 
-    callback save-text(string);
+    callback save-text(TextView);
     callback remove-saved-text(int);
 
     starter-timer := Timer {
@@ -448,7 +476,14 @@ export component MainWindow inherits Window {
 
                                 Button {
                                     text: "Guardar";
-                                    clicked => save-text(local-text);
+                                    clicked => {
+                                        let data = {
+                                            content: local-text,
+                                            font: ViewState.shared-view.font,
+                                            color: ViewState.shared-view.color,
+                                        };
+                                        save-text(data);
+                                    }
                                 }
 
                                 Button {
@@ -474,42 +509,39 @@ export component MainWindow inherits Window {
                             text: "Guardados";
                         }
 
-                        saved-texts-list := RenderableList {
-                            item-count: MainState.saved-texts.length;
-                            item-focused(index) => {
-                                ViewState.shared-view.content = MainState.saved-texts[index];
-                                root.send-to-view();
-                            }
-                            ListView {
-                                for e[idx] in MainState.saved-texts: r := Renderable {
-                                    padding-bottom: 10px;
-                                    item-index: idx;
-                                    focused-index: saved-texts-list.current-focused;
+                        saved-texts-list := ListView {
+                            for e[idx] in MainState.saved-texts: r := Renderable {
+                                padding-bottom: 10px;
+                                item-index: idx;
+                                border-width: 3px;
+                                border-color: e.color.a != e.color.b ? @linear-gradient(135deg, e.color.a.darker(30%), e.color.b.darker(30%)) : e.color.a.darker(30%);
+                                background: e.color.a != e.color.b ? @linear-gradient(135deg, e.color.a, e.color.b) : e.color.a;
 
-                                    preview => {
-                                        ViewState.shared-view.content = e;
+                                preview => {
+                                    ViewState.shared-view.content = e.content;
+                                    ViewState.shared-view.font = e.font;
+                                    ViewState.shared-view.color = e.color;
+                                }
+                                send-to-view => {
+                                    ViewState.shared-view.content = e.content;
+                                    ViewState.shared-view.font = e.font;
+                                    ViewState.shared-view.color = e.color;
+                                    root.send-to-view();
+                                }
+
+                                HorizontalLayout {
+                                    alignment: space-between;
+
+                                    Text {
+                                        text: e.content;
+                                        vertical-alignment: center;
+                                        color: e.font.color;
                                     }
-                                    send-to-view => {
-                                        saved-texts-list.focus();
-                                        saved-texts-list.current-focused = idx;
-                                        ViewState.shared-view.content = e;
-                                        root.send-to-view();
-                                    }
 
-                                    HorizontalLayout {
-                                        alignment: space-between;
-
-                                        Text {
-                                            text: e;
-                                            vertical-alignment: center;
-                                            color: Palette.foreground;
-                                        }
-
-                                        Button {
-                                            enabled: r.hover || r.has-focus;
-                                            text: "Eliminar";
-                                            clicked => remove-saved-text(idx);
-                                        }
+                                    Button {
+                                        enabled: r.hover || r.has-focus;
+                                        text: "Eliminar";
+                                        clicked => remove-saved-text(idx);
                                     }
                                 }
                             }
