@@ -1,3 +1,29 @@
+## [0.1.1-alpha.5] - 2025-12-13
+
+### 🚀 Features
+
+- Save all info for simple text
+- View background animation more fast
+- Add schedule playlist to have a list of daily content
+- Drag to reorder schedule content
+
+### 🐛 Bug Fixes
+
+- Show value on slider label
+- Min height for main window
+- Small fixes on send texts
+- Add to schedule and remove callbacks to saved text
+- Correct paragraph song separation
+- Song preview paragraphs clear paragraph focus
+- Remove default saved text
+
+### 🚜 Refactor
+
+- Separate sections into a individual file
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove renderable list from song list
 ## [0.1.1-alpha.4] - 2025-12-07
 
 ### 🚀 Features
@@ -17,6 +43,7 @@
 
 - Separate slider font size into a components
 - Separe sections on font edit
+- Release worship presentations version
 ## [0.1.1-alpha.3] - 2025-12-07
 
 ### 🚀 Features
