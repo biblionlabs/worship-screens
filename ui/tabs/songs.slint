@@ -47,7 +47,11 @@ export component SongsTab inherits HorizontalLayout {
                 padding-bottom: 10px;
                 selected: idx == SongsState.selected-song;
 
-                preview => SongsState.select-song(idx);
+                preview => {
+                    paragraphs-list.clear-focus();
+                    paragraphs-list.current-focused = -1;
+                    SongsState.select-song(idx)
+                };
                 add-click => root.add-processed-item(ViewState.default-view-data(), ScheduledKind.Song, SongsState.songs[idx].path);
                 send-to-view => {
                     SongsState.select-song(idx);
