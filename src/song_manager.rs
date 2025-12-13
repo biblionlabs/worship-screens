@@ -264,17 +264,36 @@ fn process_folder_recursive<'a>(
 }
 
 fn process_file_into_state<'a>(path: &Path, state: &SongsState<'a>, song_list: &mut Vec<SongItem>) {
-    if !path.exists() || !path.is_file() {
+    if !path.is_file() || path.extension().map_or(true, |e| e != "txt") {
         return;
     }
 
     let content = fs::read_to_string(path).unwrap_or_default();
-    let paragraphs: Vec<String> = content
-        .trim()
-        .replace("\r\n", "\n")
-        .split("\n\n")
-        .map(|s| s.to_string())
-        .collect();
+    let paragraphs: Vec<String> = {
+        let lines = content.replace("\r\n", "\n").replace("\r", "\n");
+        let lines = lines.lines().map(str::trim);
+
+        let (paras, last) = lines.fold(
+            (Vec::new(), Vec::new()),
+            |(mut paras, mut current), line| {
+                if line.is_empty() {
+                    if !current.is_empty() {
+                        paras.push(current.join("\n"));
+                        current = Vec::new();
+                    }
+                } else {
+                    current.push(line.to_string());
+                }
+                (paras, current)
+            },
+        );
+
+        let mut result = paras;
+        if !last.is_empty() {
+            result.push(last.join("\n"));
+        }
+        result
+    };
 
     song_list.push(SongItem {
         path: path
