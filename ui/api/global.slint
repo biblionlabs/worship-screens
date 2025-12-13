@@ -26,30 +26,7 @@ export struct Verse {
 
 export global MainState {
     in property <bool> need-update;
-    in-out property <[TextView]> saved-texts: [
-        {
-            color:{ a:Colors.rgba(0,0,0,1.0), b:Colors.rgba(0,0,0,1.0) },
-            content:"probando ando",
-            font:{
-                color:Colors.rgba(255,255,255,1.0),
-                font_size:120px,
-                name:"Unifont",
-                stroke:Colors.rgba(0,0,0,1.0),
-                stroke_size:2px
-            }
-        },
-        {
-            color:{ a:Colors.rgba(48,217,22,1.0), b:Colors.rgba(41,128,185,1.0) },
-            content:"probando ando",
-            font:{
-                color:Colors.rgba(255,255,255,1.0),
-                font_size:231px,
-                name:"Unifont",
-                stroke:Colors.rgba(0,0,0,1.0),
-                stroke_size:2px
-            }
-        }
-    ];
+    in-out property <[TextView]> saved-texts;
     in property <[Verse]> verses;
     in-out property <[Bible]> bibles;
     in property <[MarkdownLine]> last-changelog;
