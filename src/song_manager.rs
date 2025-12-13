@@ -15,13 +15,13 @@ pub struct SongsManager {
     pub window: Weak<MainWindow>,
 
     songs_origin: Arc<Mutex<SourceSongs>>,
-    songs_cache: Arc<Mutex<Vec<SongItem>>>,
+    pub songs_cache: Arc<Mutex<Vec<SongItem>>>,
 }
 
 #[derive(Clone)]
-struct SongItem {
-    content: Vec<SharedString>,
-    path: SharedString,
+pub struct SongItem {
+    pub content: Vec<SharedString>,
+    pub path: SharedString,
 }
 
 impl From<SongItem> for ui::SongItem {

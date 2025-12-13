@@ -71,7 +71,7 @@ fn main() {
     fav_manager.initialize();
     fav_manager.connect_callbacks();
 
-    let schedule_manager = ScheduleManager::new(main_window.as_weak());
+    let schedule_manager = ScheduleManager::new(main_window.as_weak(), Arc::new(song_manager));
     schedule_manager.initialize();
     schedule_manager.connect_callbacks();
 

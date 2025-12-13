@@ -100,9 +100,7 @@ export component MainWindow inherits Window {
     callback add-processed-item(ViewData, ScheduledKind, string);
 
     callback schedule-request-remove(int);
-    callback schedule-request-move-up(int);
-    callback schedule-request-move-down(int);
-    callback schedule-request-send(int);
+    callback schedule-request-move-by(int, int);
     callback schedule-request-clear();
 
     starter-timer := Timer {
@@ -221,7 +219,7 @@ export component MainWindow inherits Window {
                                                 vd.font = ViewState.shared-view.font;
                                                 vd.color = ViewState.shared-view.color;
 
-                                                let label = vd.verse != "" ? vd.verse : (e.book + " " + e.chapter);
+                                                let label = (vd.verse != "" ? vd.verse : (e.book + " " + e.chapter)) + " > " + e.text;
                                                 root.add-processed-item(vd, ScheduledKind.Verse, label);
                                             }
 
@@ -303,22 +301,12 @@ export component MainWindow inherits Window {
 
                             songs-list := ListView {
                                 for s[idx] in SongsState.songs: song-interactable := Renderable {
-                                    property <ViewData> vd;
                                     addable: true;
                                     padding-bottom: 10px;
                                     selected: idx == SongsState.selected-song;
 
                                     preview => SongsState.select-song(idx);
-
-                                    add-click => {
-                                        vd.content = SongsState.songs[idx].content.length > 0 ? SongsState.songs[idx].content[0] : "";
-                                        vd.verse = SongsState.songs[idx].path;
-                                        vd.font = ViewState.shared-view.font;
-                                        vd.color = ViewState.shared-view.color;
-
-                                        root.add-processed-item(vd, ScheduledKind.Song, SongsState.songs[idx].path);
-                                    }
-
+                                    add-click => root.add-processed-item(ViewState.default-view-data(), ScheduledKind.Song, SongsState.songs[idx].path);
                                     send-to-view => {
                                         SongsState.select-song(idx);
                                         SongsState.selected-paragraph = 0;
@@ -447,6 +435,7 @@ export component MainWindow inherits Window {
                                     x: n * self.width;
                                     width: 240px;
                                     height: self.width / 1.7;
+                                    addable: !e.is-logo;
                                     editable: true;
                                     removable: !e.tmp;
 
@@ -548,6 +537,7 @@ export component MainWindow inherits Window {
 
                         saved-texts-list := ListView {
                             for e[idx] in MainState.saved-texts: r := Renderable {
+                                property <ViewData> vd;
                                 removable: true;
                                 addable: true;
                                 padding-bottom: 10px;
@@ -566,6 +556,14 @@ export component MainWindow inherits Window {
                                     ViewState.shared-view.font = e.font;
                                     ViewState.shared-view.color = e.color;
                                     root.send-to-view();
+                                }
+                                add-click => {
+                                    vd.content = e.content;
+                                    vd.verse = "";
+                                    vd.font = e.font;
+                                    vd.color = e.color;
+
+                                    root.add-processed-item(vd, ScheduledKind.Verse, e.content);
                                 }
 
                                 HorizontalLayout {
@@ -652,6 +650,9 @@ export component MainWindow inherits Window {
 
                         schedule-list := RenderableList {
                             item-count: ScheduleState.items.length;
+                            draggable: true;
+                            line-height: 64px;
+                            request-move-by(i, offset) => schedule-request-move-by(i, offset);
                             item-focused(index) => {
                                 ScheduleState.select(index);
                                 let it = ScheduleState.items[index];
@@ -666,6 +667,12 @@ export component MainWindow inherits Window {
                                     focused-index: schedule-list.current-focused;
                                     removable: true;
                                     selected: i == ScheduleState.selected-item;
+                                    position-shift: schedule-list.positionShiftForIndex(i);
+                                    line-height: schedule-list.line-height;
+                                    draggable: schedule-list.draggable;
+
+                                    skipping(offset) => schedule-list.handleSkipping(i, offset);
+                                    moved-element-n-lines(offset) => schedule-list.handleMoved(i, offset);
 
                                     remove-click => root.schedule-request-remove(i);
                                     preview => {
@@ -673,17 +680,19 @@ export component MainWindow inherits Window {
                                     }
 
                                     send-to-view => {
+                                        schedule-list.focus();
+                                        schedule-list.current-focused = i;
                                         ViewState.shared-view = it.view-data;
                                         root.send-to-view();
                                     }
 
-                                    VerticalLayout {
+                                    HorizontalLayout {
                                         spacing: 6px;
 
                                         HorizontalLayout {
                                             spacing: 8px;
                                             Text {
-                                                text: it.kind == ScheduledKind.Verse ? "📖" : (it.kind == ScheduledKind.Song ? "🎵" : (it.kind == ScheduledKind.Media ? "🖼️" : "✉️"));
+                                                text: it.kind == ScheduledKind.Verse ? "📖" : (it.kind == ScheduledKind.Song ? "🎵" : (it.kind == ScheduledKind.Media ? "🖼️" : "🅰️"));
                                                 vertical-alignment: center;
                                             }
 
@@ -693,22 +702,6 @@ export component MainWindow inherits Window {
                                                 vertical-alignment: center;
                                                 overflow: elide;
                                                 horizontal-stretch: 1;
-                                            }
-                                        }
-
-                                        HorizontalLayout {
-                                            spacing: 6px;
-
-                                            Button {
-                                                text: "↑";
-                                                enabled: i > 0;
-                                                clicked => root.schedule-request-move-up(i);
-                                            }
-
-                                            Button {
-                                                text: "↓";
-                                                enabled: i < ScheduleState.items.length - 1;
-                                                clicked => root.schedule-request-move-down(i);
                                             }
                                         }
                                     }

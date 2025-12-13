@@ -1,6 +1,61 @@
 import { Palette, ScrollView } from "std-widgets.slint";
 
-export component Renderable inherits VerticalLayout {
+export component DragableIcon inherits GridLayout {
+    spacing: 2px;
+
+    in property <length> size: 5px;
+    in property <brush> color: black;
+
+    Row {
+        Rectangle {
+            width: size;
+            height: size;
+            background: color;
+            border-radius: size;
+        }
+
+        Rectangle {
+            width: size;
+            height: size;
+            background: color;
+            border-radius: size;
+        }
+    }
+
+    Row {
+        Rectangle {
+            width: size;
+            height: size;
+            background: color;
+            border-radius: size;
+        }
+
+        Rectangle {
+            width: size;
+            height: size;
+            background: color;
+            border-radius: size;
+        }
+    }
+
+    Row {
+        Rectangle {
+            width: size;
+            height: size;
+            background: color;
+            border-radius: size;
+        }
+
+        Rectangle {
+            width: size;
+            height: size;
+            background: color;
+            border-radius: size;
+        }
+    }
+}
+
+export component Renderable inherits HorizontalLayout {
     padding-left: 5px;
     padding-right: 5px;
 
@@ -14,13 +69,27 @@ export component Renderable inherits VerticalLayout {
     in property <brush> border-color: enabled ? background.brighter(0.5) : background.darker(0.8);
     in property <length> border-width;
     in property <length> border-radius: 8px;
-    
-    // Keyboard navigation properties
+
+    in property <bool> draggable: false;
+    in property <length> line-height: 64px;
+    in property <int> position-shift: 0; // -1 = OneUp, 0 = None, 1 = OneDown
+
     in property <int> item-index: -1;
     in property <int> focused-index: -1;
     out property <bool> has-focus: root.item-index >= 0 && root.item-index == root.focused-index;
 
     out property <bool> hover: false;
+
+    property <length> content-box-y: 0px;
+    property <length> press_start_mouse_y: 0px;
+    property <length> press_start_content_y: 0px;
+    property <bool> dragging: false;
+
+    property <length> handle-cursor-offset;
+    property <bool> handle-pressed;
+
+    callback skipping(int);
+    callback moved-element-n-lines(int);
 
     callback preview();
     callback hover-preview();
@@ -39,8 +108,22 @@ export component Renderable inherits VerticalLayout {
         }
     }
 
+    property <length> not-actively-dragged-position: {
+        if (position-shift == 1) {
+            return -line-height;
+        } else if (position-shift == -1) {
+            return line-height;
+        } else {
+            return 0px;
+        }
+    };
+    animate not-actively-dragged-position { duration: 200ms; }
+
+    property <length> cursor-correction: -0.5 * line-height;
+
     Rectangle {
         opacity: enabled ? 1.0 : 0.5;
+        y: dragging ? content-box-y : not_actively_dragged_position;
         background: background.brighter((hover || selected || has-focus) ? 0.2 : 0.0);
         border-width: has-focus ? 2px : (border-width > 0px ? border-width : 0px);
         border-color: has-focus ? Palette.accent-background : border-color;
@@ -66,14 +149,68 @@ export component Renderable inherits VerticalLayout {
                     hover-timer.stop();
                 }
             }
+            HorizontalLayout {
+                width: 100%;
+                height: draggable ? line-height : root.height;
+                spacing: 0px;
 
-            VerticalLayout {
-                padding: 10px;
+                if draggable: Rectangle {
+                    width: 30px;
+                    height: line-height;
+                    background: transparent;
 
-                @children
+                    VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            alignment: end;
+                            DragableIcon {
+                                size: 5px;
+                                color: (hover || handle-pressed) ? Palette.foreground : Palette.foreground.with-alpha(40%);
+                            }
+                        }
+                    }
+
+                    handle_touch := TouchArea {
+                        mouse-cursor: MouseCursor.move;
+
+                        property <int> count_skipped_lines: 0;
+                        property <length> local_mouse_y <=> self.mouse-y;
+                        property <bool> local_pressed <=> self.pressed;
+
+                        changed local_pressed => {
+                            handle_pressed = self.local_pressed;
+                            if self.local_pressed {
+                                dragging = true;
+                                press_start_mouse_y = local_mouse_y;
+                                press_start_content_y = content-box-y;
+                            } else {
+                                dragging = false;
+                                let delta = content-box-y - not_actively_dragged_position;
+                                let lines = round(delta / line_height);
+                                moved-element-n-lines(lines);
+                            }
+                        }
+
+                        changed local_mouse_y => {
+                            if !self.local_pressed {
+                                return;
+                            }
+                            let delta = self.local_mouse_y - press_start_mouse_y;
+                            content-box-y = press_start_content_y + delta;
+                            count_skipped_lines = round((content-box-y - not_actively_dragged_position + cursor_correction) / line_height);
+                            skipping(count_skipped_lines);
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    padding: 10px;
+
+                    @children
+                }
             }
 
-            if (hover || has-focus) && enabled: HorizontalLayout {
+            if (enabled && (hover || has-focus)): HorizontalLayout {
                 y: 0px;
                 x: parent.width - self.width;
                 alignment: end;
@@ -157,12 +294,54 @@ export component Renderable inherits VerticalLayout {
 export component RenderableList inherits Rectangle {
     in property <int> item-count: 0;
     in-out property <int> current-focused: i-focus-scope.has-focus ? i-focus-scope.focused-item : -1;
+
     callback item-focused(/* index */ int);
+    callback request-move-by(int, int);
+
+    in property <bool> draggable: false;
+    in property <length> line-height: 64px;
+
+    in-out property <[int]> range-to-move-down: [-1, -1];
+    in-out property <[int]> range-to-move-up: [-1, -1];
 
     forward-focus: i-focus-scope;
 
     changed current-focused => {
         i-focus-scope.focused-item = current-focused;
+    }
+
+    public function handleSkipping(index: int, offset: int) {
+        if offset == 0 {
+            range-to-move-down = [-1, -1];
+            range-to-move-up = [-1, -1];
+        } else if offset < 0 {
+            range-to-move-down = [-1, -1];
+            range-to-move-up = [index + offset, index];
+        } else {
+            range-to-move-down = [index + 1, index + 1 + offset];
+            range-to-move-up = [-1, -1];
+        }
+    }
+
+    public function handleMoved(index: int, offset: int) {
+        if offset == 0 {
+            range-to-move-down = [-1, -1];
+            range-to-move-up = [-1, -1];
+            return;
+        }
+        request-move-by(index, offset);
+        range-to-move-down = [-1, -1];
+        range-to-move-up = [-1, -1];
+    }
+
+    public pure function positionShiftForIndex(i: int) -> int {
+        if (i >= range-to-move-down[0] && i < range-to-move-down[1]) {
+            return 1; // OneDown
+        } else if (i >= range-to-move-up[0] && i < range-to-move-up[1]) {
+            return -1; // OneUp
+        } else {
+            return 0; // None
+        }
     }
 
     i-focus-scope := FocusScope {

@@ -1,4 +1,4 @@
-use slint::{ComponentHandle, ModelRc, SharedString, Weak};
+use slint::{ComponentHandle, ModelRc, Weak};
 use std::sync::{Arc, Mutex};
 
 use crate::settings::FavoriteTexts;

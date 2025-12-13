@@ -1,21 +1,26 @@
 use slint::{ComponentHandle, ModelRc, SharedString, Weak};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Mutex};
+use tracing::debug;
 
-use ui::{MainWindow, ScheduleState, ScheduledItem, ScheduledKind, ViewData};
+use ui::{MainWindow, ScheduleState, ScheduledItem, ScheduledKind, ViewData, ViewState};
+
+use crate::song_manager::SongsManager;
 
 pub struct ScheduleManager {
     window: Weak<MainWindow>,
     schedule_cache: Arc<Mutex<Vec<ScheduledItem>>>,
-    id_counter: Arc<AtomicUsize>,
+    id_counter: Arc<AtomicI32>,
+    song_manager: Arc<SongsManager>,
 }
 
 impl ScheduleManager {
-    pub fn new(window: Weak<MainWindow>) -> Self {
+    pub fn new(window: Weak<MainWindow>, song_manager: Arc<SongsManager>) -> Self {
         Self {
             window,
+            song_manager,
             schedule_cache: Arc::new(Mutex::new(Vec::new())),
-            id_counter: Arc::new(AtomicUsize::new(1)),
+            id_counter: Arc::new(AtomicI32::new(1)),
         }
     }
 
@@ -41,28 +46,61 @@ impl ScheduleManager {
             let cache = cache.clone();
             let window_weak = window_weak.clone();
             let id_counter = id_counter.clone();
+            let song_manager = self.song_manager.clone();
             move |vd: ViewData, kind: ScheduledKind, label: SharedString| {
-                println!(
-                    "ScheduleManager: received add-processed-item kind={:?} label={}",
-                    kind, label
+                debug!(
+                    "ScheduleManager: received add-processed-item kind={kind:?} label={label} path={}",
+                    vd.path
                 );
-                let raw = id_counter.fetch_add(1, Ordering::SeqCst);
+                let id = id_counter.fetch_add(1, Ordering::SeqCst);
 
-                let item = ScheduledItem {
-                    id: raw as i32,
-                    kind,
-                    label: label.clone(),
-                    view_data: vd,
+                let Some(window) = window_weak.upgrade() else {
+                    return;
                 };
 
                 {
                     let mut guard = cache.lock().unwrap();
-                    guard.push(item);
-
-                    if let Some(window) = window_weak.upgrade() {
-                        let state = window.global::<ScheduleState>();
-                        state.set_items(ModelRc::from(guard.as_slice()));
+                    if kind == ScheduledKind::Song {
+                        let state = window.global::<ViewState>().get_shared_view();
+                        let Some(media) = song_manager
+                            .songs_cache
+                            .lock()
+                            .map(|media| {
+                                media.iter().find(|m| m.path.ends_with(label.as_str())).map(
+                                    move |m| {
+                                        m.content
+                                            .iter()
+                                            .map(|c| ScheduledItem {
+                                                id,
+                                                kind,
+                                                label: c.clone(),
+                                                view_data: ViewData {
+                                                    content: c.clone(),
+                                                    path: m.path.clone(),
+                                                    ..state.clone()
+                                                },
+                                            })
+                                            .collect::<Vec<_>>()
+                                    },
+                                )
+                            })
+                            .ok()
+                            .flatten()
+                        else {
+                            return;
+                        };
+                        guard.extend_from_slice(media.as_slice());
+                    } else {
+                        guard.push(ScheduledItem {
+                            id,
+                            kind,
+                            label: label.clone(),
+                            view_data: vd,
+                        });
                     }
+
+                    let state = window.global::<ScheduleState>();
+                    state.set_items(ModelRc::from(guard.as_slice()));
                 }
             }
         });
@@ -83,34 +121,42 @@ impl ScheduleManager {
             }
         });
 
-        window.on_schedule_request_move_up({
+        window.on_schedule_request_move_by({
             let cache = cache.clone();
             let window_weak = window_weak.clone();
-            move |index: i32| {
+            move |start_index: i32, offset: i32| {
                 let mut guard = cache.lock().unwrap();
-                let idx = index as usize;
-                if idx > 0 && idx < guard.len() {
-                    guard.swap(idx - 1, idx);
-                    if let Some(window) = window_weak.upgrade() {
-                        let state = window.global::<ScheduleState>();
-                        state.set_items(ModelRc::from(guard.as_slice()));
-                    }
+                let len = guard.len();
+                if len == 0 {
+                    return;
                 }
-            }
-        });
+                let s = start_index as isize;
+                if s < 0 || (s as usize) >= len {
+                    return;
+                }
 
-        window.on_schedule_request_move_down({
-            let cache = cache.clone();
-            let window_weak = window_weak.clone();
-            move |index: i32| {
-                let mut guard = cache.lock().unwrap();
-                let idx = index as usize;
-                if idx + 1 < guard.len() {
-                    guard.swap(idx + 1, idx);
-                    if let Some(window) = window_weak.upgrade() {
-                        let state = window.global::<ScheduleState>();
-                        state.set_items(ModelRc::from(guard.as_slice()));
-                    }
+                let dest_isize = s + (offset as isize);
+
+                let mut dest = if dest_isize < 0 {
+                    0usize
+                } else if dest_isize as usize >= len {
+                    len - 1
+                } else {
+                    dest_isize as usize
+                };
+
+                let s_usize = s as usize;
+                let item = guard.remove(s_usize);
+
+                if dest > guard.len() {
+                    dest = guard.len();
+                }
+
+                guard.insert(dest, item);
+
+                if let Some(window) = window_weak.upgrade() {
+                    let state = window.global::<ScheduleState>();
+                    state.set_items(ModelRc::from(guard.as_slice()));
                 }
             }
         });
@@ -126,12 +172,6 @@ impl ScheduleManager {
                     let empty: Vec<ScheduledItem> = Vec::new();
                     state.set_items(ModelRc::from(empty.as_slice()));
                 }
-            }
-        });
-
-        window.on_schedule_request_send({
-            move |index: i32| {
-                eprintln!("schedule_request_send called for index={}", index);
             }
         });
     }
