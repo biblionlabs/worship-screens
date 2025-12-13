@@ -172,6 +172,8 @@ export component MainWindow inherits Window {
                     TextTab {
                         save-text(data) => root.save-text(data);
                         send-to-view => root.send-to-view();
+                        add-processed-item(vd, kind, label) => root.add-processed-item(vd, kind, label);
+                        remove-saved-text(idx) => root.remove-saved-text(idx);
                     }
                 }
             }
