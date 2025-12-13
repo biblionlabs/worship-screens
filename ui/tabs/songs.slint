@@ -53,8 +53,9 @@ export component SongsTab inherits HorizontalLayout {
                     SongsState.select-song(idx);
                     SongsState.selected-paragraph = 0;
                     ViewState.shared-view.content = SongsState.songs[idx].content[0];
-                                        /* Send first paragraph to output */
-                                        paragraphs-list.focus();
+                    ViewState.shared-view.verse = "";
+                    /* Send first paragraph to output */
+                    paragraphs-list.focus();
                     paragraphs-list.current-focused = 0;
                     SongsState.selected-paragraph = 0;
                     root.send-to-view();
@@ -95,12 +96,14 @@ export component SongsTab inherits HorizontalLayout {
 
                     preview => {
                         ViewState.shared-view.content = e;
+                        ViewState.shared-view.verse = "";
                         SongsState.selected-paragraph = idx;
                     }
                     send-to-view => {
                         paragraphs-list.focus();
                         paragraphs-list.current-focused = idx;
                         ViewState.shared-view.content = e;
+                        ViewState.shared-view.verse = "";
                         SongsState.selected-paragraph = idx;
                         root.send-to-view();
                     }
