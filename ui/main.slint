@@ -12,7 +12,7 @@ import {
 import { ViewWindow } from "view.slint";
 import { SettingsWindow } from "settings.slint";
 
-import { Bible, Settings, Verse } from "api/global.slint";
+import { Bible, MainState, Settings, Verse } from "api/global.slint";
 import { FileItem, SongsState } from "api/songs.slint";
 import {
     EditMode,
@@ -34,42 +34,13 @@ import { ColorPickerButton } from "components/color-picker-button.slint";
 import { ChangelogDialog } from "dialogs/changelog.slint";
 import { ScheduledKind, ScheduleState } from "api/schedule.slint";
 
-export { Bible, EditMode, FileItem, MarkdownLine, MarkdownLineKind, ScheduledKind, ScheduleState, Settings, SettingsWindow, SongsState, TextView, Verse, ViewWindow, ViewState, ViewBackgroundColor }
+import { VersesTab } from "tabs/verses.slint";
+import { SongsTab } from "tabs/songs.slint";
+import { MediaTab } from "tabs/media.slint";
+import { TextTab } from "tabs/texts.slint";
+import { PreviewSection } from "tabs/preview.slint";
 
-export global MainState {
-    in property <bool> need-update;
-    in-out property <[TextView]> saved-texts: [
-        {
-            color:{ a:Colors.rgba(0,0,0,1.0), b:Colors.rgba(0,0,0,1.0) },
-            content:"probando ando",
-            font:{
-                color:Colors.rgba(255,255,255,1.0),
-                font_size:120px,
-                name:"Unifont",
-                stroke:Colors.rgba(0,0,0,1.0),
-                stroke_size:2px
-            }
-        },
-        {
-            color:{ a:Colors.rgba(48,217,22,1.0), b:Colors.rgba(41,128,185,1.0) },
-            content:"probando ando",
-            font:{
-                color:Colors.rgba(255,255,255,1.0),
-                font_size:231px,
-                name:"Unifont",
-                stroke:Colors.rgba(0,0,0,1.0),
-                stroke_size:2px
-            }
-        }
-    ];
-    in property <[Verse]> verses;
-    in-out property <[Bible]> bibles;
-    in property <[MarkdownLine]> last-changelog;
-    in property <bool> show-changelog-on-start;
-
-    callback search-bible(string);
-    callback install-bible(string);
-}
+export { Bible, EditMode, FileItem, MainState, MarkdownLine, MarkdownLineKind, ScheduledKind, ScheduleState, Settings, SettingsWindow, SongsState, TextView, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export component MainWindow inherits Window {
     title: "Worship Screens";
@@ -81,7 +52,7 @@ export component MainWindow inherits Window {
     in property <image> source;
     property <string> local-text;
 
-    callback search-verse <=> search-verse-input.edited;
+    callback search-verse(string);
 
     callback start-window();
     callback open(string);
@@ -89,10 +60,10 @@ export component MainWindow inherits Window {
 
     callback shutdown-output();
     callback clear-output <=> clear-btn.clicked;
-    callback clear-image <=> clear-img-btn.clicked;
+    callback clear-image <=> preview.clear-image;
     callback change-monitor <=> select-monitors.selected;
 
-    callback send-to-view <=> send-btn.clicked;
+    callback send-to-view();
 
     callback save-text(TextView);
     callback remove-saved-text(int);
@@ -107,8 +78,8 @@ export component MainWindow inherits Window {
         interval: 1s;
         triggered => {
             start-window();
-            ViewState.window-width = preview.width;
-            ViewState.window-height = preview.height;
+            ViewState.window-width = preview.preview-width;
+            ViewState.window-height = preview.preview-height;
             if MainState.show-changelog-on-start {
                 dialog-changelog.show();
             }
@@ -171,412 +142,36 @@ export component MainWindow inherits Window {
 
                 Tab {
                     title: "Verses";
-
-                    GridLayout {
-                        spacing: 10px;
-                        padding: 10px;
-                        Row {
-                            HorizontalLayout {
-                                colspan: 3;
-                                spacing: 10px;
-                                alignment: stretch;
-
-                                Button {
-                                    text: "+";
-                                    clicked => dialog-bibles.show();
-                                }
-
-                                search-verse-input := LineEdit {
-                                    width: 95%;
-                                    input-type: InputType.text;
-                                    placeholder-text: "Busca: Juan 3:16, Romanos 14:10-14";
-                                }
-                            }
-                        }
-
-                        Row {
-                            VerticalLayout {
-                                colspan: 3;
-                                verses-list := RenderableList {
-                                    item-count: MainState.verses.length;
-                                    item-focused(index) => {
-                                        let e = MainState.verses[index];
-                                        ViewState.shared-view.content = e.text;
-                                        ViewState.shared-view.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
-                                        root.send-to-view();
-                                    }
-                                    ListView {
-                                        for e[idx] in MainState.verses: vese-interactable := Renderable {
-                                            property <ViewData> vd;
-                                            addable: true;
-                                            padding-bottom: 10px;
-                                            item-index: idx;
-                                            focused-index: verses-list.current-focused;
-
-                                            add-click => {
-                                                vd.content = e.text;
-                                                vd.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
-                                                vd.font = ViewState.shared-view.font;
-                                                vd.color = ViewState.shared-view.color;
-
-                                                let label = (vd.verse != "" ? vd.verse : (e.book + " " + e.chapter)) + " > " + e.text;
-                                                root.add-processed-item(vd, ScheduledKind.Verse, label);
-                                            }
-
-                                            preview => {
-                                                ViewState.shared-view.content = e.text;
-                                                ViewState.shared-view.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
-                                            }
-                                            send-to-view => {
-                                                verses-list.focus();
-                                                verses-list.current-focused = idx;
-                                                ViewState.shared-view.content = e.text;
-                                                ViewState.shared-view.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
-                                                root.send-to-view();
-                                            }
-
-                                            VerticalLayout {
-                                                spacing: 5px;
-
-                                                Text {
-                                                    font-size: 12px;
-                                                    overflow: elide;
-                                                    vertical-alignment: center;
-                                                    color: Palette.foreground;
-                                                    text: (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
-                                                }
-
-                                                Text {
-                                                    font-size: 12px;
-                                                    font-weight: 600;
-                                                    vertical-alignment: center;
-                                                    color: Palette.foreground.darker(60%);
-                                                    text: ! e.bible.english-name.is-empty ? e.bible.english-name : e.bible.name;
-                                                }
-
-                                                Text {
-                                                    text: e.text;
-                                                    font-size: 16px;
-                                                    font-weight: 600;
-                                                    vertical-alignment: center;
-                                                    color: Palette.foreground;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    VersesTab {
+                        add-processed-item(vd, kind, label) => root.add-processed-item(vd, kind, label);
+                        open-bibles => dialog-bibles.show();
+                        send-to-view => root.send-to-view();
+                        search-verse(text) => root.search-verse(text);
                     }
                 }
 
                 Tab {
                     title: "Songs";
-                    HorizontalLayout {
-                        VerticalLayout {
-                            width: 40%;
-                            padding: 10px;
-                            spacing: 10px;
-                            alignment: stretch;
-
-                            HorizontalLayout {
-                                spacing: 10px;
-                                alignment: space-between;
-
-                                Text {
-                                    text: "Biblioteca de Canciones";
-                                    vertical-alignment: center;
-                                }
-
-                                Button {
-                                    text: "+";
-                                    clicked => dialog-songs.show();
-                                }
-                            }
-
-                            LineEdit {
-                                placeholder-text: "Buscar canciones";
-                                edited(s) => SongsState.on-search(s);
-                            }
-
-                            songs-list := ListView {
-                                for s[idx] in SongsState.songs: song-interactable := Renderable {
-                                    addable: true;
-                                    padding-bottom: 10px;
-                                    selected: idx == SongsState.selected-song;
-
-                                    preview => SongsState.select-song(idx);
-                                    add-click => root.add-processed-item(ViewState.default-view-data(), ScheduledKind.Song, SongsState.songs[idx].path);
-                                    send-to-view => {
-                                        SongsState.select-song(idx);
-                                        SongsState.selected-paragraph = 0;
-                                        ViewState.shared-view.content = SongsState.songs[idx].content[0];
-                                        /* Send first paragraph to output */
-                                        paragraphs-list.focus();
-                                        paragraphs-list.current-focused = 0;
-                                        SongsState.selected-paragraph = 0;
-                                        root.send-to-view();
-                                    }
-
-                                    Text {
-                                        text: s.path;
-                                        vertical-alignment: center;
-                                        color: Palette.foreground;
-                                    }
-                                }
-                            }
-                        }
-
-                        VerticalLayout {
-                            alignment: stretch;
-                            padding: 10px;
-                            spacing: 10px;
-
-                            if SongsState.selected-song >= 0: Text {
-                                text: SongsState.songs[SongsState.selected-song].path;
-                                font-size: 24px;
-                            }
-
-                            paragraphs-list := RenderableList {
-                                item-count: SongsState.songs[SongsState.selected-song].content.length;
-                                item-focused(index) => {
-                                    ViewState.shared-view.content = SongsState.songs[SongsState.selected-song].content[index];
-                                    SongsState.selected-paragraph = index;
-                                    root.send-to-view();
-                                }
-                                ListView {
-                                    for e[idx] in SongsState.songs[SongsState.selected-song].content: paragraph-interactable := Renderable {
-                                        padding-bottom: 10px;
-                                        selected: idx == SongsState.selected-paragraph;
-                                        item-index: idx;
-                                        focused-index: paragraphs-list.current-focused;
-
-                                        preview => {
-                                            ViewState.shared-view.content = e;
-                                            SongsState.selected-paragraph = idx;
-                                        }
-                                        send-to-view => {
-                                            paragraphs-list.focus();
-                                            paragraphs-list.current-focused = idx;
-                                            ViewState.shared-view.content = e;
-                                            SongsState.selected-paragraph = idx;
-                                            root.send-to-view();
-                                        }
-
-                                        Text {
-                                            text: e;
-                                            vertical-alignment: center;
-                                            color: Palette.foreground;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    SongsTab {
+                        add-processed-item(vd, kind, label) => root.add-processed-item(vd, kind, label);
+                        open-file-dialog => dialog-songs.show();
+                        send-to-view => root.send-to-view();
                     }
                 }
 
                 Tab {
                     title: "Media";
-                    VerticalLayout {
-                        padding: 10px;
-                        spacing: 10px;
-
-                        HorizontalLayout {
-                            spacing: 10px;
-                            height: 50px;
-                            alignment: space-between;
-
-                            VerticalLayout {
-                                Text {
-                                    text: "Gestor de Medios";
-                                    font-size: 24px;
-                                }
-
-                                Text {
-                                    text: "Imagenes/Videos/Efectos";
-                                }
-                            }
-
-                            Button {
-                                text: "+";
-                                clicked => {
-                                    ViewState.select-media-preview = {
-                                        show-img: false,
-                                        tmp: false,
-                                        is-logo: false,
-                                        path: "",
-                                        content: "",
-                                        verse: "",
-                                        img-fit: ImageFit.contain,
-                                        color: { a: Colors.black, b: Colors.black },
-                                        font: {
-                                            color: Colors.white,
-                                            stroke: Colors.black,
-                                            stroke-size: 2px,
-                                            font-size: 48px,
-                                        },
-                                        verse-font: {
-                                            color: Colors.white,
-                                            stroke: Colors.black,
-                                            stroke-size: 2px,
-                                            font-size: 24px,
-                                        },
-                                    };
-                                    dialog-media-selector.show();
-                                }
-                            }
-                        }
-
-                        ListView {
-                            for row[i] in ViewState.media-list: Rectangle {
-                                height: (240px / 1.7) + 10px;
-
-                                for e[n] in row: Renderable {
-                                    x: n * self.width;
-                                    width: 240px;
-                                    height: self.width / 1.7;
-                                    addable: !e.is-logo;
-                                    editable: true;
-                                    removable: !e.tmp;
-
-                                    preview => ViewState.preview-media(e);
-                                    send-to-view => ViewState.sync-and-play(e);
-                                    remove-click => ViewState.remove-media(i, n);
-                                    edit-click => {
-                                        ViewState.in-edit-mode = { editable: true, row: i, col: n };
-                                        ViewState.select-media-preview = e;
-                                        dialog-media-selector.show();
-                                    }
-
-                                    add-click => root.add-processed-item(e, ScheduledKind.Media, e.path);
-
-                                    View {
-                                        width: 100%;
-                                        height: self.width / 1.7;
-                                        data: e;
-
-                                        if e.is-logo: Rectangle {
-                                            x: 5px;
-                                            y: 5px;
-                                            width: 50px;
-                                            height: 25px;
-                                            border-radius: 4px;
-                                            background: Palette.accent-background;
-
-                                            Text {
-                                                text: "LOGO";
-                                                color: Colors.white;
-                                                font-size: 10px;
-                                                font-weight: 700;
-                                                horizontal-alignment: center;
-                                                vertical-alignment: center;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    MediaTab {
+                        add-processed-item(vd, kind, label) => root.add-processed-item(vd, kind, label);
+                        open-media-selector => dialog-media-selector.show();
                     }
                 }
 
                 Tab {
                     title: "Text";
-
-                    VerticalLayout {
-                        padding: 10px;
-                        spacing: 10px;
-                        alignment: stretch;
-
-                        HorizontalLayout {
-                            spacing: 10px;
-                            alignment: space-between;
-
-                            Text {
-                                text: "Contenido del Texto";
-                                vertical-alignment: center;
-                            }
-
-                            HorizontalLayout {
-                                spacing: 10px;
-                                alignment: stretch;
-
-                                Button {
-                                    text: "Guardar";
-                                    clicked => {
-                                        let data = {
-                                            content: local-text,
-                                            font: ViewState.shared-view.font,
-                                            color: ViewState.shared-view.color,
-                                        };
-                                        save-text(data);
-                                    }
-                                }
-
-                                Button {
-                                    text: "Send";
-                                    clicked => {
-                                        ViewState.shared-view.content = local-text;
-                                        send-to-view();
-                                    }
-                                }
-                            }
-                        }
-
-                        TextEdit {
-                            text: local-text;
-                            placeholder-text: "Escribe tu mensaje aquí";
-                            edited(text) => {
-                                local-text = text;
-                                ViewState.shared-view.content = text;
-                            }
-                        }
-
-                        Text {
-                            text: "Guardados";
-                        }
-
-                        saved-texts-list := ListView {
-                            for e[idx] in MainState.saved-texts: r := Renderable {
-                                property <ViewData> vd;
-                                removable: true;
-                                addable: true;
-                                padding-bottom: 10px;
-                                border-width: 3px;
-                                border-color: e.color.a != e.color.b ? @linear-gradient(135deg, e.color.a.darker(30%), e.color.b.darker(30%)) : e.color.a.darker(30%);
-                                background: e.color.a != e.color.b ? @linear-gradient(135deg, e.color.a, e.color.b) : e.color.a;
-
-                                remove-click => remove-saved-text(idx);
-                                preview => {
-                                    ViewState.shared-view.content = e.content;
-                                    ViewState.shared-view.font = e.font;
-                                    ViewState.shared-view.color = e.color;
-                                }
-                                send-to-view => {
-                                    ViewState.shared-view.content = e.content;
-                                    ViewState.shared-view.font = e.font;
-                                    ViewState.shared-view.color = e.color;
-                                    root.send-to-view();
-                                }
-                                add-click => {
-                                    vd.content = e.content;
-                                    vd.verse = "";
-                                    vd.font = e.font;
-                                    vd.color = e.color;
-
-                                    root.add-processed-item(vd, ScheduledKind.Verse, e.content);
-                                }
-
-                                HorizontalLayout {
-                                    alignment: space-between;
-
-                                    Text {
-                                        text: e.content;
-                                        vertical-alignment: center;
-                                        color: e.font.color;
-                                    }
-                                }
-                            }
-                        }
+                    TextTab {
+                        save-text(data) => root.save-text(data);
+                        send-to-view => root.send-to-view();
                     }
                 }
             }
@@ -588,129 +183,10 @@ export component MainWindow inherits Window {
             background: Colors.dimgray.with-alpha(20%);
         }
 
-        VerticalLayout {
-            width: 30%;
-            padding: 10px;
-            alignment: start;
-            spacing: 10px;
-
-            HorizontalLayout {
-                spacing: 5px;
-                alignment: end;
-
-                clear-img-btn := Button {
-                    visible: ViewState.shared-view.show-img;
-                    text: "Stop Video/Image";
-                }
-
-                send-btn := Button {
-                    text: "Send";
-                }
-            }
-
-            preview := View {
-                width: 100%;
-                height: self.width / 1.7;
-                window-height: 400px / 1.7;
-                window-width: 400px;
-                render-scale: 0.3;
-                data <=> ViewState.shared-view;
-            }
-
-            ColorPickerButton {
-                height: 60px;
-                position: left;
-                allow-gradient: true;
-                selected-color: ViewState.shared-view.color;
-
-                color-changed(color) => {
-                    ViewState.shared-view.color = color;
-                }
-            }
-
-            TabWidget {
-                current-index: 0;
-                height: 100%;
-
-                Tab {
-                    title: "Edit Font";
-
-                    FontEdit {
-                        show-main-title: false;
-                        data <=> ViewState.shared-view;
-                    }
-                }
-
-                Tab {
-                    title: "Schedule Content";
-
-                    VerticalLayout {
-                        spacing: 5px;
-                        padding-top: 5px;
-
-                        schedule-list := RenderableList {
-                            item-count: ScheduleState.items.length;
-                            draggable: true;
-                            line-height: 64px;
-                            request-move-by(i, offset) => schedule-request-move-by(i, offset);
-                            item-focused(index) => {
-                                ScheduleState.select(index);
-                                let it = ScheduleState.items[index];
-                                ViewState.shared-view = it.view-data;
-                                root.send-to-view();
-                            }
-
-                            ListView {
-                                for it[i] in ScheduleState.items: schedule-row := Renderable {
-                                    padding-bottom: 10px;
-                                    item-index: i;
-                                    focused-index: schedule-list.current-focused;
-                                    removable: true;
-                                    selected: i == ScheduleState.selected-item;
-                                    position-shift: schedule-list.positionShiftForIndex(i);
-                                    line-height: schedule-list.line-height;
-                                    draggable: schedule-list.draggable;
-
-                                    skipping(offset) => schedule-list.handleSkipping(i, offset);
-                                    moved-element-n-lines(offset) => schedule-list.handleMoved(i, offset);
-
-                                    remove-click => root.schedule-request-remove(i);
-                                    preview => {
-                                        ViewState.shared-view = it.view-data;
-                                    }
-
-                                    send-to-view => {
-                                        schedule-list.focus();
-                                        schedule-list.current-focused = i;
-                                        ViewState.shared-view = it.view-data;
-                                        root.send-to-view();
-                                    }
-
-                                    HorizontalLayout {
-                                        spacing: 6px;
-
-                                        HorizontalLayout {
-                                            spacing: 8px;
-                                            Text {
-                                                text: it.kind == ScheduledKind.Verse ? "📖" : (it.kind == ScheduledKind.Song ? "🎵" : (it.kind == ScheduledKind.Media ? "🖼️" : "🅰️"));
-                                                vertical-alignment: center;
-                                            }
-
-                                            Text {
-                                                text: it.label;
-                                                font-size: 14px;
-                                                vertical-alignment: center;
-                                                overflow: elide;
-                                                horizontal-stretch: 1;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        preview := PreviewSection {
+            send-to-view => root.send-to-view();
+            schedule-request-remove(idx) => root.schedule-request-remove(idx);
+            schedule-request-move-by(idx, offset) => root.schedule-request-move-by(idx, offset);
         }
 
         dialog-songs := FileManagerDialog {

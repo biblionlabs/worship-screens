@@ -1,0 +1,109 @@
+import { Button, ListView, Palette } from "std-widgets.slint";
+import { Renderable } from "../components/base/renderable.slint";
+import { ViewData, ViewState } from "../api/view-state.slint";
+import { ScheduledKind } from "../api/schedule.slint";
+import { View } from "../components/view.slint";
+
+export component MediaTab inherits VerticalLayout {
+    callback add-processed-item(ViewData, ScheduledKind, string);
+    callback open-media-selector();
+
+    spacing: 10px;
+    padding: 10px;
+
+    HorizontalLayout {
+        spacing: 10px;
+        height: 50px;
+        alignment: space-between;
+
+        VerticalLayout {
+            Text {
+                text: "Gestor de Medios";
+                font-size: 24px;
+            }
+
+            Text {
+                text: "Imagenes/Videos/Efectos";
+            }
+        }
+
+        Button {
+            text: "+";
+            clicked => {
+                ViewState.select-media-preview = {
+                    show-img: false,
+                    tmp: false,
+                    is-logo: false,
+                    path: "",
+                    content: "",
+                    verse: "",
+                    img-fit: ImageFit.contain,
+                    color: { a: Colors.black, b: Colors.black },
+                    font: {
+                        color: Colors.white,
+                        stroke: Colors.black,
+                        stroke-size: 2px,
+                        font-size: 48px,
+                    },
+                    verse-font: {
+                        color: Colors.white,
+                        stroke: Colors.black,
+                        stroke-size: 2px,
+                        font-size: 24px,
+                    },
+                };
+                open-media-selector();
+            }
+        }
+    }
+
+    ListView {
+        for row[i] in ViewState.media-list: Rectangle {
+            height: (240px / 1.7) + 10px;
+
+            for e[n] in row: Renderable {
+                x: n * self.width;
+                width: 240px;
+                height: self.width / 1.7;
+                addable: !e.is-logo;
+                editable: true;
+                removable: !e.tmp;
+
+                preview => ViewState.preview-media(e);
+                send-to-view => ViewState.sync-and-play(e);
+                remove-click => ViewState.remove-media(i, n);
+                edit-click => {
+                    ViewState.in-edit-mode = { editable: true, row: i, col: n };
+                    ViewState.select-media-preview = e;
+                    open-media-selector();
+                }
+
+                add-click => root.add-processed-item(e, ScheduledKind.Media, e.path);
+
+                View {
+                    width: 100%;
+                    height: self.width / 1.7;
+                    data: e;
+
+                    if e.is-logo: Rectangle {
+                        x: 5px;
+                        y: 5px;
+                        width: 50px;
+                        height: 25px;
+                        border-radius: 4px;
+                        background: Palette.accent-background;
+
+                        Text {
+                            text: "LOGO";
+                            color: Colors.white;
+                            font-size: 10px;
+                            font-weight: 700;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

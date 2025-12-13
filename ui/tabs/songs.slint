@@ -1,0 +1,117 @@
+import {
+    Renderable,
+    RenderableList,
+} from "../components/base/renderable.slint";
+import { Button, LineEdit, ListView, Palette } from "std-widgets.slint";
+import { ViewData, ViewState } from "../api/view-state.slint";
+import { ScheduledKind } from "../api/schedule.slint";
+import { SongsState } from "../api/songs.slint";
+
+export component SongsTab inherits HorizontalLayout {
+    callback add-processed-item(ViewData, ScheduledKind, string);
+    callback open-file-dialog(bool);
+    callback send-to-view();
+
+    spacing: 10px;
+    padding: 10px;
+
+    VerticalLayout {
+        width: 40%;
+        padding: 10px;
+        spacing: 10px;
+        alignment: stretch;
+
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: space-between;
+
+            Text {
+                text: "Biblioteca de Canciones";
+                vertical-alignment: center;
+            }
+
+            Button {
+                text: "+";
+                clicked => open-file-dialog(false);
+            }
+        }
+
+        LineEdit {
+            placeholder-text: "Buscar canciones";
+            edited(s) => SongsState.on-search(s);
+        }
+
+        songs-list := ListView {
+            for s[idx] in SongsState.songs: song-interactable := Renderable {
+                addable: true;
+                padding-bottom: 10px;
+                selected: idx == SongsState.selected-song;
+
+                preview => SongsState.select-song(idx);
+                add-click => root.add-processed-item(ViewState.default-view-data(), ScheduledKind.Song, SongsState.songs[idx].path);
+                send-to-view => {
+                    SongsState.select-song(idx);
+                    SongsState.selected-paragraph = 0;
+                    ViewState.shared-view.content = SongsState.songs[idx].content[0];
+                                        /* Send first paragraph to output */
+                                        paragraphs-list.focus();
+                    paragraphs-list.current-focused = 0;
+                    SongsState.selected-paragraph = 0;
+                    root.send-to-view();
+                }
+
+                Text {
+                    text: s.path;
+                    vertical-alignment: center;
+                    color: Palette.foreground;
+                }
+            }
+        }
+    }
+
+    VerticalLayout {
+        alignment: stretch;
+        padding: 10px;
+        spacing: 10px;
+
+        if SongsState.selected-song >= 0: Text {
+            text: SongsState.songs[SongsState.selected-song].path;
+            font-size: 24px;
+        }
+
+        paragraphs-list := RenderableList {
+            item-count: SongsState.songs[SongsState.selected-song].content.length;
+            item-focused(index) => {
+                ViewState.shared-view.content = SongsState.songs[SongsState.selected-song].content[index];
+                SongsState.selected-paragraph = index;
+                root.send-to-view();
+            }
+            ListView {
+                for e[idx] in SongsState.songs[SongsState.selected-song].content: paragraph-interactable := Renderable {
+                    padding-bottom: 10px;
+                    selected: idx == SongsState.selected-paragraph;
+                    item-index: idx;
+                    focused-index: paragraphs-list.current-focused;
+
+                    preview => {
+                        ViewState.shared-view.content = e;
+                        SongsState.selected-paragraph = idx;
+                    }
+                    send-to-view => {
+                        paragraphs-list.focus();
+                        paragraphs-list.current-focused = idx;
+                        ViewState.shared-view.content = e;
+                        SongsState.selected-paragraph = idx;
+                        root.send-to-view();
+                    }
+
+                    Text {
+                        text: e;
+                        vertical-alignment: center;
+                        color: Palette.foreground;
+                    }
+                }
+            }
+        }
+    }
+}

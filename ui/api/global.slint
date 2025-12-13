@@ -1,3 +1,6 @@
+import { TextView } from "view-state.slint";
+import { MarkdownLine } from "../components/markdown.slint";
+
 export global Settings {
     in property <[string]> monitors;
     in-out property <int> selected-monitor;
@@ -19,4 +22,39 @@ export struct Verse {
     part: int,
     verse: { a: int, b: int},
     text: string,
+}
+
+export global MainState {
+    in property <bool> need-update;
+    in-out property <[TextView]> saved-texts: [
+        {
+            color:{ a:Colors.rgba(0,0,0,1.0), b:Colors.rgba(0,0,0,1.0) },
+            content:"probando ando",
+            font:{
+                color:Colors.rgba(255,255,255,1.0),
+                font_size:120px,
+                name:"Unifont",
+                stroke:Colors.rgba(0,0,0,1.0),
+                stroke_size:2px
+            }
+        },
+        {
+            color:{ a:Colors.rgba(48,217,22,1.0), b:Colors.rgba(41,128,185,1.0) },
+            content:"probando ando",
+            font:{
+                color:Colors.rgba(255,255,255,1.0),
+                font_size:231px,
+                name:"Unifont",
+                stroke:Colors.rgba(0,0,0,1.0),
+                stroke_size:2px
+            }
+        }
+    ];
+    in property <[Verse]> verses;
+    in-out property <[Bible]> bibles;
+    in property <[MarkdownLine]> last-changelog;
+    in property <bool> show-changelog-on-start;
+
+    callback search-bible(string);
+    callback install-bible(string);
 }

@@ -1,0 +1,111 @@
+import {
+    Renderable,
+    RenderableList,
+} from "../components/base/renderable.slint";
+import { MainState } from "../api/global.slint";
+import { ViewData, ViewState } from "../api/view-state.slint";
+import { ScheduledKind } from "../api/schedule.slint";
+import { Button, LineEdit, ListView, Palette } from "std-widgets.slint";
+
+export component VersesTab inherits GridLayout {
+    callback add-processed-item(ViewData, ScheduledKind, string);
+    callback open-bibles();
+    callback send-to-view();
+    callback search-verse <=> search-verse-input.edited;
+
+    spacing: 10px;
+    padding: 10px;
+
+    Row {
+        HorizontalLayout {
+            colspan: 3;
+            spacing: 10px;
+            alignment: stretch;
+
+            Button {
+                text: "+";
+                clicked => open-bibles();
+            }
+
+            search-verse-input := LineEdit {
+                width: 95%;
+                input-type: InputType.text;
+                placeholder-text: "Busca: Juan 3:16, Romanos 14:10-14";
+            }
+        }
+    }
+
+    Row {
+        VerticalLayout {
+            colspan: 3;
+            verses-list := RenderableList {
+                item-count: MainState.verses.length;
+                item-focused(index) => {
+                    let e = MainState.verses[index];
+                    ViewState.shared-view.content = e.text;
+                    ViewState.shared-view.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
+                    root.send-to-view();
+                }
+                ListView {
+                    for e[idx] in MainState.verses: vese-interactable := Renderable {
+                        property <ViewData> vd;
+                        addable: true;
+                        padding-bottom: 10px;
+                        item-index: idx;
+                        focused-index: verses-list.current-focused;
+
+                        add-click => {
+                            vd.content = e.text;
+                            vd.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
+                            vd.font = ViewState.shared-view.font;
+                            vd.color = ViewState.shared-view.color;
+
+                            let label = (vd.verse != "" ? vd.verse : (e.book + " " + e.chapter)) + " > " + e.text;
+                            root.add-processed-item(vd, ScheduledKind.Verse, label);
+                        }
+
+                        preview => {
+                            ViewState.shared-view.content = e.text;
+                            ViewState.shared-view.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
+                        }
+                        send-to-view => {
+                            verses-list.focus();
+                            verses-list.current-focused = idx;
+                            ViewState.shared-view.content = e.text;
+                            ViewState.shared-view.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
+                            root.send-to-view();
+                        }
+
+                        VerticalLayout {
+                            spacing: 5px;
+
+                            Text {
+                                font-size: 12px;
+                                overflow: elide;
+                                vertical-alignment: center;
+                                color: Palette.foreground;
+                                text: (e.part > 0 ? " [" + e.part + "] " : "") + e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
+                            }
+
+                            Text {
+                                font-size: 12px;
+                                font-weight: 600;
+                                vertical-alignment: center;
+                                color: Palette.foreground.darker(60%);
+                                text: ! e.bible.english-name.is-empty ? e.bible.english-name : e.bible.name;
+                            }
+
+                            Text {
+                                text: e.text;
+                                font-size: 16px;
+                                font-weight: 600;
+                                vertical-alignment: center;
+                                color: Palette.foreground;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

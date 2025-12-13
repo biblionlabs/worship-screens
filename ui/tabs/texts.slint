@@ -1,0 +1,103 @@
+import { Button, TextEdit, ListView } from "std-widgets.slint";
+import { Renderable } from "../components/base/renderable.slint";
+import { ViewData, ViewState, TextView } from "../api/view-state.slint";
+import { ScheduledKind } from "../api/schedule.slint";
+import { MainState } from "../api/global.slint";
+
+export component TextTab inherits VerticalLayout {
+    callback save-text(TextView);
+    callback send-to-view();
+    callback remove-saved-text(int);
+    callback add-processed-item(ViewData, ScheduledKind, string);
+
+    spacing: 10px;
+    padding: 10px;
+    alignment: stretch;
+
+    HorizontalLayout {
+        spacing: 10px;
+        alignment: space-between;
+
+        Text {
+            text: "Contenido del Texto";
+            vertical-alignment: center;
+        }
+
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: stretch;
+
+            Button {
+                text: "Guardar";
+                clicked => {
+                    let data = {
+                        content: ViewState.shared-view.content,
+                        font: ViewState.shared-view.font,
+                        color: ViewState.shared-view.color,
+                    };
+                    save-text(data);
+                }
+            }
+
+            Button {
+                text: "Send";
+                clicked => send-to-view();
+            }
+        }
+    }
+
+    TextEdit {
+        text: ViewState.shared-view.content;
+        placeholder-text: "Escribe tu mensaje aquí";
+        edited(text) => {
+            ViewState.shared-view.content = text;
+        }
+    }
+
+    Text {
+        text: "Guardados";
+    }
+
+    saved-texts-list := ListView {
+        for e[idx] in MainState.saved-texts: r := Renderable {
+            property <ViewData> vd;
+            removable: true;
+            addable: true;
+            padding-bottom: 10px;
+            border-width: 3px;
+            border-color: e.color.a != e.color.b ? @linear-gradient(135deg, e.color.a.darker(30%), e.color.b.darker(30%)) : e.color.a.darker(30%);
+            background: e.color.a != e.color.b ? @linear-gradient(135deg, e.color.a, e.color.b) : e.color.a;
+
+            remove-click => remove-saved-text(idx);
+            preview => {
+                ViewState.shared-view.content = e.content;
+                ViewState.shared-view.font = e.font;
+                ViewState.shared-view.color = e.color;
+            }
+            send-to-view => {
+                ViewState.shared-view.content = e.content;
+                ViewState.shared-view.font = e.font;
+                ViewState.shared-view.color = e.color;
+                root.send-to-view();
+            }
+            add-click => {
+                vd.content = e.content;
+                vd.verse = "";
+                vd.font = e.font;
+                vd.color = e.color;
+
+                root.add-processed-item(vd, ScheduledKind.Verse, e.content);
+            }
+
+            HorizontalLayout {
+                alignment: space-between;
+
+                Text {
+                    text: e.content;
+                    vertical-alignment: center;
+                    color: e.font.color;
+                }
+            }
+        }
+    }
+}

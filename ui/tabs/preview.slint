@@ -1,0 +1,145 @@
+
+import { Button, TabWidget, ListView } from "std-widgets.slint";
+import { View } from "../components/view.slint";
+import { ColorPickerButton } from "../components/color-picker-button.slint";
+import { FontEdit } from "../components/font-edit.slint";
+import {
+    RenderableList,
+    Renderable,
+} from "../components/base/renderable.slint";
+
+import { ViewData, ViewState } from "../api/view-state.slint";
+import { ScheduledKind, ScheduleState } from "../api/schedule.slint";
+
+export component PreviewSection inherits VerticalLayout {
+    callback send-to-view <=> send-btn.clicked;
+    callback clear-image <=> clear-img-btn.clicked;
+    callback schedule-request-remove(int);
+    callback schedule-request-move-by(int, int);
+
+    out property <length> preview-width <=> preview.width;
+    out property <length> preview-height <=> preview.height;
+
+    width: 30%;
+    padding: 10px;
+    alignment: start;
+    spacing: 10px;
+
+    HorizontalLayout {
+        spacing: 5px;
+        alignment: end;
+
+        clear-img-btn := Button {
+            visible: ViewState.shared-view.show-img;
+            text: "Stop Video/Image";
+        }
+
+        send-btn := Button {
+            text: "Send";
+        }
+    }
+
+    preview := View {
+        width: 100%;
+        height: self.width / 1.7;
+        window-height: 400px / 1.7;
+        window-width: 400px;
+        render-scale: 0.3;
+        data <=> ViewState.shared-view;
+    }
+
+    ColorPickerButton {
+        height: 60px;
+        position: left;
+        allow-gradient: true;
+        selected-color: ViewState.shared-view.color;
+
+        color-changed(color) => {
+            ViewState.shared-view.color = color;
+        }
+    }
+
+    TabWidget {
+        current-index: 0;
+        height: 100%;
+
+        Tab {
+            title: "Edit Font";
+
+            FontEdit {
+                show-main-title: false;
+                data <=> ViewState.shared-view;
+            }
+        }
+
+        Tab {
+            title: "Schedule Content";
+
+            VerticalLayout {
+                spacing: 5px;
+                padding-top: 5px;
+
+                schedule-list := RenderableList {
+                    item-count: ScheduleState.items.length;
+                    draggable: true;
+                    line-height: 64px;
+                    request-move-by(i, offset) => schedule-request-move-by(i, offset);
+                    item-focused(index) => {
+                        ScheduleState.select(index);
+                        let it = ScheduleState.items[index];
+                        ViewState.shared-view = it.view-data;
+                        send-to-view();
+                    }
+
+                    ListView {
+                        for it[i] in ScheduleState.items: schedule-row := Renderable {
+                            padding-bottom: 10px;
+                            item-index: i;
+                            focused-index: schedule-list.current-focused;
+                            removable: true;
+                            selected: i == ScheduleState.selected-item;
+                            position-shift: schedule-list.positionShiftForIndex(i);
+                            line-height: schedule-list.line-height;
+                            draggable: schedule-list.draggable;
+
+                            skipping(offset) => schedule-list.handleSkipping(i, offset);
+                            moved-element-n-lines(offset) => schedule-list.handleMoved(i, offset);
+
+                            remove-click => schedule-request-remove(i);
+                            preview => {
+                                ViewState.shared-view = it.view-data;
+                            }
+
+                            send-to-view => {
+                                schedule-list.focus();
+                                schedule-list.current-focused = i;
+                                ViewState.shared-view = it.view-data;
+                                send-to-view();
+                            }
+
+                            HorizontalLayout {
+                                spacing: 6px;
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Text {
+                                        text: it.kind == ScheduledKind.Verse ? "📖" : (it.kind == ScheduledKind.Song ? "🎵" : (it.kind == ScheduledKind.Media ? "🖼️" : "🅰️"));
+                                        vertical-alignment: center;
+                                    }
+
+                                    Text {
+                                        text: it.label;
+                                        font-size: 14px;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                        horizontal-stretch: 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
