@@ -7,17 +7,21 @@ export component ViewWindow inherits Window {
     preferred-width: 720px;
     preferred-height: 423px;
 
-    View {
-        width: 100%;
-        height: 100%;
-        data <=> ViewState.shared-view;
-    }
+    TouchArea {
+        mouse-cursor: none;
 
-    Rectangle {
-        width: 100%;
-        height: 100%;
-        background: !ViewState.off ? Colors.transparent : Colors.black;
+        View {
+            width: 100%;
+            height: 100%;
+            data <=> ViewState.shared-view;
+        }
 
-        animate background { duration: 500ms; }
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            background: !ViewState.off ? Colors.transparent : Colors.black;
+
+            animate background { duration: 500ms; }
+        }
     }
 }
