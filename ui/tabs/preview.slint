@@ -1,5 +1,5 @@
 
-import { Button, TabWidget, ListView } from "std-widgets.slint";
+import { Button, TabWidget, ListView, ScrollView } from "std-widgets.slint";
 import { View } from "../components/view.slint";
 import { ColorPickerButton } from "../components/color-picker-button.slint";
 import { FontEdit } from "../components/font-edit.slint";
@@ -25,7 +25,7 @@ export component PreviewSection inherits VerticalLayout {
     alignment: start;
     spacing: 10px;
 
-    HorizontalLayout {
+    control-buttons := HorizontalLayout {
         spacing: 5px;
         alignment: end;
 
@@ -48,7 +48,7 @@ export component PreviewSection inherits VerticalLayout {
         data <=> ViewState.shared-view;
     }
 
-    ColorPickerButton {
+    color-picker := ColorPickerButton {
         height: 60px;
         position: left;
         allow-gradient: true;
@@ -66,9 +66,13 @@ export component PreviewSection inherits VerticalLayout {
         Tab {
             title: "Edit Font";
 
-            FontEdit {
-                show-main-title: false;
-                data <=> ViewState.shared-view;
+            ScrollView {
+                y: 0px;
+                height: root.height - control-buttons.height - preview.height - color-picker.height - 80px;
+                FontEdit {
+                    show-main-title: false;
+                    data <=> ViewState.shared-view;
+                }
             }
         }
 
@@ -76,8 +80,10 @@ export component PreviewSection inherits VerticalLayout {
             title: "Schedule Content";
 
             VerticalLayout {
+                y: 0px;
                 spacing: 5px;
                 padding-top: 5px;
+                height: root.height - control-buttons.height - preview.height - color-picker.height - 80px;
 
                 schedule-list := RenderableList {
                     item-count: ScheduleState.items.length;
