@@ -1,3 +1,13 @@
+## [0.1.1-alpha.6] - 2025-12-14
+
+### 🚀 Features
+
+- Hide cursor on output window view
+
+### 🐛 Bug Fixes
+
+- List area height on preview
+- Draggable item line height auto calculated
 ## [0.1.1-alpha.5] - 2025-12-13
 
 ### 🚀 Features
@@ -24,6 +34,7 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Remove renderable list from song list
+- Release worship presentations version
 ## [0.1.1-alpha.4] - 2025-12-07
 
 ### 🚀 Features
