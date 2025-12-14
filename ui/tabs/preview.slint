@@ -88,7 +88,6 @@ export component PreviewSection inherits VerticalLayout {
                 schedule-list := RenderableList {
                     item-count: ScheduleState.items.length;
                     draggable: true;
-                    line-height: 64px;
                     request-move-by(i, offset) => schedule-request-move-by(i, offset);
                     item-focused(index) => {
                         ScheduleState.select(index);
@@ -105,7 +104,6 @@ export component PreviewSection inherits VerticalLayout {
                             removable: true;
                             selected: i == ScheduleState.selected-item;
                             position-shift: schedule-list.positionShiftForIndex(i);
-                            line-height: schedule-list.line-height;
                             draggable: schedule-list.draggable;
 
                             skipping(offset) => schedule-list.handleSkipping(i, offset);
@@ -123,22 +121,27 @@ export component PreviewSection inherits VerticalLayout {
                                 send-to-view();
                             }
 
-                            HorizontalLayout {
+                            VerticalLayout {
                                 spacing: 6px;
+                                alignment: start;
 
                                 HorizontalLayout {
                                     spacing: 8px;
+                                    height: 100%;
+
                                     Text {
-                                        text: it.kind == ScheduledKind.Verse ? "📖" : (it.kind == ScheduledKind.Song ? "🎵" : (it.kind == ScheduledKind.Media ? "🖼️" : "🅰️"));
                                         vertical-alignment: center;
+                                        text: it.kind == ScheduledKind.Verse ? "📖" : (it.kind == ScheduledKind.Song ? "🎵" : (it.kind == ScheduledKind.Media ? "🖼️" : "🅰️"));
                                     }
 
                                     Text {
                                         text: it.label;
                                         font-size: 14px;
-                                        vertical-alignment: center;
                                         overflow: elide;
+                                        wrap: word-wrap;
+                                        vertical-stretch: 1;
                                         horizontal-stretch: 1;
+                                        vertical-alignment: center;
                                     }
                                 }
                             }

@@ -71,7 +71,6 @@ export component Renderable inherits HorizontalLayout {
     in property <length> border-radius: 8px;
 
     in property <bool> draggable: false;
-    in property <length> line-height: 64px;
     in property <int> position-shift: 0; // -1 = OneUp, 0 = None, 1 = OneDown
 
     in property <int> item-index: -1;
@@ -110,18 +109,18 @@ export component Renderable inherits HorizontalLayout {
 
     property <length> not-actively-dragged-position: {
         if (position-shift == 1) {
-            return -line-height;
+            return -i-content.height;
         } else if (position-shift == -1) {
-            return line-height;
+            return i-content.height;
         } else {
             return 0px;
         }
     };
     animate not-actively-dragged-position { duration: 200ms; }
 
-    property <length> cursor-correction: -0.5 * line-height;
+    property <length> cursor-correction: -0.5 * i-content.height;
 
-    Rectangle {
+    i-content := Rectangle {
         opacity: enabled ? 1.0 : 0.5;
         y: dragging ? content-box-y : not_actively_dragged_position;
         background: background.brighter((hover || selected || has-focus) ? 0.2 : 0.0);
@@ -151,12 +150,10 @@ export component Renderable inherits HorizontalLayout {
             }
             HorizontalLayout {
                 width: 100%;
-                height: draggable ? line-height : root.height;
                 spacing: 0px;
 
                 if draggable: Rectangle {
                     width: 30px;
-                    height: line-height;
                     background: transparent;
 
                     VerticalLayout {
@@ -186,7 +183,7 @@ export component Renderable inherits HorizontalLayout {
                             } else {
                                 dragging = false;
                                 let delta = content-box-y - not_actively_dragged_position;
-                                let lines = round(delta / line_height);
+                                let lines = round(delta / i-content.height);
                                 moved-element-n-lines(lines);
                             }
                         }
@@ -197,7 +194,7 @@ export component Renderable inherits HorizontalLayout {
                             }
                             let delta = self.local_mouse_y - press_start_mouse_y;
                             content-box-y = press_start_content_y + delta;
-                            count_skipped_lines = round((content-box-y - not_actively_dragged_position + cursor_correction) / line_height);
+                            count_skipped_lines = round((content-box-y - not_actively_dragged_position + cursor_correction) / i-content.height);
                             skipping(count_skipped_lines);
                         }
                     }
@@ -299,7 +296,6 @@ export component RenderableList inherits Rectangle {
     callback request-move-by(int, int);
 
     in property <bool> draggable: false;
-    in property <length> line-height: 64px;
 
     in-out property <[int]> range-to-move-down: [-1, -1];
     in-out property <[int]> range-to-move-up: [-1, -1];
