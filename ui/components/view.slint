@@ -11,9 +11,6 @@ export component View inherits Rectangle {
 
     clip: true;
 
-    property <length> computed-content-fs: data.font.font-size * render-scale;
-    property <length> computed-verse-fs: data.verse-font.font-size * render-scale;
-
     property <length> computed-stroke-width: data.font.stroke-size * render-scale;
     property <length> computed-verse-stroke-width: data.verse-font.stroke-size * render-scale;
     property <length> verse-bottom-offset: 30px * render-scale;
@@ -33,31 +30,58 @@ export component View inherits Rectangle {
         source: data.img-bg;
     }
 
-    if !data.is-logo: Text {
-        width: 100%;
-        height: 100%;
-        wrap: word-wrap;
-        color: data.font.color;
-        stroke: data.font.stroke;
-        stroke-width: computed-stroke-width;
-        stroke-style: outside;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        text: data.content;
-        font-family: data.font.name;
-        font-size: computed-content-fs;
-    }
+    if !data.is-logo: Rectangle {
+        property <length> content-height: content.preferred-height;
+        property <length> verse-height: data.verse.is-empty ? 0px : verse-text.preferred-height;
+        property <length> total-height: content-height + (data.verse.is-empty ? 0px : (30px * render-scale + verse-height));
+        property <length> start-y: (root.window-height - total-height) / 2;
 
-    if !data.is-logo && !data.verse.is-empty: Text {
-        y: parent.height - computed-verse-fs - verse-bottom-offset;
-        text: data.verse;
-        color: data.verse-font.color;
-        stroke: data.verse-font.stroke;
-        stroke-width: computed-verse-stroke-width;
-        stroke-style: outside;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        font-family: data.verse-font.name;
-        font-size: computed-verse-fs;
+        content := Text {
+            y: start-y;
+            x: 0;
+            width: root.window-width;
+            wrap: word-wrap;
+            color: data.font.color;
+            stroke: data.font.stroke;
+            stroke-width: computed-stroke-width;
+            stroke-style: outside;
+            horizontal-alignment: center;
+            text: data.content;
+            font-family: data.font.name;
+            font-size: {
+                let text-length = data.content.character-count;
+                let verse-space = data.verse.is-empty ? 0px : (data.verse-font.font-size * render-scale + 30px * render-scale);
+                let available-height = (root.window-height - verse-space - 60px) / 1px;
+                let available-width = (root.window-width - 60px) / 1px;
+
+                let area-factor = sqrt(available-height * available-width / text-length);
+                let calculated = area-factor * 1.2;
+
+                max(12px, min(data.font.font-size, calculated * 1px)) * render-scale
+            };
+        }
+
+        verse-text := Text {
+            y: start-y + content-height + 30px * render-scale;
+            x: 0;
+            width: root.window-width;
+            text: data.verse;
+            color: data.verse-font.color;
+            stroke: data.verse-font.stroke;
+            stroke-width: computed-verse-stroke-width;
+            stroke-style: outside;
+            horizontal-alignment: center;
+            font-family: data.verse-font.name;
+            font-size: {
+                let text-length = data.verse.character-count;
+                let available-height = (root.window-height - content-height - 90px * render-scale) / 1px;
+                let available-width = (root.window-width - 60px) / 1px;
+
+                let area-factor = sqrt(available-height * available-width / text-length);
+                let calculated = area-factor * 1.2;
+
+                max(12px, min(data.verse-font.font-size, calculated * 1px)) * render-scale
+            };
+        }
     }
 }
