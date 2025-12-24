@@ -779,7 +779,7 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/biblionlabs/biblion-service#345419bb888637858185c7be30b71175910f0e61"
+source = "git+https://github.com/biblionlabs/biblion-service#e7a2b5ef7b811869576ad24e051020ab0f41efee"
 dependencies = [
  "serde",
 ]
@@ -1046,7 +1046,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 [[package]]
 name = "db"
 version = "0.1.0"
-source = "git+https://github.com/biblionlabs/biblion-service#345419bb888637858185c7be30b71175910f0e61"
+source = "git+https://github.com/biblionlabs/biblion-service#e7a2b5ef7b811869576ad24e051020ab0f41efee"
 dependencies = [
  "common",
  "deunicode",
@@ -4661,7 +4661,7 @@ dependencies = [
 [[package]]
 name = "setup_core"
 version = "0.1.0"
-source = "git+https://github.com/biblionlabs/biblion-service#345419bb888637858185c7be30b71175910f0e61"
+source = "git+https://github.com/biblionlabs/biblion-service#e7a2b5ef7b811869576ad24e051020ab0f41efee"
 dependencies = [
  "db",
  "rayon",

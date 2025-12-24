@@ -1,12 +1,12 @@
 use slint::{ComponentHandle, Model, ModelRc, Weak};
 use std::sync::{Arc, Mutex};
 
-use setup_core::{BibleInstallStatus, Setup, SqliteDbSink};
+use setup_core::{BibleInstallStatus, Setup, TantivySink};
 use ui::{Bible, MainState, MainWindow};
 
 pub struct BiblesManager {
     setup: Arc<Setup>,
-    database: Arc<SqliteDbSink>,
+    database: Arc<TantivySink>,
     window: Weak<MainWindow>,
     bibles_cache: Arc<Mutex<Vec<BibleItem>>>,
 }
@@ -16,7 +16,6 @@ struct BibleItem {
     id: String,
     name: String,
     english_name: String,
-    language: String,
     installed: bool,
     installing: bool,
     progress: f32,
@@ -36,7 +35,7 @@ impl From<BibleItem> for Bible {
 }
 
 impl BiblesManager {
-    pub fn new(window: Weak<MainWindow>, setup: Arc<Setup>, database: Arc<SqliteDbSink>) -> Self {
+    pub fn new(window: Weak<MainWindow>, setup: Arc<Setup>, database: Arc<TantivySink>) -> Self {
         Self {
             setup,
             database,
@@ -51,11 +50,10 @@ impl BiblesManager {
         if let Ok(bibles) = self.setup.list_bibles(self.database.as_ref()) {
             *cache = bibles
                 .iter()
-                .map(|(id, name, english, lang, status)| BibleItem {
+                .map(|(id, name, english, _lang, status)| BibleItem {
                     id: id.clone(),
                     name: name.clone(),
                     english_name: english.clone(),
-                    language: lang.clone(),
                     installed: status.is_complete(),
                     installing: false,
                     progress: Self::calculate_progress(status),

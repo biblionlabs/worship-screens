@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use notify_rust::Notification;
-use setup_core::{SqliteDbSink, event};
+use setup_core::{TantivySink, event};
 use slint::winit_030::WinitWindowAccessor;
 use slint::winit_030::winit::monitor::MonitorHandle;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, ToSharedString};
@@ -85,7 +85,7 @@ fn main() {
     let cache_dir = data_manager.data_dir(&["cache"]);
     let need_update = check_for_updates(&cache_dir);
 
-    let database = Arc::new(SqliteDbSink::from(data_manager.data_dir(&["bibles.db"])));
+    let database = Arc::new(TantivySink::from(data_manager.data_dir(&["index"])));
     let source_variants = setup_core::SetupBuilder::new().cache_path(cache_dir)
         // Add Reina Valera 1960 Bible
         .add_bible_from_url(
@@ -320,7 +320,7 @@ fn main() {
             const MAX_CHARS: usize = 20;
 
             let Ok(verses_found) =
-                setup_core::service_db::SearchedVerse::from_search(s, database.db.verse_index())
+                setup_core::service_db::SearchedVerse::from_search(s, database.verse_index())
             else {
                 return;
             };
