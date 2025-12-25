@@ -317,7 +317,7 @@ fn main() {
             let main_window = main_window.unwrap();
             let main_state = main_window.global::<MainState>();
 
-            const MAX_CHARS: usize = 20;
+            const MAX_CHARS: usize = 18;
 
             let Ok(verses_found) =
                 setup_core::service_db::SearchedVerse::from_search(s, database.verse_index())

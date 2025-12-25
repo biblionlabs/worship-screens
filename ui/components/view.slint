@@ -40,6 +40,7 @@ export component View inherits Rectangle {
             y: start-y;
             x: 0;
             width: root.window-width;
+            max-height: root.window-height - (verse-height + 30px * render-scale);
             wrap: word-wrap;
             color: data.font.color;
             stroke: data.font.stroke;
@@ -53,11 +54,14 @@ export component View inherits Rectangle {
                 let verse-space = data.verse.is-empty ? 0px : (data.verse-font.font-size * render-scale + 30px * render-scale);
                 let available-height = (root.window-height - verse-space - 60px) / 1px;
                 let available-width = (root.window-width - 60px) / 1px;
-
-                let area-factor = sqrt(available-height * available-width / text-length);
-                let calculated = area-factor * 1.2;
-
-                max(12px, min(data.font.font-size, calculated * 1px)) * render-scale
+                let font-size-test = data.font.font-size * render-scale / 1px;
+                let chars-per-line = available-width / (font-size-test * 0.65);
+                let num-lines = text-length / max(1, chars-per-line);
+                let line-height-factor = 1.3;
+                let required-height = num-lines * font-size-test * line-height-factor;
+                let scale-factor = min(1.0, available-height / required-height);
+                let calculated = font-size-test * scale-factor;
+                max(12px, min(data.font.font-size * render-scale, calculated * 1px))
             };
         }
 
@@ -73,14 +77,20 @@ export component View inherits Rectangle {
             horizontal-alignment: center;
             font-family: data.verse-font.name;
             font-size: {
+                if data.verse.is-empty {
+                    return 0px;
+                }
                 let text-length = data.verse.character-count;
-                let available-height = (root.window-height - content-height - 90px * render-scale) / 1px;
                 let available-width = (root.window-width - 60px) / 1px;
-
-                let area-factor = sqrt(available-height * available-width / text-length);
-                let calculated = area-factor * 1.2;
-
-                max(12px, min(data.verse-font.font-size, calculated * 1px)) * render-scale
+                let available-height = (root.window-height - content-height - 90px * render-scale);
+                let font-size-test = data.verse-font.font-size * render-scale / 1px;
+                let chars-per-line = available-width / (font-size-test * 0.65);
+                let num-lines = text-length / max(1, chars-per-line);
+                let line-height-factor = 1.3;
+                let required-height = num-lines * font-size-test * line-height-factor;
+                let scale-factor = min(1px, available-height / required-height);
+                let calculated = font-size-test * scale-factor;
+                max(12px, min(data.verse-font.font-size * render-scale, calculated))
             };
         }
     }
