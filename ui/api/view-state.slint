@@ -44,7 +44,7 @@ export global ViewState {
     in property <bool> off: false;
 
     in property <ViewData> select-media-preview: default-view-data();
-    in property <ViewData> shared-view: default-view-data();
+    in-out property <ViewData> shared-view: default-view-data();
     in property <[[ViewData]]> media-list;
     in property <[string]> installed-fonts: [];
 
@@ -89,5 +89,21 @@ export global ViewState {
             a: c,
             b: c,
         };
+    }
+
+    public function set-shared-view(view-data: ViewData) {
+        ViewState.shared-view.content = view-data.content;
+        ViewState.shared-view.verse = view-data.verse;
+        ViewState.shared-view.font = view-data.font;
+        ViewState.shared-view.verse-font = view-data.verse-font;
+        ViewState.shared-view.color = view-data.color;
+
+        if view-data.show-img {
+            ViewState.shared-view.show-img = view-data.show-img;
+            ViewState.shared-view.img-bg = view-data.img-bg;
+            ViewState.shared-view.img-fit = view-data.img-fit;
+            ViewState.shared-view.path = view-data.path;
+            ViewState.shared-view.is-logo = view-data.is-logo;
+        }
     }
 }

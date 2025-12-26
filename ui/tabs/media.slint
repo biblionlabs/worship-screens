@@ -70,7 +70,15 @@ export component MediaTab inherits VerticalLayout {
                 removable: !e.tmp;
 
                 preview => ViewState.preview-media(e);
-                send-to-view => ViewState.sync-and-play(e);
+                send-to-view => {
+                    ViewState.shared-view.show-img = e.show-img;
+                    ViewState.shared-view.color = e.color;
+                    ViewState.shared-view.img-bg = e.img-bg;
+                    ViewState.shared-view.img-fit = e.img-fit;
+                    ViewState.shared-view.path = e.path;
+                    ViewState.shared-view.is-logo = e.is-logo;
+                    ViewState.sync-and-play(e);
+                }
                 remove-click => ViewState.remove-media(i, n);
                 edit-click => {
                     ViewState.in-edit-mode = { editable: true, row: i, col: n };

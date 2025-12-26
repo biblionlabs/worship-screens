@@ -57,9 +57,6 @@ export component VersesTab inherits GridLayout {
                         add-click => {
                             vd.content = e.text;
                             vd.verse = e.book + (e.chapter > 0 ? " " + e.chapter + (e.verse.a > 0 ? ":" + e.verse.a : "") : "");
-                            vd.font = ViewState.shared-view.font;
-                            vd.color = ViewState.shared-view.color;
-                            vd.verse-font = ViewState.shared-view.verse-font;
 
                             let label = (vd.verse != "" ? vd.verse : (e.book + " " + e.chapter)) + " > " + e.text;
                             root.add-processed-item(vd, ScheduledKind.Verse, label);
