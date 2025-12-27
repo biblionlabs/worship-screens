@@ -6888,7 +6888,7 @@ checksum = "f17a85883d4e6d00e8a97c586de764dabcc06133f7f1d55dce5cdc070ad7fe59"
 
 [[package]]
 name = "worship-screens"
-version = "0.1.1-alpha.6"
+version = "0.1.1-alpha.7"
 dependencies = [
  "fontdb",
  "i-slint-core",

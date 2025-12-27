@@ -1,3 +1,14 @@
+## [0.1.1-alpha.7] - 2025-12-27
+
+### 🚀 Features
+
+- Use tantivy as unique database
+
+### 🐛 Bug Fixes
+
+- Content and verse font size to cover screen
+- Improvement size of content and verse text
+- Scheduled list take the current values from global
 ## [0.1.1-alpha.6] - 2025-12-14
 
 ### 🚀 Features
@@ -8,6 +19,10 @@
 
 - List area height on preview
 - Draggable item line height auto calculated
+
+### ⚙️ Miscellaneous Tasks
+
+- Release worship presentations version
 ## [0.1.1-alpha.5] - 2025-12-13
 
 ### 🚀 Features
