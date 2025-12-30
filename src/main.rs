@@ -14,24 +14,16 @@ use tracing_subscriber::EnvFilter;
 
 use ui::*;
 
-use self::bibles_manager::BiblesManager;
-use self::check_update::check_for_updates;
-use self::fav_text_manager::FavTextManager;
-use self::media_manager::MediaManager;
-use self::schedule_manager::ScheduleManager;
-use self::settings::AppSettings;
-use self::song_manager::SongsManager;
-use self::user_data::UserData;
-use self::utils::list_system_fonts;
+use check_update::check_for_updates;
+use settings::AppSettings;
+use user_data::UserData;
+use manager::*;
+use utils::list_system_fonts;
 
-mod bibles_manager;
 mod bitstream_converter;
 mod check_update;
-mod fav_text_manager;
-mod media_manager;
-mod schedule_manager;
+mod manager;
 mod settings;
-mod song_manager;
 mod user_data;
 mod utils;
 

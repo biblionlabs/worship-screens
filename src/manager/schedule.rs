@@ -5,7 +5,7 @@ use tracing::debug;
 
 use ui::{MainWindow, ScheduleState, ScheduledItem, ScheduledKind, ViewData, ViewState};
 
-use crate::song_manager::SongsManager;
+use super::SongsManager;
 
 pub struct ScheduleManager {
     window: Weak<MainWindow>,

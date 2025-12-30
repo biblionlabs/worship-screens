@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use serde::{Deserialize, Serialize};
 use ui::{FileItem, TextView, ViewFontData};
 
-use crate::media_manager::MediaItem;
+use crate::manager::MediaItem;
 use crate::user_data::Save;
 
 macro_rules! impl_deref {
