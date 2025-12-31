@@ -35,6 +35,14 @@
 
           libjpeg
           vulkan-loader
+
+          gst_all_1.gstreamer.dev
+          gst_all_1.gst-plugins-base.dev
+          gst_all_1.gst-plugins-good.dev
+          # Plugins to reuse ffmpeg to play almost every video format
+          gst_all_1.gst-libav.dev
+          # Support the Video Audio (Hardware) Acceleration API
+          gst_all_1.gst-vaapi.dev
         ];
 
         appPkg = (pkgs.rustPlatform.buildRustPackage.override { stdenv = pkgs.clangStdenv; }) (finalAttrs: {

@@ -49,6 +49,13 @@ fn main() {
         .with_writer(non_blocking)
         .init();
 
+    gst::init().expect("cannot init gst");
+    slint::BackendSelector::new()
+        .backend_name("winit".into())
+        .require_opengl_es()
+        .select()
+        .unwrap();
+
     let main_window = MainWindow::new().unwrap();
     let view_window = ViewWindow::new().unwrap();
     main_window
