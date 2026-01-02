@@ -15,9 +15,9 @@ use tracing_subscriber::EnvFilter;
 use ui::*;
 
 use check_update::check_for_updates;
+use manager::*;
 use settings::AppSettings;
 use user_data::UserData;
-use manager::*;
 use utils::list_system_fonts;
 
 mod bitstream_converter;
@@ -75,8 +75,8 @@ fn main() {
     schedule_manager.connect_callbacks();
 
     let media_manager = Arc::new(MediaManager::new(
-        main_window.as_weak(),
-        view_window.as_weak(),
+        &main_window,
+        &view_window,
         data_manager.clone(),
     ));
     let bibles_manager = Arc::new(OnceLock::<BiblesManager>::new());

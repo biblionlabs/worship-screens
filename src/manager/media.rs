@@ -6,6 +6,8 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+use futures::StreamExt;
+use gst::{MessageView, Pipeline};
 use mp4::Mp4Reader;
 use openh264::OpenH264API;
 use openh264::decoder::{Decoder, DecoderConfig, Flush};
@@ -22,6 +24,12 @@ use ui::{MainWindow, ViewData, ViewFontData, ViewState, ViewWindow};
 use crate::bitstream_converter::Mp4BitstreamConverter;
 use crate::settings::SourceMedia;
 use crate::user_data::UserData;
+
+mod egl;
+mod init;
+mod software;
+
+pub use init::init;
 
 const IMAGE_FORMATS: &[&str] = &[
     "avif", "bmp", "dds", "exr", "ff", "gif", "hdr", "ico", "jpeg", "jpg", "png", "pnm", "qoi",
@@ -235,22 +243,55 @@ impl From<ViewData> for MediaItem {
 }
 
 impl MediaManager {
-    pub fn new(
-        window: Weak<MainWindow>,
-        view_window: Weak<ViewWindow>,
-        data: Arc<UserData>,
-    ) -> Self {
+    pub fn new(window: &MainWindow, view_window: &ViewWindow, data: Arc<UserData>) -> Self {
         let media_list = Arc::new(Mutex::new(data.load::<SourceMedia>()));
+
+        let preview_video_playing = Arc::new(AtomicBool::new(false));
+        let output_video_playing = Arc::new(AtomicBool::new(false));
+        let pipeline = Pipeline::new();
+        let (bus_sender, mut bus_receiver) = futures::channel::mpsc::unbounded::<gst::Message>();
+
+        slint::spawn_local({
+            // GStreamer Objects are GLib Objects, so they are reference counted. Cloning increments
+            // the reference count, like cloning a std::rc::Rc.
+            let pipeline = pipeline.clone();
+            async move {
+                while let Some(msg) = bus_receiver.next().await {
+                    match msg.view() {
+                        // Only update the `playing` property of the GUI in response to GStreamer's state changing
+                        // rather than updating it from GUI callbacks. This ensures that the state of the GUI stays
+                        // in sync with GStreamer.
+                        MessageView::StateChanged(s) => {
+                            if *s.src().unwrap() == pipeline {
+                                // app.unwrap().set_playing(s.current() == gst::State::Playing);
+                            }
+                        }
+                        MessageView::Error(err) => {
+                            tracing::error!(
+                                "Error from {:?}: {} ({:?})",
+                                err.src().map(ToString::to_string),
+                                err.error(),
+                                err.debug()
+                            );
+                        }
+                        _ => (),
+                    }
+                }
+            }
+        })
+        .unwrap();
+
+        init(&window, &view_window, &pipeline, bus_sender);
 
         Self {
             data,
-            window,
-            view_window,
             media_list,
+            output_video_playing,
+            preview_video_playing,
+            window: window.as_weak(),
+            view_window: view_window.as_weak(),
             preview_video_thread: Arc::new(Mutex::new(None)),
-            preview_video_playing: Arc::new(AtomicBool::new(false)),
             output_video_thread: Arc::new(Mutex::new(None)),
-            output_video_playing: Arc::new(AtomicBool::new(false)),
         }
     }
 
