@@ -7,6 +7,8 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use futures::StreamExt;
+use gst::glib::object::ObjectExt;
+use gst::prelude::{ElementExt, ElementExtManual, GstBinExt};
 use gst::{MessageView, Pipeline};
 use mp4::Mp4Reader;
 use openh264::OpenH264API;
@@ -25,11 +27,11 @@ use crate::bitstream_converter::Mp4BitstreamConverter;
 use crate::settings::SourceMedia;
 use crate::user_data::UserData;
 
+#[cfg(target_os = "linux")]
 mod egl;
 mod init;
+#[cfg(not(target_os = "linux"))]
 mod software;
-
-pub use init::init;
 
 const IMAGE_FORMATS: &[&str] = &[
     "avif", "bmp", "dds", "exr", "ff", "gif", "hdr", "ico", "jpeg", "jpg", "png", "pnm", "qoi",
@@ -48,11 +50,15 @@ pub struct MediaManager {
     view_window: Weak<ViewWindow>,
     media_list: Arc<Mutex<SourceMedia>>,
 
-    preview_video_thread: Arc<Mutex<Option<JoinHandle<()>>>>,
     preview_video_playing: Arc<AtomicBool>,
-
-    output_video_thread: Arc<Mutex<Option<JoinHandle<()>>>>,
     output_video_playing: Arc<AtomicBool>,
+
+    pipeline: gst::Pipeline,
+    sink_element: gst::Element,
+    current_playbin: Arc<Mutex<Option<gst::Element>>>,
+
+    preview_enabled: Arc<AtomicBool>,
+    output_enabled: Arc<AtomicBool>,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -251,19 +257,30 @@ impl MediaManager {
         let pipeline = Pipeline::new();
         let (bus_sender, mut bus_receiver) = futures::channel::mpsc::unbounded::<gst::Message>();
 
-        slint::spawn_local({
-            // GStreamer Objects are GLib Objects, so they are reference counted. Cloning increments
-            // the reference count, like cloning a std::rc::Rc.
+        let preview_enabled = Arc::new(AtomicBool::new(false));
+        let output_enabled = Arc::new(AtomicBool::new(false));
+
+        let sink_element = init::init(
+            &window,
+            &view_window,
+            &pipeline,
+            bus_sender.clone(),
+            preview_enabled.clone(),
+            output_enabled.clone(),
+        );
+
+        let current_playbin: Arc<Mutex<Option<gst::Element>>> = Arc::new(Mutex::new(None));
+
+        {
             let pipeline = pipeline.clone();
-            async move {
+            let playbin_ref = current_playbin.clone();
+
+            slint::spawn_local(async move {
                 while let Some(msg) = bus_receiver.next().await {
                     match msg.view() {
-                        // Only update the `playing` property of the GUI in response to GStreamer's state changing
-                        // rather than updating it from GUI callbacks. This ensures that the state of the GUI stays
-                        // in sync with GStreamer.
                         MessageView::StateChanged(s) => {
                             if *s.src().unwrap() == pipeline {
-                                // app.unwrap().set_playing(s.current() == gst::State::Playing);
+                                // keep GUI in sync if necessary
                             }
                         }
                         MessageView::Error(err) => {
@@ -274,14 +291,34 @@ impl MediaManager {
                                 err.debug()
                             );
                         }
-                        _ => (),
+                        MessageView::Eos(_) => {
+                            // loop: seek pipeline to start
+                            let _ = pipeline
+                                .seek_simple(
+                                    gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT,
+                                    gst::ClockTime::ZERO,
+                                )
+                                .or_else(|_| {
+                                    // fallback: try seeking on the playbin element if present
+                                    if let Some(ref playbin) = *playbin_ref.lock().unwrap() {
+                                        playbin
+                                            .seek_simple(
+                                                gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT,
+                                                gst::ClockTime::ZERO,
+                                            )
+                                            .map(|_| ())
+                                            .map_err(|_| ())
+                                    } else {
+                                        Err(())
+                                    }
+                                });
+                        }
+                        _ => {}
                     }
                 }
-            }
-        })
-        .unwrap();
-
-        init(&window, &view_window, &pipeline, bus_sender);
+            })
+            .unwrap();
+        }
 
         Self {
             data,
@@ -290,8 +327,11 @@ impl MediaManager {
             preview_video_playing,
             window: window.as_weak(),
             view_window: view_window.as_weak(),
-            preview_video_thread: Arc::new(Mutex::new(None)),
-            output_video_thread: Arc::new(Mutex::new(None)),
+            pipeline,
+            sink_element,
+            current_playbin,
+            preview_enabled,
+            output_enabled,
         }
     }
 
@@ -515,20 +555,57 @@ impl MediaManager {
 
     pub fn stop_preview_video(&self) {
         self.preview_video_playing.store(false, Ordering::Relaxed);
-        if let Some(handle) = self.preview_video_thread.lock().unwrap().take() {
-            let _ = handle.join();
+        self.preview_enabled.store(false, Ordering::Relaxed);
+
+        // if neither preview nor output are active, pause pipeline
+        if !self.preview_enabled.load(Ordering::Relaxed)
+            && !self.output_enabled.load(Ordering::Relaxed)
+        {
+            let _ = self.pipeline.set_state(gst::State::Paused);
         }
     }
 
     pub fn stop_output_video(&self) {
         self.output_video_playing.store(false, Ordering::Relaxed);
-        if let Some(handle) = self.output_video_thread.lock().unwrap().take() {
-            let _ = handle.join();
+        self.output_enabled.store(false, Ordering::Relaxed);
+
+        if !self.preview_enabled.load(Ordering::Relaxed)
+            && !self.output_enabled.load(Ordering::Relaxed)
+        {
+            let _ = self.pipeline.set_state(gst::State::Paused);
         }
     }
 
+    fn set_playbin_uri(&self, uri: &str) {
+        // Remove previous playbin if exists
+        if let Some(prev) = self.current_playbin.lock().unwrap().take() {
+            let _ = prev.set_state(gst::State::Null);
+            let _ = self.pipeline.remove(&prev);
+        }
+
+        // Create a new playbin and set URI and video-sink to the configured sink
+        let playbin = gst::ElementFactory::make("playbin")
+            .name("worship_playbin")
+            .build()
+            .expect("Unable to create playbin element");
+        playbin.set_property("uri", &uri);
+        // set the video-sink directly on playbin to our glsink
+        playbin.set_property("video-sink", &self.sink_element);
+
+        self.pipeline
+            .add(&playbin)
+            .expect("failed to add playbin to pipeline");
+        // sync state with pipeline parent
+        let _ = playbin.sync_state_with_parent();
+
+        *self.current_playbin.lock().unwrap() = Some(playbin);
+    }
+
     pub fn play_preview_video(&self, media_data: ViewData) {
-        self.stop_preview_video();
+        // Set preview flag
+        self.stop_preview_video(); // ensure previous preview state cleared
+        self.preview_video_playing.store(true, Ordering::Relaxed);
+        self.preview_enabled.store(true, Ordering::Relaxed);
 
         let path = media_data.path.to_string();
         let source_path = PathBuf::from(&path);
@@ -537,19 +614,15 @@ impl MediaManager {
             return;
         }
 
-        let target_window = self.window.clone();
-        let video_playing = self.preview_video_playing.clone();
-        video_playing.store(true, Ordering::Relaxed);
+        self.set_playbin_uri(&format!("file://{}", source_path.to_string_lossy()));
 
-        let handle = std::thread::spawn(move || {
-            Self::video_playback_loop(source_path, video_playing, Some(target_window), None);
-        });
-
-        *self.preview_video_thread.lock().unwrap() = Some(handle);
+        let _ = self.pipeline.set_state(gst::State::Playing);
     }
 
     pub fn play_output_video(&self, media_data: ViewData) {
         self.stop_output_video();
+        self.output_video_playing.store(true, Ordering::Relaxed);
+        self.output_enabled.store(true, Ordering::Relaxed);
 
         let path = media_data.path.to_string();
         let source_path = PathBuf::from(&path);
@@ -563,16 +636,9 @@ impl MediaManager {
             return;
         }
 
-        let view_window = self.view_window.clone();
-        let video_playing = self.output_video_playing.clone();
+        self.set_playbin_uri(&format!("file://{}", source_path.to_string_lossy()));
 
-        video_playing.store(true, Ordering::Relaxed);
-
-        let handle = std::thread::spawn(move || {
-            Self::video_playback_loop(source_path, video_playing, None, Some(view_window));
-        });
-
-        *self.output_video_thread.lock().unwrap() = Some(handle);
+        let _ = self.pipeline.set_state(gst::State::Playing);
     }
 
     fn show_image(
@@ -615,116 +681,6 @@ impl MediaManager {
         }
 
         false
-    }
-
-    fn video_playback_loop(
-        source_path: PathBuf,
-        video_playing: Arc<AtomicBool>,
-        target_window: Option<Weak<MainWindow>>,
-        view_window: Option<Weak<ViewWindow>>,
-    ) {
-        let Ok(src_file) = File::open(&source_path) else {
-            error!("Cannot open video file: {source_path:?}");
-            return;
-        };
-
-        let size = src_file.metadata().unwrap().len();
-        let reader = BufReader::new(src_file);
-        let Ok(mut mp4_reader) = Mp4Reader::read_header(reader, size) else {
-            error!("Cannot read MP4 header: {source_path:?}");
-            return;
-        };
-
-        let Some((_, track)) = mp4_reader
-            .tracks()
-            .iter()
-            .find(|(_, t)| t.media_type().ok() == Some(mp4::MediaType::H264))
-        else {
-            error!("No H264 track found");
-            return;
-        };
-
-        let decoder_options = DecoderConfig::new().flush_after_decode(Flush::NoFlush);
-        let Ok(mut decoder) = Decoder::with_api_config(OpenH264API::from_source(), decoder_options)
-        else {
-            error!("Cannot create decoder");
-            return;
-        };
-
-        let sample_count = track.sample_count();
-        let track_id = track.track_id();
-        let width = track.width() as usize;
-        let height = track.height() as usize;
-        let wait_time = Duration::from_secs_f64(1.0 / track.frame_rate());
-        let mut bitstream_converter = Mp4BitstreamConverter::for_mp4_track(track).unwrap();
-        let mut buffer = Vec::new();
-
-        'video_loop: loop {
-            if !video_playing.load(Ordering::Relaxed) {
-                break;
-            }
-
-            let frame_start = Instant::now();
-            let mut frame_count = 0;
-
-            for i in 1..=sample_count {
-                if !video_playing.load(Ordering::Relaxed) {
-                    break 'video_loop;
-                }
-
-                let Some(sample) = mp4_reader.read_sample(track_id, i).ok().flatten() else {
-                    continue;
-                };
-
-                bitstream_converter.convert_packet(&sample.bytes, &mut buffer);
-
-                if let Ok(Some(image)) = decoder.decode(&buffer) {
-                    let mut pixels = SharedPixelBuffer::<Rgb8Pixel>::new(width as _, height as _);
-                    image.write_rgb8(pixels.make_mut_bytes());
-
-                    let target_window_clone = target_window.clone();
-                    let view_window_clone = view_window.clone();
-                    let video_playing = video_playing.clone();
-
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if !video_playing.load(Ordering::Relaxed) {
-                            return;
-                        }
-                        if let Some(target_window) = target_window_clone {
-                            if let Some(window) = target_window.upgrade() {
-                                let state = window.global::<ViewState>();
-                                let mut shared = state.get_shared_view();
-                                shared.img_bg = Image::from_rgb8(pixels.clone());
-                                shared.show_img = true;
-                                state.set_shared_view(shared);
-                            }
-                        }
-
-                        if let Some(view_window) = view_window_clone {
-                            if let Some(view_window) = view_window.upgrade() {
-                                let state = view_window.global::<ViewState>();
-                                let mut shared = state.get_shared_view();
-                                shared.img_bg = Image::from_rgb8(pixels);
-                                shared.show_img = true;
-                                state.set_shared_view(shared);
-                            }
-                        }
-                    });
-
-                    frame_count += 1;
-                    let expected_time = frame_start + wait_time * frame_count;
-                    let now = Instant::now();
-
-                    if now < expected_time {
-                        std::thread::sleep(expected_time - now);
-                    }
-                }
-            }
-
-            std::thread::sleep(Duration::from_millis(16));
-        }
-
-        video_playing.store(false, Ordering::Relaxed);
     }
 
     fn generate_video_thumbnail(source_path: &str) -> Option<Image> {

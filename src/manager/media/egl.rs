@@ -1,7 +1,7 @@
 // Copyright © SixtyFPS GmbH <info@slint.dev>
 // SPDX-License-Identifier: MIT
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, atomic::AtomicBool};
 
 use futures::channel::mpsc::UnboundedSender;
 use gst::prelude::*;
@@ -14,16 +14,19 @@ pub fn init(
     app: &ViewWindow,
     pipeline: &gst::Pipeline,
     bus_sender: UnboundedSender<gst::Message>,
+    preview_enabled: Arc<AtomicBool>,
+    output_enabled: Arc<AtomicBool>,
 ) -> gst::Element {
     let mut slint_sink = SlintOpenGLSink::new();
     let sink_element = slint_sink.element();
-    pipeline.set_property("video-sink", &sink_element);
 
     app.window()
         .set_rendering_notifier({
             let pipeline = pipeline.clone();
             let main = main.as_weak();
             let app_weak = app.as_weak();
+            let preview_enabled = preview_enabled.clone();
+            let output_enabled = output_enabled.clone();
 
             move |state, graphics_api| match state {
                 slint::RenderingState::RenderingSetup => {
@@ -48,20 +51,28 @@ pub fn init(
                     slint_sink.deactivate_and_pause();
                 }
                 slint::RenderingState::BeforeRendering => {
-                    let app = app_weak.unwrap();
-                    let window = main.unwrap();
+                    // Fetch a frame (if available) and update only the windows that are enabled.
                     if let Some(next_frame) = slint_sink.fetch_next_frame() {
-                        let view_state = app.global::<ViewState>();
-                        let mut state = view_state.get_shared_view();
-                        state.img_bg = next_frame.clone();
-                        state.show_img = true;
-                        view_state.set_shared_view(state);
+                        // If preview is enabled, update the MainWindow (preview)
+                        if preview_enabled.load(std::sync::atomic::Ordering::Relaxed) {
+                            if let Some(main_win) = main.upgrade() {
+                                let view_state = main_win.global::<ViewState>();
+                                let mut state = view_state.get_shared_view();
+                                state.img_bg = next_frame.clone();
+                                state.show_img = true;
+                                view_state.set_shared_view(state);
+                            }
+                        }
 
-                        let state = window.global::<ViewState>();
-                        let mut shared = state.get_shared_view();
-                        shared.img_bg = next_frame;
-                        shared.show_img = true;
-                        state.set_shared_view(shared);
+                        // If output is enabled, update the ViewWindow (output)
+                        if output_enabled.load(std::sync::atomic::Ordering::Relaxed) {
+                            let app = app_weak.unwrap();
+                            let state = app.global::<ViewState>();
+                            let mut shared = state.get_shared_view();
+                            shared.img_bg = next_frame;
+                            shared.show_img = true;
+                            state.set_shared_view(shared);
+                        }
                     }
                 }
                 _ => {}
