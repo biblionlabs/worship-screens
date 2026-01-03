@@ -7,14 +7,12 @@ use futures::channel::mpsc::UnboundedSender;
 use gst::prelude::*;
 use gst_gl::prelude::*;
 use slint::ComponentHandle;
-use ui::{MainWindow, ViewState, ViewWindow};
+use ui::{ViewState, ViewWindow};
 
 pub fn init(
-    main: &MainWindow,
     app: &ViewWindow,
     pipeline: &gst::Pipeline,
     bus_sender: UnboundedSender<gst::Message>,
-    preview_enabled: Arc<AtomicBool>,
     output_enabled: Arc<AtomicBool>,
 ) -> gst::Element {
     let mut slint_sink = SlintOpenGLSink::new();
@@ -23,9 +21,7 @@ pub fn init(
     app.window()
         .set_rendering_notifier({
             let pipeline = pipeline.clone();
-            let main = main.as_weak();
             let app_weak = app.as_weak();
-            let preview_enabled = preview_enabled.clone();
             let output_enabled = output_enabled.clone();
 
             move |state, graphics_api| match state {
@@ -53,18 +49,6 @@ pub fn init(
                 slint::RenderingState::BeforeRendering => {
                     // Fetch a frame (if available) and update only the windows that are enabled.
                     if let Some(next_frame) = slint_sink.fetch_next_frame() {
-                        // If preview is enabled, update the MainWindow (preview)
-                        if preview_enabled.load(std::sync::atomic::Ordering::Relaxed) {
-                            if let Some(main_win) = main.upgrade() {
-                                let view_state = main_win.global::<ViewState>();
-                                let mut state = view_state.get_shared_view();
-                                state.img_bg = next_frame.clone();
-                                state.show_img = true;
-                                view_state.set_shared_view(state);
-                            }
-                        }
-
-                        // If output is enabled, update the ViewWindow (output)
                         if output_enabled.load(std::sync::atomic::Ordering::Relaxed) {
                             let app = app_weak.unwrap();
                             let state = app.global::<ViewState>();

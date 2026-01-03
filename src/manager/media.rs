@@ -261,11 +261,9 @@ impl MediaManager {
         let output_enabled = Arc::new(AtomicBool::new(false));
 
         let sink_element = init::init(
-            &window,
             &view_window,
             &pipeline,
             bus_sender.clone(),
-            preview_enabled.clone(),
             output_enabled.clone(),
         );
 
@@ -557,23 +555,19 @@ impl MediaManager {
         self.preview_video_playing.store(false, Ordering::Relaxed);
         self.preview_enabled.store(false, Ordering::Relaxed);
 
-        // if neither preview nor output are active, pause pipeline
-        if !self.preview_enabled.load(Ordering::Relaxed)
-            && !self.output_enabled.load(Ordering::Relaxed)
-        {
-            let _ = self.pipeline.set_state(gst::State::Paused);
-        }
+        let _ = self.pipeline.set_state(gst::State::Paused);
     }
 
     pub fn stop_output_video(&self) {
         self.output_video_playing.store(false, Ordering::Relaxed);
         self.output_enabled.store(false, Ordering::Relaxed);
 
-        if !self.preview_enabled.load(Ordering::Relaxed)
-            && !self.output_enabled.load(Ordering::Relaxed)
-        {
-            let _ = self.pipeline.set_state(gst::State::Paused);
+        if let Some(prev) = self.current_playbin.lock().unwrap().take() {
+            let _ = prev.set_state(gst::State::Null);
+            let _ = self.pipeline.remove(&prev);
         }
+
+        let _ = self.pipeline.set_state(gst::State::Null);
     }
 
     fn set_playbin_uri(&self, uri: &str) {
@@ -601,40 +595,52 @@ impl MediaManager {
         *self.current_playbin.lock().unwrap() = Some(playbin);
     }
 
-    pub fn play_preview_video(&self, media_data: ViewData) {
+    pub fn play_preview_video(&self, mut media_data: ViewData) {
         // Set preview flag
         self.stop_preview_video(); // ensure previous preview state cleared
+
+        let path = media_data.path.to_string();
+
+        let Some(view_window) = self.window.upgrade() else {
+            return;
+        };
         self.preview_video_playing.store(true, Ordering::Relaxed);
         self.preview_enabled.store(true, Ordering::Relaxed);
 
-        let path = media_data.path.to_string();
-        let source_path = PathBuf::from(&path);
-
-        if Self::show_image(&source_path, media_data, Some(self.window.clone()), None) {
-            return;
-        }
-
-        self.set_playbin_uri(&format!("file://{}", source_path.to_string_lossy()));
-
-        let _ = self.pipeline.set_state(gst::State::Playing);
+        let state = view_window.global::<ViewState>();
+        let media = state.get_shared_view();
+        media_data.img_bg = Self::generate_video_thumbnail(&path).unwrap_or_default();
+        media_data.show_img = true;
+        media_data.content = media.content;
+        state.set_shared_view(media_data.clone());
     }
 
-    pub fn play_output_video(&self, media_data: ViewData) {
+    pub fn play_output_video(&self, mut media_data: ViewData) {
         self.stop_output_video();
-        self.output_video_playing.store(true, Ordering::Relaxed);
-        self.output_enabled.store(true, Ordering::Relaxed);
 
         let path = media_data.path.to_string();
         let source_path = PathBuf::from(&path);
 
         if Self::show_image(
             &source_path,
-            media_data,
+            media_data.clone(),
             None,
             Some(self.view_window.clone()),
         ) {
             return;
         }
+
+        let Some(view_window) = self.window.upgrade() else {
+            return;
+        };
+        let state = view_window.global::<ViewState>();
+        let media = state.get_shared_view();
+        media_data.img_bg = Self::generate_video_thumbnail(&path).unwrap_or_default();
+        media_data.show_img = true;
+        media_data.content = media.content;
+        state.set_shared_view(media_data.clone());
+        self.output_video_playing.store(true, Ordering::Relaxed);
+        self.output_enabled.store(true, Ordering::Relaxed);
 
         self.set_playbin_uri(&format!("file://{}", source_path.to_string_lossy()));
 
