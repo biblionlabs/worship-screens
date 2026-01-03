@@ -34,7 +34,7 @@ fn main() {
     // Start Traing
     let builder = tracing_appender::rolling::Builder::new()
         .rotation(tracing_appender::rolling::Rotation::DAILY)
-        .filename_suffix(".log")
+        .filename_suffix("log")
         .build(data_manager.data_dir(&["logs"]))
         .unwrap();
     let (non_blocking, _guard) = tracing_appender::non_blocking(builder);
@@ -42,7 +42,7 @@ fn main() {
         .with_ansi(false)
         .with_env_filter(
             EnvFilter::builder()
-                .with_default_directive(LevelFilter::INFO.into())
+                .with_default_directive(LevelFilter::TRACE.into())
                 .try_from_env()
                 .unwrap_or_default(),
         )
