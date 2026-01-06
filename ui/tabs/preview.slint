@@ -42,9 +42,9 @@ export component PreviewSection inherits VerticalLayout {
     preview := View {
         width: 100%;
         height: self.width / 1.7;
-        window-height: 400px / 1.7;
-        window-width: 400px;
-        render-scale: 0.3;
+        window-width: self.width;
+        window-height: self.width / 1.7;
+        render-scale: 0.27;
         data <=> ViewState.shared-view;
     }
 
