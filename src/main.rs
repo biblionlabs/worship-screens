@@ -20,6 +20,9 @@ use settings::AppSettings;
 use user_data::UserData;
 use utils::list_system_fonts;
 
+use self::autocomplete::setup_autocomplete;
+
+mod autocomplete;
 mod bitstream_converter;
 mod check_update;
 mod manager;
@@ -61,6 +64,8 @@ fn main() {
     main_window
         .global::<ViewState>()
         .set_installed_fonts(ModelRc::from(list_system_fonts().as_slice()));
+
+    setup_autocomplete(&main_window);
 
     let mut song_manager = SongsManager::new(main_window.as_weak(), data_manager.clone());
     song_manager.initialize();

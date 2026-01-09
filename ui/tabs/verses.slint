@@ -6,12 +6,13 @@ import { MainState } from "../api/global.slint";
 import { ViewData, ViewState } from "../api/view-state.slint";
 import { ScheduledKind } from "../api/schedule.slint";
 import { Button, LineEdit, ListView, Palette } from "std-widgets.slint";
+import { AutoComplete } from "../components/input/autocomplete.slint";
 
 export component VersesTab inherits GridLayout {
     callback add-processed-item(ViewData, ScheduledKind, string);
     callback open-bibles();
     callback send-to-view();
-    callback search-verse <=> search-verse-input.edited;
+    callback search-verse(string);
 
     spacing: 10px;
     padding: 10px;
@@ -27,10 +28,27 @@ export component VersesTab inherits GridLayout {
                 clicked => open-bibles();
             }
 
-            search-verse-input := LineEdit {
+            search-verse-input := AutoComplete {
+                input-id: "autocomplete-verses";
                 width: 95%;
-                input-type: InputType.text;
                 placeholder-text: "Busca: Juan 3:16, Romanos 14:10-14";
+                all-suggestions: [
+                    "Genesis",
+                    "Exodo",
+                    "Juan",
+                    "1 Samuel",
+                    "2 Samuel",
+                    "1 Reyes",
+                    "2 Reyes",
+                    "Juan",
+                    "1 Juan",
+                    "2 Juan",
+                    "3 Juan",
+                    "Mateo",
+                    "Apocalipsis",
+                ];
+
+                changed text => root.search-verse(self.text);
             }
         }
     }
@@ -38,6 +56,7 @@ export component VersesTab inherits GridLayout {
     Row {
         VerticalLayout {
             colspan: 3;
+            z: -1;
             verses-list := RenderableList {
                 item-count: MainState.verses.length;
                 item-focused(index) => {

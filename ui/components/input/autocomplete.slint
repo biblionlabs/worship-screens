@@ -1,0 +1,391 @@
+import { Palette, ScrollView } from "std-widgets.slint";
+
+export global AutoCompleteManager {
+    callback text-changed(string /* text */, [string] /* all-suggestions */);
+    callback item-selected(string /* selected-text */);
+    in-out property <string> active-input-id: "";
+    in-out property <[string]> active-suggestions: [];
+    in-out property <int> active-selected-index: -1;
+    in-out property <string> active-preview-text: "";
+    in-out property <string> active-text-to-apply: "";
+}
+
+export component FocusBorder inherits Rectangle {
+    border-width: 2px;
+    border-color: Palette.accent-background;
+
+    Rectangle {
+        x: parent.border-width;
+        y: parent.border-width;
+        width: parent.width - 2 * parent.border-width;
+        height: parent.height - 2 * parent.border-width;
+        border-width: 1px;
+        border-radius: parent.border-radius - 2px;
+        border-color: Palette.accent-background.brighter(0.2);
+    }
+}
+
+export component MenuBorder inherits Rectangle {
+    border-radius: 7px;
+    background: Palette.alternate-background;
+    drop-shadow-blur: 16px;
+    drop-shadow-offset-y: 8px;
+    drop-shadow-color: Palette.background.darker(0.8).transparentize(0.5);
+
+    Rectangle {
+        border-width: 1px;
+        border-radius: parent.border-radius;
+        border-color: Palette.border;
+    }
+}
+
+export component ListItem {
+    in property <bool> is-selected;
+    in property <StandardListViewItem> item;
+    in property <bool> has-focus;
+    in property <bool> has-hover;
+    in property <bool> pressed;
+    in property <int> index;
+    in property <length> pressed-x;
+    in property <length> pressed-y;
+
+    min-width: i-layout.min-width;
+    min-height: max(40px, i-layout.min-height);
+    vertical-stretch: 0;
+    horizontal-stretch: 1;
+
+    states [
+        pressed when root.pressed: {
+            i-background.background: is-selected ? Palette.selection-background.darker(0.1) : Palette.control-background.darker(0.15);
+        }
+        hover when root.has-hover: {
+            i-text.color: Palette.foreground.brighter(0.1);
+            i-background.background: is-selected ? Palette.selection-background.darker(0.1) : Palette.control-background.darker(0.1);
+            i-selector.height: root.is-selected ? 16px : 0;
+        }
+        is-selected when root.is-selected: {
+            i-background.background: Palette.selection-background.transparentize(0.7);
+            i-selector.height: 16px;
+        }
+    ]
+
+    if (root.has-focus): FocusBorder {
+        border-radius: 4px;
+    }
+
+    i-background := Rectangle {
+        width: root.width - 6px;
+        height: root.height - 4px;
+        background: transparent;
+        border-radius: 4px;
+
+        animate background { duration: 150ms; }
+
+        i-layout := HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            spacing: 4px;
+
+            i-text := Text {
+                text: root.item.text;
+                color: Palette.control-foreground;
+                font-size: 14 * 0.0769rem;
+                font-weight: 400;
+                vertical-alignment: center;
+                horizontal-alignment: left;
+                overflow: elide;
+
+                animate color { duration: 200ms; }
+            }
+        }
+
+        i-selector := Rectangle {
+            x: 0px;
+            y: (parent.height - self.height) / 2;
+            width: 3px;
+            height: 0px;
+            background: Palette.accent-background;
+            border-radius: 2px;
+
+            animate height {
+                duration: 150ms;
+                easing: ease-out;
+            }
+        }
+    }
+
+    @children
+}
+
+export component AutoComplete {
+    in property <string> input-id;
+    in property <[string]> all-suggestions: [];
+    in property <bool> enabled: true;
+    in property <string> placeholder-text: "";
+    in property <length> font-size <=> base.font-size;
+    in property <int> font-weight <=> base.font-weight;
+    out property <bool> has-focus <=> base.has-focus;
+    in-out property <string> text <=> base.text;
+
+    callback accepted(string);
+    callback edited(string);
+
+    property <[string]> filtered-suggestions <=> AutoCompleteManager.active-suggestions;
+    property <int> selected-index <=> AutoCompleteManager.active-selected-index;
+    property <string> preview-text <=> AutoCompleteManager.active-preview-text;
+    property <string> text-to-apply <=> AutoCompleteManager.active-text-to-apply;
+    property <int> visible-items: min(6, filtered-suggestions.length);
+    property <bool> show-popup: false;
+    property <string> original-text: "";
+
+    changed has-focus => {
+        if (root.has-focus) {
+            AutoCompleteManager.active-input-id = root.input-id;
+            root.original-text = root.text;
+        } else {
+            root.show-popup = false;
+        }
+    }
+
+    changed text => {
+        if (root.has-focus) {
+            root.original-text = root.text;
+            root.toggle-popup();
+        }
+    }
+    changed filtered-suggestions => root.toggle-popup();
+    changed text-to-apply => {
+        if (AutoCompleteManager.active-input-id == root.input-id && root.text-to-apply != "") {
+            root.text = root.text-to-apply;
+            AutoCompleteManager.active-text-to-apply = "";
+            root.show-popup = false;
+            root.selected-index = -1;
+            root.preview-text = "";
+        }
+    }
+
+    accessible-role: text-input;
+    accessible-enabled: root.enabled;
+    accessible-value <=> text;
+    accessible-placeholder-text: placeholder-text;
+    vertical-stretch: 0;
+    horizontal-stretch: 1;
+    min-width: max(160px, layout.min-width);
+    min-height: max(32px, layout.min-height);
+    forward-focus: base;
+
+    function toggle-popup() {
+        if (AutoCompleteManager.active-input-id == root.input-id) {
+            if (root.filtered-suggestions.length > 0 && !root.text.is-empty) {
+                root.show-popup = true;
+            } else {
+                root.show-popup = false;
+            }
+        }
+    }
+    function navigate-down() {
+        if (root.filtered-suggestions.length == 0) {
+            return;
+        }
+        if (root.selected-index >= root.filtered-suggestions.length - 1) {
+            root.selected-index = -1;
+            root.text = root.original-text;
+            root.preview-text = root.original-text;
+        } else {
+            root.selected-index += 1;
+            root.text = root.filtered-suggestions[root.selected-index];
+            root.preview-text = root.filtered-suggestions[root.selected-index];
+        }
+        base.select-all();
+        base.clear-selection();
+    }
+
+    function navigate-up() {
+        if (root.filtered-suggestions.length == 0) {
+            return;
+        }
+        if (root.selected-index <= 0) {
+            root.selected-index = -1;
+            root.text = root.original-text;
+            root.preview-text = root.original-text;
+        } else {
+            root.selected-index -= 1;
+            root.text = root.filtered-suggestions[root.selected-index];
+            root.preview-text = root.filtered-suggestions[root.selected-index];
+        }
+        base.select-all();
+        base.clear-selection();
+    }
+
+    function accept-current() {
+        if (root.selected-index >= 0 && root.selected-index < root.filtered-suggestions.length) {
+            AutoCompleteManager.item-selected(root.filtered-suggestions[root.selected-index]);
+        } else {
+            root.show-popup = false;
+            root.selected-index = -1;
+            root.preview-text = "";
+        }
+    }
+    function cancel-suggestions() {
+        root.show-popup = false;
+        root.selected-index = -1;
+        root.preview-text = "";
+    }
+
+    states [
+        disabled when !root.enabled: {
+            background.background: Palette.control-background.darker(0.1);
+            background.border-color: Palette.border.transparentize(0.5);
+        }
+        focused when root.has-focus: {
+            background.border-color: Palette.accent-background;
+            focus-border.background: Palette.accent-background;
+        }
+    ]
+
+    background := Rectangle {
+        border-radius: 4px;
+        background: Palette.control-background;
+        border-width: 1px;
+        border-color: Palette.border;
+        layout := Rectangle {
+            x: 8px;
+            width: 100%;
+            height: 100%;
+            if root.preview-text != "" && root.has-focus && root.text != "": Text {
+                height: 100%;
+                text: root.preview-text;
+                color: Palette.alternate-foreground;
+                opacity: 0.4;
+                font-size: base.font-size;
+                font-weight: base.font-weight;
+                vertical-alignment: center;
+                horizontal-alignment: left;
+                x: base.x;
+                y: base.y;
+            }
+            if root.text == "" && root.placeholder-text != "" && !root.has-focus: Text {
+                height: 100%;
+                text: root.placeholder-text;
+                color: Palette.foreground.transparentize(0.5);
+                font-size: base.font-size;
+                font-weight: base.font-weight;
+                vertical-alignment: center;
+                horizontal-alignment: left;
+                x: base.x;
+                y: base.y;
+            }
+            ContextMenuArea {
+                enabled: root.enabled;
+                Menu {
+                    MenuItem {
+                        title: @tr("Cut");
+                        enabled: root.enabled;
+                        activated => {
+                            base.cut();
+                        }
+                    }
+
+                    MenuItem {
+                        title: @tr("Copy");
+                        enabled: !root.text.is-empty;
+                        activated => {
+                            base.copy();
+                        }
+                    }
+
+                    MenuItem {
+                        title: @tr("Paste");
+                        enabled: root.enabled;
+                        activated => {
+                            base.paste();
+                        }
+                    }
+
+                    MenuItem {
+                        title: @tr("Select All");
+                        enabled: !root.text.is-empty;
+                        activated => {
+                            base.select-all();
+                        }
+                    }
+                }
+
+                base := TextInput {
+                    y: background.y + ((background.height / 2) - self.height / 2);
+                    height: 100%;
+                    horizontal-stretch: 1;
+                    color: Palette.foreground;
+                    selection-background-color: Palette.selection-background;
+                    selection-foreground-color: Palette.selection-foreground;
+                    single-line: true;
+                    vertical-alignment: center;
+                    read-only: !root.enabled;
+                    edited => {
+                        AutoCompleteManager.text-changed(self.text, root.all-suggestions);
+                        root.edited(self.text);
+                    }
+                    accepted => {
+                        root.accepted(self.text);
+                    }
+                    key-pressed(event) => {
+                        if (root.show-popup && root.filtered-suggestions.length > 0) {
+                            if (event.text == Key.DownArrow) {
+                                root.navigate-down();
+                                return accept;
+                            } else if (event.text == Key.UpArrow) {
+                                root.navigate-up();
+                                return accept;
+                            } else if (event.text == Key.Return) {
+                                root.accept-current();
+                                return accept;
+                            } else if (event.text == Key.Escape) {
+                                root.cancel-suggestions();
+                                return accept;
+                            }
+                        }
+                        return reject;
+                    }
+                }
+            }
+        }
+
+        focus-border := Rectangle {
+            x: parent.border-radius;
+            y: parent.height - self.height;
+            width: parent.width - 2 * parent.border-radius;
+            height: 2px;
+        }
+    }
+
+    if root.show-popup: Rectangle {
+        x: 0;
+        y: root.height;
+        width: root.width;
+        height: root.visible-items * 40px + 8px;
+        MenuBorder {
+            ScrollView {
+                viewport-height: root.filtered-suggestions.length * 40px;
+                VerticalLayout {
+                    alignment: start;
+                    padding: 4px;
+                    for suggestion[index] in root.filtered-suggestions: ListItem {
+                        item: { text: suggestion };
+                        is-selected: index == root.selected-index;
+                        has-hover: touch-area.has-hover;
+                        pressed: touch-area.pressed;
+                        touch-area := TouchArea {
+                            clicked => {
+                                AutoCompleteManager.item-selected(suggestion);
+                            }
+
+                            moved => {
+                                root.selected-index = index;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

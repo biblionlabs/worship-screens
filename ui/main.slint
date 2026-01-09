@@ -24,14 +24,18 @@ import {
 } from "api/view-state.slint";
 
 import { View } from "components/view.slint";
+import {
+    AutoCompleteManager,
+} from "components/input/autocomplete.slint";
 import { MarkdownLine, MarkdownLineKind } from "components/markdown.slint";
 import { ColorPicker } from "components/color-picker.slint";
 import { Renderable, RenderableList } from "components/base/renderable.slint";
+import { FontEdit } from "components/font-edit.slint";
+import { ColorPickerButton } from "components/color-picker-button.slint";
+
 import { FileManagerDialog } from "dialogs/songs.slint";
 import { MultimediaDialog } from "dialogs/media-selector.slint";
 import { BiblesDialog } from "dialogs/bibles.slint";
-import { FontEdit } from "components/font-edit.slint";
-import { ColorPickerButton } from "components/color-picker-button.slint";
 import { ChangelogDialog } from "dialogs/changelog.slint";
 import { ScheduledKind, ScheduleState } from "api/schedule.slint";
 
@@ -41,7 +45,7 @@ import { MediaTab } from "tabs/media.slint";
 import { TextTab } from "tabs/texts.slint";
 import { PreviewSection } from "tabs/preview.slint";
 
-export { Bible, EditMode, FileItem, FontState, MainState, MarkdownLine, MarkdownLineKind, ScheduledKind, ScheduleState, Settings, SettingsWindow, SongsState, TextView, Verse, ViewWindow, ViewState, ViewBackgroundColor }
+export { AutoCompleteManager, Bible, EditMode, FileItem, FontState, MainState, MarkdownLine, MarkdownLineKind, ScheduledKind, ScheduleState, Settings, SettingsWindow, SongsState, TextView, Verse, ViewWindow, ViewState, ViewBackgroundColor }
 
 export component MainWindow inherits Window {
     title: "Worship Screens";
