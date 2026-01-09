@@ -104,7 +104,7 @@ fn main() {
             }})
         .on::<event::Progress>({
             let main_window = main_window.as_weak();
-        let bibles_manager = bibles_manager.clone();
+            let bibles_manager = bibles_manager.clone();
             move |(step_id, current, total)| {
                 if step_id == "crossrefs" {
                     return;

@@ -1,4 +1,4 @@
-use slint::{ComponentHandle, Model, ModelRc, Weak};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, Weak};
 use std::sync::{Arc, Mutex};
 
 use setup_core::{BibleInstallStatus, Setup, TantivySink};
@@ -196,12 +196,25 @@ impl BiblesManager {
     }
 
     fn update_ui_from_cache(&self, cache: &[BibleItem]) {
+        let book_names = self
+            .setup
+            .list_installed_books()
+            .unwrap_or_default()
+            .iter()
+            .flat_map(|(_, books)| {
+                books
+                    .into_iter()
+                    .map(SharedString::from)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
         let window = self.window.unwrap();
         let state = window.global::<MainState>();
 
         let ui_bibles: Vec<Bible> = cache.iter().cloned().map(Bible::from).collect();
 
         state.set_bibles(ModelRc::from(ui_bibles.as_slice()));
+        state.set_autocomplete_books(ModelRc::from(book_names.as_slice()));
     }
 
     fn calculate_progress(status: &BibleInstallStatus) -> f32 {

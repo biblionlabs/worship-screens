@@ -31,6 +31,7 @@ export global MainState {
     in-out property <[Bible]> bibles;
     in property <[MarkdownLine]> last-changelog;
     in property <bool> show-changelog-on-start;
+    in property <[string]> autocomplete-books;
 
     callback search-bible(string);
     callback install-bible(string);
