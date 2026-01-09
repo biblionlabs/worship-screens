@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:bal="http://schemas.microsoft.com/wix/BalExtension"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <!-- DO NOT CHANGE: Bundle UpgradeCode -->
+  <Bundle
+    Name="Worship Screens"
+    Version="0.1.1"
+    Manufacturer="Biblion Labs"
+    UpgradeCode="9E4FDAF3-818C-4585-BF7B-A6FAF4D9B60B">
+
+    <!-- UI estándar -->
+    <BootstrapperApplicationRef
+      Id="WixStandardBootstrapperApplication.RtfLicense">
+      <bal:WixStandardBootstrapperApplication
+        LicenseFile="LICENSE.rtf"
+        SuppressOptionsUI="yes" />
+    </BootstrapperApplicationRef>
+
+    <!-- Detectar si GStreamer ya está instalado -->
+    <util:RegistrySearch
+      Id="SearchGStreamer"
+      Root="HKLM"
+      Key="SOFTWARE\GStreamer\1.0"
+      Variable="GSTREAMER_INSTALLED"
+      Result="exists" />
+
+    <Chain>
+
+      <!-- GStreamer Runtime -->
+      <MsiPackage
+        Id="GStreamerRuntime"
+        SourceFile="gstreamer-1.0-msvc-x86_64-1.26.0.msi"
+        Vital="yes"
+        InstallCondition="NOT GSTREAMER_INSTALLED"
+        DisplayInternalUI="no" />
+
+      <!-- Tu aplicación -->
+      <MsiPackage
+        Id="WorshipScreens"
+        SourceFile="worship-screens.msi"
+        Vital="yes"
+        DisplayInternalUI="no" />
+
+    </Chain>
+  </Bundle>
+</Wix>

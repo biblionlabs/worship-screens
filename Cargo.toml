@@ -5,9 +5,11 @@ description = "Present image/video/animations with text/verse on external monito
 authors = ["Sergio Ribera <contact@sergioribera.rs>"]
 license = "MIT OR Apache-2.0"
 edition = "2024"
+homepage = "https://github.com/biblionlabs/worship-screens"
 repository = "https://github.com/biblionlabs/worship-screens"
 
 [package.metadata.wix]
+path = "wix/main.custom.wxs"
 upgrade-guid = "F44F98E1-EE6A-4911-BDCB-0657C16E521C"
 path-guid = "B52C0688-96BA-4A81-AE74-49EA37366963"
 license = false
