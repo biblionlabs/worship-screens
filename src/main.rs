@@ -194,7 +194,7 @@ fn main() {
                 .global::<MainState>()
                 .set_need_update(need_update.is_some());
 
-            main_window
+            while main_window
                 .window()
                 .with_winit_window(|window| {
                     let mut monitors_map = monitors.lock().unwrap();
@@ -311,7 +311,8 @@ fn main() {
 
                     view_window.show().unwrap();
                 })
-                .unwrap();
+                .is_none()
+            {}
         }
     });
 
