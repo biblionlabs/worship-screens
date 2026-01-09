@@ -21,7 +21,7 @@ use slint::{
     ToSharedString, Weak,
 };
 use tracing::error;
-use ui::{MainWindow, ViewData, ViewFontData, ViewState, ViewWindow};
+use ui::{FontState, MainWindow, ViewData, ViewFontData, ViewState, ViewWindow};
 
 use crate::bitstream_converter::Mp4BitstreamConverter;
 use crate::settings::SourceMedia;
@@ -83,6 +83,8 @@ pub struct ViewBackgroundColor {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct FontData {
+    #[serde(default)]
+    pub name: Option<String>,
     pub color: [u8; 4],   // RGBA
     pub stroke: [u8; 4],  // RGBA
     pub stroke_size: f32, // pixels
@@ -92,6 +94,7 @@ pub struct FontData {
 impl Default for FontData {
     fn default() -> Self {
         Self {
+            name: None,
             color: [255, 255, 255, 255], // White
             stroke: [0, 0, 0, 255],      // Black
             stroke_size: 2.0,
@@ -130,8 +133,11 @@ impl<'a> From<&'a MediaItem> for ViewData {
             ImageFit::Cover => i_slint_core::items::ImageFit::Cover,
         };
 
+        let font_name = value.font.name.clone().unwrap_or_default();
+        let verse_font_name = value.verse_font.name.clone().unwrap_or_default();
+
         let font = ViewFontData {
-            name: SharedString::new(),
+            name: font_name.to_shared_string(),
             color: Color::from_argb_u8(
                 value.font.color[3],
                 value.font.color[0],
@@ -149,7 +155,7 @@ impl<'a> From<&'a MediaItem> for ViewData {
         };
 
         let verse_font = ViewFontData {
-            name: SharedString::new(),
+            name: verse_font_name.to_shared_string(),
             color: Color::from_argb_u8(
                 value.verse_font.color[3],
                 value.verse_font.color[0],
@@ -213,6 +219,7 @@ impl From<ViewData> for MediaItem {
                 _ => ImageFit::Contain,
             },
             font: FontData {
+                name: (!value.font.name.is_empty()).then_some(value.font.name.to_string()),
                 color: [
                     font_color.red(),
                     font_color.green(),
@@ -229,6 +236,8 @@ impl From<ViewData> for MediaItem {
                 font_size: value.font.font_size,
             },
             verse_font: FontData {
+                name: (!value.verse_font.name.is_empty())
+                    .then_some(value.verse_font.name.to_string()),
                 color: [
                     verse_font_color.red(),
                     verse_font_color.green(),
@@ -369,6 +378,7 @@ impl MediaManager {
     pub fn connect_callbacks(self: Arc<Self>) {
         let window = self.window.unwrap();
         let state = window.global::<ViewState>();
+        let font_state = window.global::<FontState>();
 
         window.window().on_winit_window_event({
             let window = self.window.clone();
@@ -436,6 +446,21 @@ impl MediaManager {
             }
         });
 
+        font_state.on_sync({
+            let window = self.window.clone();
+            let view_window = self.view_window.clone();
+            move || {
+                let window = window.unwrap();
+                let view_window = view_window.unwrap();
+
+                let font_state = window.global::<FontState>();
+                let view_font_state = view_window.global::<FontState>();
+
+                view_font_state.set_main(font_state.get_main());
+                view_font_state.set_verse(font_state.get_verse());
+            }
+        });
+
         state.on_select_file({
             let window = self.window.clone();
             move || {
@@ -448,7 +473,10 @@ impl MediaManager {
                         let path_str = path.to_string_lossy().into_owned();
                         let state = window.global::<ViewState>();
 
-                        let default_preview = state.get_select_media_preview();
+                        // NEW: retrieve media preview fonts from FontState (media-main/media-verse)
+                        let font_state = window.global::<FontState>();
+                        let default_media_font: ViewFontData = font_state.get_media_main();
+                        let default_media_verse_font: ViewFontData = font_state.get_media_verse();
 
                         let mut shared = ViewData {
                             color: ui::ViewBackgroundColor {
@@ -456,8 +484,8 @@ impl MediaManager {
                                 b: Color::from_rgb_u8(0, 0, 0),
                             },
                             img_fit: i_slint_core::items::ImageFit::Contain,
-                            font: default_preview.font,
-                            verse_font: default_preview.verse_font,
+                            font: default_media_font,
+                            verse_font: default_media_verse_font,
                             ..ViewData::default()
                         };
 
@@ -491,7 +519,14 @@ impl MediaManager {
                 let width = window.window().size().width;
                 let state = window.global::<ViewState>();
                 let mut settings = media_list.lock().unwrap();
-                let preview = state.get_select_media_preview();
+                let mut preview = state.get_select_media_preview();
+
+                // Read font data from FontState.media-* and set it on preview before converting
+                let font_state = window.global::<FontState>();
+                let font: ViewFontData = font_state.get_media_main();
+                let verse_font: ViewFontData = font_state.get_media_verse();
+                preview.font = font;
+                preview.verse_font = verse_font;
 
                 let mut new_item = MediaItem::from(preview);
                 if new_item.is_logo {

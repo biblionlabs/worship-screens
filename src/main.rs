@@ -271,18 +271,20 @@ fn main() {
                         data_manager.save(&save_settings);
                     }
 
-                    let mut main_shared_view = main_window.global::<ViewState>().get_shared_view();
+                    let view_window = view_window.unwrap();
+
+                    let font_state = main_window.global::<FontState>();
+                    let view_font_state = view_window.global::<FontState>();
+
                     if let Some(font) = updated_settings.content_font {
-                        main_shared_view.font = font;
+                        font_state.set_main(font.clone());
+                        view_font_state.set_main(font);
                     }
                     if let Some(font) = updated_settings.verse_font {
-                        main_shared_view.verse_font = font;
+                        font_state.set_verse(font.clone());
+                        view_font_state.set_verse(font);
                     }
-                    main_window
-                        .global::<ViewState>()
-                        .set_shared_view(main_shared_view);
 
-                    let view_window = view_window.unwrap();
                     let state = view_window.global::<ViewState>();
                     state.set_window_width(second_screen.size().width as _);
                     state.set_window_height(second_screen.size().height as _);
@@ -392,6 +394,11 @@ fn main() {
             let main_state = main_window.global::<ViewState>();
             let view_state = view_window.global::<ViewState>();
 
+            let font_state = main_window.global::<FontState>();
+            let view_font_state = view_window.global::<FontState>();
+
+            view_font_state.set_main(font_state.get_main());
+            view_font_state.set_verse(font_state.get_verse());
             view_state.set_shared_view(main_state.get_shared_view());
         }
     });
@@ -480,13 +487,19 @@ fn main() {
         let main_window = main_window.as_weak();
         let view_window = view_window.as_weak();
         let data_manager = data_manager.clone();
+        let media_manager = media_manager.clone();
         move || {
+            media_manager.stop_preview_video();
+            media_manager.stop_output_video();
             let main_window = main_window.unwrap();
             let mut settings = data_manager.load::<AppSettings>();
-            let shared_view = main_window.global::<ViewState>().get_shared_view();
 
-            settings.content_font.replace(shared_view.font);
-            settings.verse_font.replace(shared_view.verse_font);
+            let font_state = main_window.global::<FontState>();
+            let main_font = font_state.get_main();
+            let verse_font = font_state.get_verse();
+
+            settings.content_font.replace(main_font);
+            settings.verse_font.replace(verse_font);
 
             data_manager.save(&settings);
 

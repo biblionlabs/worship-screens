@@ -1,4 +1,4 @@
-import { ViewData, ViewState } from "../api/view-state.slint";
+import { FontState, ViewData, ViewFontData, ViewState } from "../api/view-state.slint";
 
 export component View inherits Rectangle {
     in property <float> render-scale: 1.0;
@@ -8,11 +8,13 @@ export component View inherits Rectangle {
         show-img: false,
         color: { a: Colors.black, b: Colors.black },
     };
+    in-out property <ViewFontData> font;
+    in-out property <ViewFontData> verse-font;
 
     clip: true;
 
-    property <length> computed-stroke-width: data.font.stroke-size * render-scale;
-    property <length> computed-verse-stroke-width: data.verse-font.stroke-size * render-scale;
+    property <length> computed-stroke-width: font.stroke-size * render-scale;
+    property <length> computed-verse-stroke-width: verse-font.stroke-size * render-scale;
     property <length> verse-bottom-offset: 30px * render-scale;
 
     Rectangle {
@@ -42,26 +44,26 @@ export component View inherits Rectangle {
             width: root.window-width;
             max-height: root.window-height - (verse-height + 30px * render-scale);
             wrap: word-wrap;
-            color: data.font.color;
-            stroke: data.font.stroke;
+            color: font.color;
+            stroke: font.stroke;
             stroke-width: computed-stroke-width;
             stroke-style: outside;
             horizontal-alignment: center;
             text: data.content;
-            font-family: data.font.name;
+            font-family: font.name;
             font-size: {
                 let text-length = data.content.character-count;
-                let verse-space = data.verse.is-empty ? 0px : (data.verse-font.font-size * render-scale + 30px * render-scale);
+                let verse-space = data.verse.is-empty ? 0px : (verse-font.font-size * render-scale + 30px * render-scale);
                 let available-height = (root.window-height - verse-space - 60px) / 1px;
                 let available-width = (root.window-width - 60px) / 1px;
-                let font-size-test = data.font.font-size * render-scale / 1px;
+                let font-size-test = font.font-size * render-scale / 1px;
                 let chars-per-line = available-width / (font-size-test * 0.65);
                 let num-lines = text-length / max(1, chars-per-line);
                 let line-height-factor = 1.3;
                 let required-height = num-lines * font-size-test * line-height-factor;
                 let scale-factor = min(1.0, available-height / required-height);
                 let calculated = font-size-test * scale-factor;
-                max(12px, min(data.font.font-size * render-scale, calculated * 1px))
+                max(12px, min(font.font-size * render-scale, calculated * 1px))
             };
         }
 
@@ -70,12 +72,12 @@ export component View inherits Rectangle {
             x: 0;
             width: root.window-width;
             text: data.verse;
-            color: data.verse-font.color;
-            stroke: data.verse-font.stroke;
+            color: verse-font.color;
+            stroke: verse-font.stroke;
             stroke-width: computed-verse-stroke-width;
             stroke-style: outside;
             horizontal-alignment: center;
-            font-family: data.verse-font.name;
+            font-family: verse-font.name;
             font-size: {
                 if data.verse.is-empty {
                     return 0px;
@@ -83,14 +85,14 @@ export component View inherits Rectangle {
                 let text-length = data.verse.character-count;
                 let available-width = (root.window-width - 60px) / 1px;
                 let available-height = (root.window-height - content-height - 90px * render-scale);
-                let font-size-test = data.verse-font.font-size * render-scale / 1px;
+                let font-size-test = verse-font.font-size * render-scale / 1px;
                 let chars-per-line = available-width / (font-size-test * 0.65);
                 let num-lines = text-length / max(1, chars-per-line);
                 let line-height-factor = 1.3;
                 let required-height = num-lines * font-size-test * line-height-factor;
                 let scale-factor = min(1px, available-height / required-height);
                 let calculated = font-size-test * scale-factor;
-                max(12px, min(data.verse-font.font-size * render-scale, calculated))
+                max(12px, min(verse-font.font-size * render-scale, calculated))
             };
         }
     }

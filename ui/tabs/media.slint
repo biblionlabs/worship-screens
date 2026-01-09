@@ -1,6 +1,6 @@
 import { Button, ListView, Palette } from "std-widgets.slint";
 import { Renderable } from "../components/base/renderable.slint";
-import { ViewData, ViewState } from "../api/view-state.slint";
+import { ViewData, ViewState, FontState } from "../api/view-state.slint";
 import { ScheduledKind } from "../api/schedule.slint";
 import { View } from "../components/view.slint";
 
@@ -30,6 +30,18 @@ export component MediaTab inherits VerticalLayout {
         Button {
             text: "+";
             clicked => {
+                let fm = {
+                    color: Colors.white,
+                    stroke: Colors.black,
+                    stroke-size: 2px,
+                    font-size: 48px,
+                };
+                let fv = {
+                    color: Colors.white,
+                    stroke: Colors.black,
+                    stroke-size: 2px,
+                    font-size: 24px,
+                };
                 ViewState.select-media-preview = {
                     show-img: false,
                     tmp: false,
@@ -39,19 +51,11 @@ export component MediaTab inherits VerticalLayout {
                     verse: "",
                     img-fit: ImageFit.contain,
                     color: { a: Colors.black, b: Colors.black },
-                    font: {
-                        color: Colors.white,
-                        stroke: Colors.black,
-                        stroke-size: 2px,
-                        font-size: 48px,
-                    },
-                    verse-font: {
-                        color: Colors.white,
-                        stroke: Colors.black,
-                        stroke-size: 2px,
-                        font-size: 24px,
-                    },
+                    font: fm,
+                    verse-font: fv,
                 };
+                FontState.set-media-main(fm);
+                FontState.set-media-verse(fv);
                 open-media-selector();
             }
         }
@@ -69,20 +73,25 @@ export component MediaTab inherits VerticalLayout {
                 editable: true;
                 removable: !e.tmp;
 
-                preview => ViewState.preview-media(e);
+                preview => {
+                    FontState.set-main(e.font);
+                    FontState.set-verse(e.verse-font);
+                    ViewState.set-shared-view(e);
+                    ViewState.preview-media(e);
+                }
                 send-to-view => {
-                    ViewState.shared-view.show-img = e.show-img;
-                    ViewState.shared-view.color = e.color;
-                    ViewState.shared-view.img-bg = e.img-bg;
-                    ViewState.shared-view.img-fit = e.img-fit;
-                    ViewState.shared-view.path = e.path;
-                    ViewState.shared-view.is-logo = e.is-logo;
+                    FontState.set-main(e.font);
+                    FontState.set-verse(e.verse-font);
+                    ViewState.set-shared-view(e);
                     ViewState.sync-and-play(e);
+                    FontState.sync();
                 }
                 remove-click => ViewState.remove-media(i, n);
                 edit-click => {
                     ViewState.in-edit-mode = { editable: true, row: i, col: n };
                     ViewState.select-media-preview = e;
+                    FontState.set-media-main(e.font);
+                    FontState.set-media-verse(e.verse-font);
                     open-media-selector();
                 }
 

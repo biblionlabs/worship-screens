@@ -8,7 +8,7 @@ import {
     Slider,
     Switch,
 } from "std-widgets.slint";
-import { ViewState } from "../api/view-state.slint";
+import { ViewState, FontState } from "../api/view-state.slint";
 import { ColorPickerButton } from "../components/color-picker-button.slint";
 import { View } from "../components/view.slint";
 import { Badge } from "../components/input/badge.slint";
@@ -58,17 +58,6 @@ export component MultimediaDialog inherits DialogBase {
 
                         changed checked => {
                             if self.checked {
-                                ViewState.select-media-preview.font = {
-                                    color: Colors.white,
-                                    stroke: Colors.black,
-                                    stroke-size: 2px,
-                                };
-                                ViewState.select-media-preview.verse-font = {
-                                    color: Colors.white,
-                                    stroke: Colors.black,
-                                    stroke-size: 2px,
-                                    font-size: 24px,
-                                };
                                 ViewState.select-media-preview.content = "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que";
                                 ViewState.select-media-preview.verse = "Juan 3:16";
                             } else {
@@ -94,6 +83,8 @@ export component MultimediaDialog inherits DialogBase {
                     window-width: parent.width;
                     window-height: parent.height;
                     data: ViewState.select-media-preview;
+                    font <=> FontState.media-main;
+                    verse-font <=> FontState.media-verse;
                 }
 
                 logo-badge := Badge {
@@ -223,7 +214,8 @@ export component MultimediaDialog inherits DialogBase {
 
                     FontEdit {
                         color-popup-position: right;
-                        data <=> ViewState.select-media-preview;
+                        font-data <=> FontState.media-main;
+                        verse-font-data <=> FontState.media-verse;
                     }
                 }
             }
@@ -255,6 +247,7 @@ export component MultimediaDialog inherits DialogBase {
                     text: "Aplicar";
                     primary: true;
                     clicked => {
+                        ViewState.select-media-preview.tmp = false;
                         ViewState.apply-changes(ViewState.in-edit-mode);
                         ViewState.in-edit-mode = { editable: false, row: -1, col: -1 };
                         root.close();

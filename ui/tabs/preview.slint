@@ -8,7 +8,7 @@ import {
     Renderable,
 } from "../components/base/renderable.slint";
 
-import { ViewData, ViewState } from "../api/view-state.slint";
+import { ViewData, ViewState, FontState } from "../api/view-state.slint";
 import { ScheduledKind, ScheduleState } from "../api/schedule.slint";
 
 export component PreviewSection inherits VerticalLayout {
@@ -46,6 +46,8 @@ export component PreviewSection inherits VerticalLayout {
         window-height: self.width / 1.7;
         render-scale: 0.27;
         data <=> ViewState.shared-view;
+        font <=> FontState.main;
+        verse-font <=> FontState.verse;
     }
 
     color-picker := ColorPickerButton {
@@ -71,7 +73,8 @@ export component PreviewSection inherits VerticalLayout {
                 height: root.height - control-buttons.height - preview.height - color-picker.height - 80px;
                 FontEdit {
                     show-main-title: false;
-                    data <=> ViewState.shared-view;
+                    font-data <=> FontState.main;
+                    verse-font-data <=> FontState.verse;
                 }
             }
         }

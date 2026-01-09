@@ -17,7 +17,11 @@ pub fn init<App: slint::ComponentHandle + 'static>(
     });
 
     let appsink = gst_app::AppSink::builder()
-        .caps(&gst_video::VideoCapsBuilder::new().format(gst_video::VideoFormat::Rgb).build())
+        .caps(
+            &gst_video::VideoCapsBuilder::new()
+                .format(gst_video::VideoFormat::Rgb)
+                .build(),
+        )
         .build();
 
     pipeline.set_property("video-sink", &appsink);

@@ -137,28 +137,21 @@ export component FontEdit inherits VerticalLayout {
     alignment: start;
     spacing: 20px;
 
-    in-out property <ViewData> data;
+    in-out property <ViewFontData> font-data;
+    in-out property <ViewFontData> verse-font-data;
     in property <bool> show-main-title: true;
     in property <ColorPickerPosition> color-popup-position;
 
     FontEditSection {
         name: show-main-title ? "📝 Fuente Principal (Contenido)" : "";
         padding-top: show-main-title ? 0px : 10px;
-        font: data.font;
+        font <=> font-data;
         color-popup-position <=> color-popup-position;
-
-        changed font => {
-            data.font = self.font;
-        }
     }
 
     FontEditSection {
         name: "📖 Fuente del Versículo";
-        font: data.verse-font;
+        font <=> verse-font-data;
         color-popup-position <=> color-popup-position;
-
-        changed font => {
-            data.verse-font = self.font;
-        }
     }
 }

@@ -40,6 +40,54 @@ export struct EditMode {
     col: int,
 }
 
+export global FontState {
+    in-out property <ViewFontData> main;
+    in-out property <ViewFontData> verse;
+
+    in-out property <ViewFontData> media-main;
+    in-out property <ViewFontData> media-verse;
+
+    callback sync();
+
+    public pure function default() -> ViewFontData {
+        return {
+            color: Colors.white,
+            stroke: Colors.black,
+            stroke-size: 2px,
+            font-size: 120px,
+        };
+    }
+
+    public function set-main(data: ViewFontData) {
+        FontState.main.name = data.name;
+        FontState.main.color = data.color;
+        FontState.main.font-size = data.font-size;
+        FontState.main.stroke = data.stroke;
+        FontState.main.stroke-size = data.stroke-size;
+    }
+    public function set-verse(data: ViewFontData) {
+        FontState.verse.name = data.name;
+        FontState.verse.color = data.color;
+        FontState.verse.font-size = data.font-size;
+        FontState.verse.stroke = data.stroke;
+        FontState.verse.stroke-size = data.stroke-size;
+    }
+    public function set-media-main(data: ViewFontData) {
+        FontState.media-main.name = data.name;
+        FontState.media-main.color = data.color;
+        FontState.media-main.font-size = data.font-size;
+        FontState.media-main.stroke = data.stroke;
+        FontState.media-main.stroke-size = data.stroke-size;
+    }
+    public function set-media-verse(data: ViewFontData) {
+        FontState.media-verse.name = data.name;
+        FontState.media-verse.color = data.color;
+        FontState.media-verse.font-size = data.font-size;
+        FontState.media-verse.stroke = data.stroke;
+        FontState.media-verse.stroke-size = data.stroke-size;
+    }
+}
+
 export global ViewState {
     in property <bool> off: false;
 
@@ -69,18 +117,6 @@ export global ViewState {
             show-img: false,
             img-fit: ImageFit.contain,
             color: { a: Colors.black, b: Colors.black },
-            font: {
-                color: Colors.white,
-                stroke: Colors.black,
-                stroke-size: 2px,
-                font-size: 120px,
-            },
-            verse-font: {
-                color: Colors.white,
-                stroke: Colors.black,
-                stroke-size: 2px,
-                font-size: 80px,
-            },
         };
     }
 
@@ -94,8 +130,6 @@ export global ViewState {
     public function set-shared-view(view-data: ViewData) {
         ViewState.shared-view.content = view-data.content;
         ViewState.shared-view.verse = view-data.verse;
-        ViewState.shared-view.font = view-data.font;
-        ViewState.shared-view.verse-font = view-data.verse-font;
         ViewState.shared-view.color = view-data.color;
 
         if view-data.show-img {

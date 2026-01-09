@@ -1,6 +1,6 @@
 import { Button, TextEdit, ListView } from "std-widgets.slint";
 import { Renderable } from "../components/base/renderable.slint";
-import { ViewData, ViewState, TextView } from "../api/view-state.slint";
+import { ViewData, ViewState, TextView, FontState } from "../api/view-state.slint";
 import { ScheduledKind } from "../api/schedule.slint";
 import { MainState } from "../api/global.slint";
 
@@ -32,7 +32,7 @@ export component TextTab inherits VerticalLayout {
                 clicked => {
                     let data = {
                         content: ViewState.shared-view.content,
-                        font: ViewState.shared-view.font,
+                        font: FontState.main,
                         color: ViewState.shared-view.color,
                     };
                     save-text(data);
@@ -71,19 +71,19 @@ export component TextTab inherits VerticalLayout {
             remove-click => remove-saved-text(idx);
             preview => {
                 ViewState.shared-view.content = e.content;
-                ViewState.shared-view.font = e.font;
                 ViewState.shared-view.color = e.color;
+                FontState.set-main(e.font);
             }
             send-to-view => {
                 ViewState.shared-view.content = e.content;
-                ViewState.shared-view.font = e.font;
                 ViewState.shared-view.color = e.color;
+                FontState.set-main(e.font);
                 root.send-to-view();
+                FontState.sync();
             }
             add-click => {
                 vd.content = e.content;
                 vd.verse = "";
-                vd.font = e.font;
                 vd.color = e.color;
 
                 root.add-processed-item(vd, ScheduledKind.Verse, e.content);
