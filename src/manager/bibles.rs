@@ -185,6 +185,22 @@ impl BiblesManager {
         let state = window.global::<MainState>();
         let bibles = state.get_bibles();
 
+        if is_complete {
+            let book_names = self
+                .setup
+                .list_installed_books()
+                .unwrap_or_default()
+                .iter()
+                .flat_map(|(_, books)| {
+                    books
+                        .into_iter()
+                        .map(SharedString::from)
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+            state.set_autocomplete_books(ModelRc::from(book_names.as_slice()));
+        }
+
         if let Some(idx) = bibles.iter().position(|b| b.id == bible_id) {
             if let Some(mut bible) = bibles.row_data(idx) {
                 bible.installing = !is_complete;
