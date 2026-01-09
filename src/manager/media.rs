@@ -27,7 +27,15 @@ use crate::bitstream_converter::Mp4BitstreamConverter;
 use crate::settings::SourceMedia;
 use crate::user_data::UserData;
 
+#[cfg(target_os = "linux")]
 mod egl;
+#[cfg(not(target_os = "linux"))]
+mod software;
+
+#[cfg(target_os = "linux")]
+use egl::init as init_gst_video;
+#[cfg(not(target_os = "linux"))]
+use software::init as init_gst_video;
 
 const IMAGE_FORMATS: &[&str] = &[
     "avif", "bmp", "dds", "exr", "ff", "gif", "hdr", "ico", "jpeg", "jpg", "png", "pnm", "qoi",
@@ -265,7 +273,7 @@ impl MediaManager {
         let preview_enabled = Arc::new(AtomicBool::new(false));
         let output_enabled = Arc::new(AtomicBool::new(false));
 
-        let sink_element = egl::init(
+        let sink_element = init_gst_video(
             &view_window,
             &pipeline,
             bus_sender.clone(),

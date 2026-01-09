@@ -10,14 +10,6 @@
     Manufacturer="Biblion Labs"
     UpgradeCode="9E4FDAF3-818C-4585-BF7B-A6FAF4D9B60B">
 
-    <!-- UI estándar -->
-    <BootstrapperApplicationRef
-      Id="WixStandardBootstrapperApplication.RtfLicense">
-      <bal:WixStandardBootstrapperApplication
-        LicenseFile="LICENSE.rtf"
-        SuppressOptionsUI="yes" />
-    </BootstrapperApplicationRef>
-
     <!-- Detectar si GStreamer ya está instalado -->
     <util:RegistrySearch
       Id="SearchGStreamer"
