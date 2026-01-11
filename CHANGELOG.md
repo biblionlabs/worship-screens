@@ -1,3 +1,35 @@
+## [0.1.1-alpha.8] - 2026-01-11
+
+### 🚀 Features
+
+- Implement egl gpu video process
+- Replace cpu process video to gpu with gstreamer
+- Play view works and thumbnail on preview window
+- Add autocomplete for bible books
+- Use installed books to autocomplete
+
+### 🐛 Bug Fixes
+
+- Normalize dependencies version
+- Some improvements on trace
+- Preview scale
+- Sync font data with component
+- Need open two times bug
+
+### 💼 Other
+
+- Update dependencies
+- Try to solve cargo-dist problems
+
+### 🚜 Refactor
+
+- Move manager files into a folder
+- Remove software process video option and keep egl
+
+### ⚙️ Miscellaneous Tasks
+
+- Init gstreamer migration
+- Update cargo dist to generate installer with deps
 ## [0.1.1-alpha.7] - 2025-12-27
 
 ### 🚀 Features
@@ -9,6 +41,10 @@
 - Content and verse font size to cover screen
 - Improvement size of content and verse text
 - Scheduled list take the current values from global
+
+### ⚙️ Miscellaneous Tasks
+
+- Release worship presentations version
 ## [0.1.1-alpha.6] - 2025-12-14
 
 ### 🚀 Features
